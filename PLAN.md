@@ -133,7 +133,7 @@ The user, Nov 6, 2026: "no it doen'st work and I don't want this namign at all ,
 Acceptance: every command example in README uses the bare name; the long names appear once as the alternative; `claude plugin validate .` passes.
 
 ### fix 8. install.ps1: config folder and reruns
-Status: todo
+Status: done 2026-11-06
 From the phase 2 review (P2-review-opus). `scripts/install.ps1`: set `CLAUDE_CONFIG_DIR` only for the script's own `claude` calls and restore it after (no leak into the caller's shell), and stop if an inherited value points somewhere other than `-ClaudeHome` (medium, lines 44-46); take backups only when a later action will change something, so a rerun on another day changes nothing (low, 102-108); when the backup target already exists add a time suffix instead of failing or nesting, and never overwrite CLAUDE.md without a copy (low, 94-99 and 223-227); decide "already installed" from `claude plugin list --json`, not from settings.json (low, 141-160). Deferred with reason: stderr from `claude` aborting under a captured stderr (a rerun recovers) and `$HOME` vs USERPROFILE (equal here; S8 handles paths on every OS).
 Acceptance: against a temp home, as in S6: `-WhatIf`, a real run, a second run (all `skip:`), and a run with the date faked to tomorrow (all `skip:`, no new backup folder); after a `-ClaudeHome` run, `CLAUDE_CONFIG_DIR` in the calling shell is unchanged; a second real run on this machine prints all `skip:`.
 
