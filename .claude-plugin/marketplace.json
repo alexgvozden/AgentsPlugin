@@ -1,0 +1,16 @@
+{
+  "name": "agents-plugin",
+  "owner": {
+    "name": "Aleksandar Gvozden"
+  },
+  "plugins": [
+    {
+      "name": "goal-prompt",
+      "source": "./plugins/goal-prompt"
+    },
+    {
+      "name": "goal-progress",
+      "source": "./plugins/goal-progress"
+    }
+  ]
+}
