@@ -113,7 +113,7 @@ Acceptance: README has the models section, the examples and at least three image
 Status: todo
 
 ### S6. Install script
-Status: todo
+Status: done 2026-11-06
 `scripts/install.ps1`: `claude plugin marketplace add alexgvozden/AgentsPlugin`, `claude plugin install goal-prompt@agents-plugin` and `goal-progress@agents-plugin`; if `~/.claude/CLAUDE.md` does not import `rules/CLAUDE.global.md`, replace its body with the import (old file to backup first); move the old user-level copies (`~/.claude/skills/goal-prompt`, `~/.claude/skills/goal-prompt-3rdparty`, `~/.claude/bin/ext-build*`, `~/.claude/mods/goal-progress`, the `local-mods` marketplace entry and `goal-progress@local-mods` in `~/.claude/settings.json`) to `~/.claude/backup-<date>/`, never deleting. Leaves `ext-build.json`, `secrets/` and the `.bak-*` files alone. Safe to run twice.
 Acceptance: `-WhatIf` run prints every action; a real run prints done for each; a second run changes nothing.
 
