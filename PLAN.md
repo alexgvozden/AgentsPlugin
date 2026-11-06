@@ -188,7 +188,7 @@ Status: done 2026-11-06
 Acceptance: `claude plugin validate plugins/ag` passes; `claude --plugin-dir plugins/ag -p "list your skills"` names `ag:design`; a dry run on a two-line description writes the folder with `brief.md` and `design-plan.md` and the `-DryRun` image commands.
 
 ### S11. Goals use design for new pages
-Status: todo
+Status: done 2026-11-06
 In both goal-prompt skills: a step that adds a new page or screen gets a design step first (the design skill, Opus high), whose folder the UI builder then works from and the user can review; a minor UI change skips it; with no image key set, the design step writes the plan without images. Both skills name the project folders they write (`design/...` committed for review; `.claude/goal-prompt/<run>/` git-ignored for briefs and logs). Opus medium (technical copy). Versions: goal-prompt 1.1.0.
 Acceptance: both SKILL.md files name the design step, the new-page rule and the folders; the goal templates stay under 4,000 characters; `claude plugin validate plugins/ag` passes.
 
