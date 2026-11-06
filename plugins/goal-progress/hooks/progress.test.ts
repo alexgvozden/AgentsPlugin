@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { bar, counts, current, isOpen, orderedSteps, parseProgress, runningLines, shortTokens, statusLine, stepSummary } from './progress'
+import { bar, counts, current, isOpen, keepLastGood, orderedSteps, parseProgress, runningLines, shortTokens, statusLine, stepSummary } from './progress'
 
 const FILE_TEXT = JSON.stringify({
   goal: 'A1 track 1',
@@ -163,6 +163,16 @@ test('orders all the steps: deployed, done, shown, in progress, waiting, not sta
   expect(isOpen(p.tasks[0]!, current(p), {})).toBe(true)
   expect(isOpen(p.tasks[1]!, current(p), {})).toBe(false)
   expect(isOpen(p.tasks[0]!, current(p), { S3: false })).toBe(false)
+})
+
+test('keeps the last good text when a read comes back empty or not a progress file', () => {
+  const NEWER = JSON.stringify({ goal: 'newer', tasks: [{ id: 'B', title: 'B', status: 'todo' }] })
+  expect(keepLastGood(FILE_TEXT, '')).toBe(FILE_TEXT) // first good read wins
+  expect(keepLastGood('', FILE_TEXT)).toBe(FILE_TEXT) // empty read keeps it
+  expect(keepLastGood('{"goal":"g","tasks":[', FILE_TEXT)).toBe(FILE_TEXT) // half-written keeps it
+  expect(keepLastGood(NEWER, FILE_TEXT)).toBe(NEWER) // a newer good read replaces it
+  expect(keepLastGood('', '')).toBe('') // nothing good ever read stays missing
+  expect(keepLastGood('{"goal":"x"}', '')).toBe('') // nor does a file without tasks
 })
 
 test('reads the log as strings or { text, at }, dropping empty lines', () => {

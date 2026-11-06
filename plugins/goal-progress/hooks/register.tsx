@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { GoalProgress, GoalStep, TaskStatus } from '../types'
-import { FILE, ago, bar, counts, current, engineLabel, fit, isOpen, onFireworks, orderedSteps, parseProgress, runningLines, shortTokens, STATUS_LABEL } from './progress'
+import { FILE, ago, bar, counts, current, engineLabel, fit, isOpen, keepLastGood, onFireworks, orderedSteps, parseProgress, runningLines, shortTokens, STATUS_LABEL } from './progress'
 
 const progress = atom({ plugin: 'goal-progress', key: 'progress' } as const, null)
 const isHidden = atom({ plugin: 'goal-progress', key: 'isHidden' } as const, false)
@@ -34,9 +34,15 @@ let termCols = 0
  */
 const PLACES = [FILE, `../../${FILE.replace(/^\.claude\//, '')}`]
 
+/**
+ * Reads the progress file from the session's project root, so a shell `cd` in
+ * the session (which moves the working directory, not the root) cannot lose it.
+ */
 async function readFile($: EngineInterface): Promise<string> {
+  const root = await $.session.root().catch(() => '')
   for (const place of PLACES) {
-    const text = (await $.fs.exists(place).catch(() => false)) ? await $.fs.read(place).catch(() => '') : ''
+    const path = root ? `${root}/${place}` : place
+    const text = (await $.fs.exists(path).catch(() => false)) ? await $.fs.read(path).catch(() => '') : ''
     if (text) return text
   }
 
@@ -45,11 +51,12 @@ async function readFile($: EngineInterface): Promise<string> {
 
 /**
  * Reads the progress file; redraws when its text changed, and every TICK_MS so
- * times and "updated ... ago" move. A half-written file (not valid JSON) keeps
- * the last good state and is read again at the next poll.
+ * times and "updated ... ago" move. A read that comes back empty or is not a
+ * progress file (a half-written file, or one read while it is rewritten) keeps
+ * the last good state, which is read again at the next poll.
  */
 async function refresh($: EngineInterface): Promise<void> {
-  const text = await readFile($)
+  const text = keepLastGood(await readFile($), last)
   const now = await $.clock.now()
   let changed = false
   if (now - lastTick >= TICK_MS) {
@@ -58,7 +65,7 @@ async function refresh($: EngineInterface): Promise<void> {
     changed = true
   }
   const p = text === last ? undefined : text ? parseProgress(text) : null
-  if (p !== undefined && !(text && !p)) {
+  if (p !== undefined) {
     last = text
     await update($, progress, () => p)
     changed = true

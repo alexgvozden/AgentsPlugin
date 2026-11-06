@@ -89,7 +89,7 @@ The user, Nov 6, 2026: "also please update readme to explain what you get". `REA
 Acceptance: README names every part listed above; `claude plugin validate .` passes.
 
 ### fix 2. Progress pane loses the tasks
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026: "also very often I loose tasks" (screenshot: the Goal tasks pane shows "No goal progress yet: .claude/goal-progress.json is missing." while the file exists). In `plugins/goal-progress/hooks/register.tsx` (`PLACES`, `readFile`, `refresh`, lines 31-69): find the file from the project folder even after the session's working directory moves, and keep the last good state when a read comes back empty or fails, as a half-written file already does.
 Acceptance: one unit test for the keep-last-good-state rule; `claude plugin test plugins/goal-progress` all pass (12 + new); `claude plugin validate plugins/goal-progress` passes.
 

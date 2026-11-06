@@ -118,6 +118,18 @@ export function parseProgress(text: string): GoalProgress | null {
   }
 }
 
+/**
+ * The progress file's text to show after a read: the read's own text when it is
+ * a progress file, else the last good text, so a read that comes back empty or
+ * half-written (the file being rewritten, or a working directory that moved)
+ * keeps what was shown. Empty when nothing good was ever read.
+ */
+export function keepLastGood(text: string, last: string): string {
+  if (text && parseProgress(text)) return text
+
+  return last && parseProgress(last) ? last : ''
+}
+
 /** How long since `iso`, short: "40s", "12m", "1h 05m"; undefined when it is not a time. */
 export function elapsed(iso: string | undefined, now: number): string | undefined {
   if (!iso) return undefined
