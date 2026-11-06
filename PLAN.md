@@ -110,7 +110,7 @@ The user, Nov 6, 2026: "explain fully in readme what models are used when and al
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
-Status: todo
+Status: shown 2026-11-06
 
 ### S6. Install script
 Status: done 2026-11-06
@@ -197,4 +197,5 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2: S6 done (5b0b1f7), S7 done (ee3a4d2, pushed). Phase close: suites passed (validate, 13 tests, ext-build 31), second install run all skip; review P2-review-opus: no high; medium and three lows become fix 8, two lows deferred with reasons. fix 6 done (aa7d869) but wrong about bare names; fix 7 restores them in the README. fix 7 done (9bac3ff). Running: fix8-install-fw1. Then Phase 2 shown. Phase 3 after Phase 2's sign-off.
+Phase 1 done (4e15b7b). Phase 2 shown, waiting for the user's check in a new session (`/goal-prompt`, `/goal-prompt-3rdparty`, the progress bar). S6 (5b0b1f7), S7 (ee3a4d2, pushed), fix 6 (aa7d869), fix 7 (9bac3ff, bare names), fix 8 (c4ecca3, install.ps1 from the review) done; fix 6-8 local until S13's push. Phase close: validate passed, 13 tests pass, ext-build 31 pass; install reruns all `skip:` (13 lines); review P2-review-opus: no high, medium and three lows fixed (fix 8), two lows deferred with reasons. Fresh sessions load `/goal-prompt` and `/goal-prompt-3rdparty`.
+Next after sign-off: Phase 2 done, then Phase 3 (S8).
