@@ -111,7 +111,7 @@ The user, Nov 6, 2026: "explain fully in readme what models are used when and al
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
-Status: todo
+Status: shown 2026-11-06
 
 ### S6. Install script
 Status: done 2026-11-06
@@ -228,5 +228,5 @@ Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new ver
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 reopened for fix 14 (fix14-progress-fw1: the command back to `/goal-progress`, the user's choice). Before that it was shown, waiting for the user's check in a new session: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress`, and the band naming Phase 2 while it waits. Done: S6, S7, fix 6-13; fix 13 (66a2e23, pushed; ag 1.0.1 installed here, 14 tests pass, install rerun all `skip:`). fix 12 (README) went out with fix 13's push. Phase close: suites passed; review findings fixed (fix 8) or deferred.
+Phase 1 done (4e15b7b). Phase 2 shown, waiting for the user's check in a new session: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/goal-progress`, and the band naming Phase 2 while it waits. Done: S6, S7, fix 6-14; fix 14 (128d05e, pushed: the command is `/goal-progress` again; ag 1.0.2 installed here, 14 plugin tests and 31 ext-build tests pass, validate shows `command.run{command=goal-progress}`, install rerun all `skip:`). Phase close: suites passed; review findings fixed (fix 8) or deferred.
 Next after sign-off: Phase 2 done, then Phase 3 (S8; design as `/ag:design`).
