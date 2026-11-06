@@ -46,6 +46,7 @@ Checked Nov 6, 2026 against code.claude.com/docs (skills, plugins/components, pl
 - **Manifests:** `marketplace.json` needs `name`, `owner.name`, `plugins[{name, source}]`; `source` like `./plugins/goal-prompt`, no `..`. `plugin.json` needs `name` (kebab-case; `claude-`, `anthropic-`, `cc-plugin-` prefixes reserved). Set `version` only in `plugin.json`. Entry name = manifest name. (docs: plugin-marketplaces, manifest-reference)
 - **Private repo install:** Claude Code uses the machine's git with SSH first (works here), no token of its own. CLI: `claude plugin marketplace add alexgvozden/AgentsPlugin`, `claude plugin install goal-prompt@agents-plugin`, `claude plugin update ...`. Auto-update is off until turned on in `/plugin` → Marketplaces. (docs: plugins/host-marketplace)
 - **The mod:** installs like any plugin; `hooks/hooks.json` keeps `"modules": ["./register.tsx"]`, imports stay inside the plugin. A GitHub install is a versioned copy, so bump `version` to ship changes. Two enabled copies with the same name load only one hooks module, so the `local-mods` copy is uninstalled (S6). (docs: plugins/mods/create, plugins/loading)
+- **Mod command names** (checked Nov 6, 2026, mods reference "Limits"): letters, digits, `_`, `-`, up to 64; shown as `/<name>` with no plugin prefix, so the mod's command is `/goal-progress` while skills are `/ag:<skill>`.
 - Checks: `claude plugin validate <dir>`, `claude plugin test <dir>` (goal-progress: 12 tests), `ext-build.test.ps1` (29 checks), `ext-build.ps1 -Check` (one real Fireworks call, about $0.01).
 
 ## Who does what
@@ -110,7 +111,7 @@ The user, Nov 6, 2026: "explain fully in readme what models are used when and al
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
-Status: shown 2026-11-06
+Status: todo
 
 ### S6. Install script
 Status: done 2026-11-06
@@ -161,6 +162,11 @@ Acceptance: `grep -n "goal-prompt@\|goal-progress@\|plugins/goal-prompt\|plugins
 Status: done 2026-11-06
 The user, Nov 6, 2026, with a screenshot (menu: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/goal-progress`; band: "67% P3 Design images and keys on every OS" while Phase 2 waits for sign-off): "goal progress is not showing up good, 2 are showing". Two faults: the mod registers its command as bare `goal-progress` (`plugins/ag/hooks/register.tsx` lines 188 and 226), so it is not under `ag`; and `current()` (`plugins/ag/hooks/progress.ts` lines 258-265) skips `waiting` and `shown` tasks, so at a gate the band names the next phase. Fix: the command shows as `/ag:goal-progress` (per the mods docs on command names; if a `:` is not allowed in a registered name, say so and stop); `current()` returns, in order, the first `doing`, `waiting`, `blocked`, then (when the goal's status is `waiting`) the last `shown` task, then the first `todo`. ag version 1.0.1; push and reinstall here so the user sees it.
 Acceptance: one unit test for the gate case (a `shown` task and a later `todo`, goal `waiting`: current is the `shown` one); `claude plugin test plugins/ag` all pass (14); `claude plugin validate plugins/ag` passes with no gating warning; after the push and install, `claude plugin list` shows ag 1.0.1; the user sees `/ag:goal-progress` and the band names Phase 2 while it waits.
+
+### fix 14. The progress command is `/goal-progress` again
+Status: todo
+The user, Nov 6, 2026: "so goal progress is not a command or ? beucase it's still not availaable"; asked to choose, the user picked `/goal-progress`. The mods reference (Limits: command names are "Letters, digits, `_`, and `-`, up to 64 characters") and the d.ts (`the person runs it as /<name>`) rule out `ag:goal-progress`; a refused name makes `register` throw and the rest of `session.start` is skipped. Fix: `plugins/ag/hooks/register.tsx` registers and answers `goal-progress` again (lines 188 and 226), keeping fix 13's `current()` change; every `/ag:goal-progress` in `README.md`, `plugins/ag/goal-progress.md` and the SKILL.md files becomes `/goal-progress` (a name swap, no other text); ag version 1.0.2; push and reinstall here.
+Acceptance: `grep -rn "ag:goal-progress" plugins README.md` finds nothing; `claude plugin test plugins/ag` (14 pass); `claude plugin validate plugins/ag` shows `answers its own command: command.run{command=goal-progress}`; after the push and install, `claude plugin list` shows ag 1.0.2; the user sees `/goal-progress` and the band in a new session.
 
 ## Phase 3: design images and keys on every OS (gate: you run the design command in a new session and review its folder)
 Status: todo
@@ -222,5 +228,5 @@ Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new ver
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 shown again, waiting for the user's check in a new session: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress`, and the band naming Phase 2 while it waits. Done: S6, S7, fix 6-13; fix 13 (66a2e23, pushed; ag 1.0.1 installed here, 14 tests pass, install rerun all `skip:`). fix 12 (README) went out with fix 13's push. Phase close: suites passed; review findings fixed (fix 8) or deferred.
+Phase 1 done (4e15b7b). Phase 2 reopened for fix 14 (fix14-progress-fw1: the command back to `/goal-progress`, the user's choice). Before that it was shown, waiting for the user's check in a new session: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress`, and the band naming Phase 2 while it waits. Done: S6, S7, fix 6-13; fix 13 (66a2e23, pushed; ag 1.0.1 installed here, 14 tests pass, install rerun all `skip:`). fix 12 (README) went out with fix 13's push. Phase close: suites passed; review findings fixed (fix 8) or deferred.
 Next after sign-off: Phase 2 done, then Phase 3 (S8; design as `/ag:design`).
