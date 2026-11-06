@@ -79,7 +79,7 @@ Status: done 2026-11-06
 Acceptance: the file matches `~/.claude/CLAUDE.md` byte for byte (`fc /b` or `cmp`).
 
 ### S5. Secret check, then push
-Status: todo
+Status: done 2026-11-06
 Search the tree and the staged files for key material (`fw_`, `-----BEGIN`, long base64/DPAPI blobs, `ANTHROPIC_AUTH_TOKEN=`), check `git ls-files` against the "Never in the repo" list, then push `main`.
 Acceptance: the search prints no hits; `git ls-files` printed; `git push -u origin main` succeeds; `git status` clean.
 
