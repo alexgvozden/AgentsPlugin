@@ -116,4 +116,5 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
-Not started. 2026-11-06: builders moved to Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` before any step started; S5 stays on Opus medium.
+2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 stays on Opus medium.
+Phase 1: S1 done (6df43c7, validate passed). Next: S2, S3, S4 side by side (S2-progress-fw1, S3-prompt-fw1, S4-rules-fw1), then S5.
