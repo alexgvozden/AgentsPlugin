@@ -191,14 +191,22 @@ Three providers need an API key:
 - **Gemini** and **OpenAI** — for the images of `/ag:design` (`design-image.ps1`).
   You need only the one you use; Gemini is the default.
 
-Set each key once per machine, in your own terminal, from this checkout. The
-script asks for the key; type or paste it there. **Never paste a key into a
-Claude chat.** `-Check` tells you whether a key is set (for Fireworks it also
-tests it).
+Set each key once per machine, in your own terminal. The script asks for the
+key; type or paste it there. **Never paste a key into a Claude chat.**
 
-**Windows** (PowerShell):
+`-Check` works differently in each script:
+
+- `design-image.ps1 -Check gemini` or `-Check openai` makes one small, paid image call.
+- `ext-build.ps1 -Check` makes one Fireworks call, about $0.01.
+- `ext-build.ps1 -Check gemini` or `-Check openai` only checks that the key is set.
+
+Each block below starts with a `cd` to your checkout of this repo. Change the
+path if you cloned it somewhere else.
+
+**Windows** (PowerShell, nothing extra to install):
 
 ```powershell
+cd C:\Users\<you>\Code\AgentsPlugin
 powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/ext-build.ps1 -SetKey
 powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/ext-build.ps1 -Check
 powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/design-image.ps1 -SetKey gemini
@@ -207,9 +215,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/design-im
 powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/design-image.ps1 -Check openai
 ```
 
-**macOS and Linux** (needs PowerShell 7, `pwsh`):
+**macOS and Linux.** The scripts need PowerShell 7 (`pwsh`). Install it once,
+using Microsoft's guide for
+[macOS](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-macos)
+or [Linux](https://learn.microsoft.com/powershell/scripting/install/linux-overview).
 
 ```sh
+cd ~/Code/AgentsPlugin
 pwsh -File plugins/ag/scripts/ext-build.ps1 -SetKey
 pwsh -File plugins/ag/scripts/ext-build.ps1 -Check
 pwsh -File plugins/ag/scripts/design-image.ps1 -SetKey gemini

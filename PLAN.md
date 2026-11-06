@@ -204,7 +204,7 @@ Run the install script here, `-Check` for each provider whose key is set, push `
 Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new version; the `-Check` lines printed; `git push` succeeds; `git status` clean.
 
 ### fix 15. README: pwsh, paths that work from anywhere, review copy
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026, asked whether pwsh works on macOS and Linux, then chose: "keep pwsh explain just it needs install and link to setup link from pwsh itself". Then, running the README's key command from their home folder: "The argument 'plugins/ag/scripts/design-image.ps1' to the -File parameter does not exist".
 So:
 - The README says macOS and Linux need PowerShell 7 installed once, and links to Microsoft's own pages:
