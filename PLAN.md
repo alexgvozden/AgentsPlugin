@@ -145,4 +145,4 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
 Phase 1 reopened at the gate for the user's feedback: fix 4 (copy on Opus in goal-prompt-3rdparty; technical copy, so fix4-copy-opus at Opus medium) and fix 5 (README models, examples, screenshots; end-user copy, so fix5-readme-opus at Opus high, after fix 4). Done: S1-S5 (main pushed at da00eb6), fix 1 (345b656), fix 2 (f50a504), fix 3 (d13869d); fix commits local until S7's push unless the user asks for one now. Phase close so far: validate passed, 13 tests pass, ext-build 31 pass; review P1-review-opus: no high, medium/low 1 fixed, low 2 deferred.
-Next: fix 4, fix 5, then Phase 1 shown again.
+fix 4 done (ff5f567; goal template 3,286 chars; validate passed). Running: fix5-readme-opus. Next: Phase 1 shown again.
