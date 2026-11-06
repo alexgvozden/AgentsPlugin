@@ -1,0 +1,36 @@
+{
+  "goal": "Recipe box v2: shared lists and search",
+  "plan": "PLAN.md",
+  "status": "running",
+  "note": "phase 2 building",
+  "updated": "2026-11-06T14:32:00Z",
+  "running": [
+    { "kind": "build", "title": "B2 Search API", "since": "2026-11-06T14:28:30Z", "engine": "fw:deepseek-v4p1-flash" },
+    { "kind": "tests", "title": "Phase 1 suite", "since": "2026-11-06T14:30:10Z", "engine": "sonnet" }
+  ],
+  "log": [
+    { "at": "2026-11-06T13:05:00Z", "text": "Phase 1 shown, waiting for your Approve" },
+    { "at": "2026-11-06T13:40:00Z", "text": "Phase 1 approved" },
+    { "at": "2026-11-06T14:02:00Z", "text": "B1 Search screen landed" },
+    { "at": "2026-11-06T14:28:30Z", "text": "B2 Search API started on Fireworks" }
+  ],
+  "tasks": [
+    {
+      "id": "P1", "title": "Phase 1: shared lists", "status": "done", "note": "Nov 6",
+      "steps": [
+        { "id": "A1", "title": "Lists schema", "status": "done", "engine": "fw:deepseek-v4p1-flash", "tokens": 182000 },
+        { "id": "A2", "title": "Share a list screen", "status": "done", "engine": "opus-high", "tokens": 96000 },
+        { "id": "A3", "title": "Invite emails", "status": "done", "engine": "opus-high", "tokens": 41000 }
+      ]
+    },
+    {
+      "id": "P2", "title": "Phase 2: search", "status": "doing",
+      "steps": [
+        { "id": "B1", "title": "Search screen", "status": "done", "engine": "opus-high", "tokens": 88000 },
+        { "id": "B2", "title": "Search API", "status": "doing", "engine": "fw:deepseek-v4p1-flash", "tokens": 64000 },
+        { "id": "B3", "title": "Filters by tag", "status": "todo" },
+        { "id": "B4", "title": "Help page for search", "status": "todo", "engine": "opus-high" }
+      ]
+    }
+  ]
+}

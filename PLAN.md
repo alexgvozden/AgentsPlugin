@@ -104,7 +104,7 @@ The user, Nov 6, 2026: "for content writing please update goal-promt-3rdparrty t
 Acceptance: the three places name the copy rule; the goal template stays under 4,000 characters; `claude plugin validate plugins/goal-prompt` passes.
 
 ### fix 5. README: models, examples and screenshots
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026: "explain fully in readme what models are used when and also give examples and some screenshots for tasks panel etc". `README.md`: a "Which model does what" section covering both skills and the global rules (planning, reviews, UI, development, Fireworks builders, failed steps raised to high, browser testing, copy per fix 4); examples (making a goal from a plan, a run's progress file, a builder's report line); screenshots of the progress band, the Goal tasks pane and `/goal-progress` output, made from the mod's real rendering of an example progress file (open question 3), stored in `docs/images/` with the example file in `docs/examples/`.
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
