@@ -31,5 +31,5 @@ A task or step status is one of `todo` (not started), `doing` (in progress), `do
 
 Install (user scope, all projects):
 
-    claude plugin marketplace add ~/.claude/mods/goal-progress
-    claude plugin install goal-progress@local-mods --scope user
+    claude plugin marketplace add alexgvozden/AgentsPlugin
+    claude plugin install ag@agents-plugin --scope user

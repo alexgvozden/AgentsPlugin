@@ -3,24 +3,28 @@
 A private Claude Code plugin marketplace that packages the goal tooling so every
 machine and project gets the same skills, launcher, progress bar and global rules.
 
-Marketplace name: `agents-plugin`. It lists three plugins:
+Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with three
+commands:
 
-- **goal-prompt** — the `goal-prompt` skill.
-- **goal-prompt-3rdparty** — the `goal-prompt-3rdparty` skill, the `ext-build`
-  launcher scripts and the default `ext-build.json`.
-- **goal-progress** — the goal progress bar mod.
+- `/ag:goal-prompt` — turns a plan into one `/goal`.
+- `/ag:goal-prompt-3rdparty` — the same, with the function builders on a
+  Fireworks model. The plugin also holds the `ext-build` launcher and its
+  default `ext-build.json`.
+- `/ag:goal-progress` — the goal progress bar and the tasks pane.
+
+`/ag:design` is coming; it is not built yet.
 
 ## What you get
 
-**Two skills.** `/goal-prompt` turns a plan file into one ready-to-paste
+**Two skills.** `/ag:goal-prompt` turns a plan file into one ready-to-paste
 `/goal` that carries out that plan, with light checks and printed evidence. It
 pauses only at sign-offs the plan asks for; re-run the same goal to continue.
-`/goal-prompt-3rdparty` does the same, but the function builders run on
+`/ag:goal-prompt-3rdparty` does the same, but the function builders run on
 a Fireworks model through `ext-build.ps1`. Both take `[plan file or step range]`.
 A Claude Code session opened before the install needs a restart to see them; type
-`/goal` to find them.
+`/ag:` to find them.
 
-**The ext-build launcher.** `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1` runs one
+**The ext-build launcher.** `plugins/ag/scripts/ext-build.ps1` runs one
 headless builder on a Fireworks model (`-Brief`, `-Cwd`, `-Step`, `-LogDir`). It
 reads the user config `~/.claude/ext-build.json` first, then the plugin's
 `ext-build.default.json`. `-SetKey` stores the API key (DPAPI), `-Check` tests it,
@@ -29,7 +33,7 @@ reads the user config `~/.claude/ext-build.json` first, then the plugin's
 
 **The progress band and the tasks pane.** The goal-progress mod shows one line per
 running job above the prompt — a bar, the current step, and the jobs running now —
-read from `.claude/goal-progress.json` in the project. `/goal-progress open` (or the
+read from `.claude/goal-progress.json` in the project. `/ag:goal-progress open` (or the
 `[ Tasks ▸ ]` button) opens the Goal tasks pane: the goal, status chips, a "Running
 now" card, and a timeline of every task and its steps.
 
@@ -66,7 +70,7 @@ keeps to them after the chat is gone.
 **Make a goal from a plan.** In Claude Code, in the project:
 
 ```text
-/goal-prompt-3rdparty PLAN.md
+/ag:goal-prompt-3rdparty PLAN.md
 ```
 
 The skill reads the plan, adds a `Status:` line to each step and prints one
@@ -90,7 +94,7 @@ ext-build: S1 · accounts/fireworks/models/deepseek-v4p1-flash · 15 turns · 41
 ## Screenshots
 
 These are drawn from the example file by the mod's own code: its band, its pane
-and its `/goal-progress` command, run under `claude plugin test` and laid out as
+and its `/ag:goal-progress` command, run under `claude plugin test` and laid out as
 a terminal would. To draw them again, run `node docs/render-screenshots.mjs`.
 
 ![The progress band](docs/images/goal-progress-band.svg)
@@ -103,25 +107,29 @@ Tasks button.
 The Goal tasks pane: what is running, the latest updates, and each phase with its
 steps, models and tokens.
 
-![The /goal-progress output](docs/images/goal-progress-command.svg)
+![The /ag:goal-progress output](docs/images/goal-progress-command.svg)
 
-The `/goal-progress` output: every task and step as a plain list.
+The `/ag:goal-progress` output: every task and step as a plain list.
 
 ## Install
 
 ```sh
 claude plugin marketplace add alexgvozden/AgentsPlugin
-claude plugin install goal-prompt@agents-plugin
-claude plugin install goal-prompt-3rdparty@agents-plugin
-claude plugin install goal-progress@agents-plugin
+claude plugin install ag@agents-plugin
 ```
 
-Or run `scripts/install.ps1` from this checkout: it installs all three in one run.
+Or run `scripts/install.ps1` from this checkout. It installs `ag`, or updates it
+when it is already installed. It also removes the older separate plugins
+(`goal-prompt`, `goal-prompt-3rdparty`, `goal-progress`), so the progress bar
+never loads twice.
+
+A Claude Code session opened before the install needs a restart to see the
+commands.
 
 Update later with:
 
 ```sh
-claude plugin update goal-prompt@agents-plugin
+claude plugin update ag@agents-plugin
 ```
 
 Auto-update is off until it is turned on in `/plugin` → Marketplaces.
@@ -131,7 +139,7 @@ Auto-update is off until it is turned on in `/plugin` → Marketplaces.
 `ext-build.ps1` needs a Fireworks API key to run. Set it once per machine with:
 
 ```powershell
-plugins/goal-prompt-3rdparty/scripts/ext-build.ps1 -SetKey
+plugins/ag/scripts/ext-build.ps1 -SetKey
 ```
 
 The key is stored by DPAPI in `~/.claude/secrets/` and is **never committed** to

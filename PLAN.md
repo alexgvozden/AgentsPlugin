@@ -153,7 +153,7 @@ The user, Nov 6, 2026, with a screenshot of the menu (`/goal-prompt:goal-prompt 
 Acceptance: `claude plugin validate .` and `claude plugin validate plugins/ag` pass; `claude plugin test plugins/ag` (13 pass); `ext-build.test.ps1` from `plugins/ag/scripts/` (31 pass); `grep -rn "plugins/goal-prompt\|plugins/goal-progress" plugins scripts` finds nothing; after the push and install here, `claude plugin list` shows only `ag@agents-plugin` from this marketplace, enabled; `-Check` from the installed ag folder prints OK; a second install run prints only `skip:`; the user sees `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress` and the progress bar in a new session.
 
 ### fix 12. README for the `ag` plugin
-Status: todo
+Status: done 2026-11-06
 After fix 11: `README.md` describes one plugin `ag` and its commands `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress` (and `/ag:design` once Phase 3 adds it); in `plugins/ag/goal-progress.md` the old `local-mods` install lines become the `ag` install; the install `claude plugin install ag@agents-plugin` or `scripts/install.ps1`, the launcher path `plugins/ag/scripts/ext-build.ps1`. End-user copy, Opus high.
 Acceptance: `grep -n "goal-prompt@\|goal-progress@\|plugins/goal-prompt\|plugins/goal-progress" README.md` finds nothing; every command named is an `/ag:` command; `claude plugin validate .` passes.
 
