@@ -228,5 +228,5 @@ Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new ver
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 done (signed off; fix 14 at 128d05e, ag 1.0.2 installed here). Phase 3 running. Done: S8 (c4e25d4: `keystore.ps1`, `-SetKey`/`-Check [<provider>]`; 36 ext-build tests pass, macOS and Linux branches on mocks only since `pwsh` is not installed here; `-Check` OK with the stored Fireworks key).
-Next: S9 (image launcher, Fireworks), then S10-S13; Phase 3 pushes in S13 only.
+Phase 1 done (4e15b7b). Phase 2 done (signed off; fix 14 at 128d05e, ag 1.0.2 installed here). Phase 3 running. Done: S8 (c4e25d4: `keystore.ps1`, `-SetKey`/`-Check [<provider>]`; 36 ext-build tests pass, macOS and Linux branches on mocks only since `pwsh` is not installed here; `-Check` OK with the stored Fireworks key). S9 (086cded: `design-image.ps1`, `design.default.json` gemini `gemini-3.1-flash-image` / openai `gpt-image-2`, the OpenAI id unconfirmed since its docs returned 403; 42 tests pass; `-Check gemini|openai` exit 2 until the user sets those keys).
+Next: S10 (`ag:design` skill, Opus medium), then S11-S13; Phase 3 pushes in S13 only.
