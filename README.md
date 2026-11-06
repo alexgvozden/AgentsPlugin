@@ -15,9 +15,9 @@ Marketplace name: `agents-plugin`. It lists two plugins:
 `/goal` that carries out that plan, with light checks and printed evidence. It
 pauses only at sign-offs the plan asks for; re-run the same goal to continue.
 `/goal-prompt:goal-prompt-3rdparty` does the same, but the function builders run on
-a Fireworks model through `ext-build.ps1`. Both have a `name:` in their frontmatter,
-so the bare `/goal-prompt` and `/goal-prompt-3rdparty` also work unless another
-command or skill takes that name. Both take `[plan file or step range]`.
+a Fireworks model through `ext-build.ps1`. Both take `[plan file or step range]`.
+A Claude Code session opened before the install needs a restart to see them; type
+`/goal` to find them.
 
 **The ext-build launcher.** `plugins/goal-prompt/scripts/ext-build.ps1` runs one
 headless builder on a Fireworks model (`-Brief`, `-Cwd`, `-Step`, `-LogDir`). It

@@ -123,7 +123,7 @@ Run the install script on this machine, then: `claude plugin list` shows both pl
 Acceptance: those three outputs printed; phase marked `shown`; you open a new session and confirm `/goal-prompt` and `/goal-prompt-3rdparty` (or their namespaced names) are listed and the progress bar loads.
 
 ### fix 6. README: the commands are namespaced
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026, after the switch: "I dont' see /goal-prompt command". A fresh session (Claude Code 2.1.295) lists only `goal-prompt:goal-prompt` and `goal-prompt:goal-prompt-3rdparty`; the bare names are not offered, so open question 1's default applies. `README.md`: name the commands as `/goal-prompt:goal-prompt` and `/goal-prompt:goal-prompt-3rdparty` everywhere, drop the claim that the bare names work, and say a session opened before the install needs a restart. End-user copy, Opus high.
 Acceptance: `grep -n "bare" README.md` finds no claim that the bare names work; every command example uses the namespaced name; `claude plugin validate .` passes.
 
