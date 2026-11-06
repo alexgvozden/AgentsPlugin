@@ -1,0 +1,9 @@
+{
+  "provider": "fireworks",
+  "baseUrl": "https://api.fireworks.ai/inference",
+  "keyFile": "~/.claude/secrets/fireworks.key",
+  "defaultModel": "deepseek-v4p1-flash",
+  "modelPrefix": "accounts/fireworks/models/",
+  "permissionMode": "bypassPermissions",
+  "maxBudgetUsd": 25
+}

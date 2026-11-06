@@ -69,7 +69,7 @@ Copy `~/.claude/mods/goal-progress/` into `plugins/goal-progress/` (its own `mar
 Acceptance: `claude plugin test plugins/goal-progress` 12 pass; `claude plugin validate plugins/goal-progress` passes.
 
 ### S3. goal-prompt plugin
-Status: todo
+Status: done 2026-11-06
 Copy both skills and the launcher as in "What goes in"; `plugin.json` (name `goal-prompt`, version 1.0.0, author Aleksandar Gvozden). In `goal-prompt-3rdparty/SKILL.md` replace `~/.claude/bin/ext-build.ps1` with `${CLAUDE_PLUGIN_ROOT}/scripts/ext-build.ps1` (Facts). The launcher looks for config in `~/.claude/ext-build.json`, then `ext-build.default.json` in the plugin; add that to its self-test.
 Acceptance: `ext-build.test.ps1` passes (29 + new config check); `claude plugin validate plugins/goal-prompt` passes; `grep -r "~/.claude/bin" plugins/` finds nothing; `claude --plugin-dir plugins/goal-prompt -p "list your skills"` names both skills.
 

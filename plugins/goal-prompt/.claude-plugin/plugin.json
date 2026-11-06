@@ -1,0 +1,8 @@
+{
+  "name": "goal-prompt",
+  "version": "1.0.0",
+  "description": "Goal-prompt skills: turn an implementation plan into one ready-to-paste /goal, optionally with builders on a Fireworks AI model.",
+  "author": {
+    "name": "Aleksandar Gvozden"
+  }
+}
