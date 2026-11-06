@@ -99,7 +99,7 @@ From the phase 1 review (P1-review-opus, medium and low): goals made by `goal-pr
 Acceptance: `grep -n "ext-build.ps1" plugins/goal-prompt/skills/goal-prompt-3rdparty/SKILL.md` shows no bare launcher in the goal and runner templates; `claude plugin validate plugins/goal-prompt` passes.
 
 ### fix 4. goal-prompt-3rdparty: copy is written on Opus, never on Fireworks
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026: "for content writing please update goal-promt-3rdparrty to use opus high for writing end user facing copy and medium for technical copy and not to use fireworks for it". In `plugins/goal-prompt/skills/goal-prompt-3rdparty/SKILL.md`: a step (or the part of a step) that writes end-user-facing copy (UI text, emails, marketing pages, README and help for end users) runs at Opus high; technical copy (developer docs, code comments, API docs, plan and brief text) at Opus medium; neither goes to Fireworks. The rule appears where the skill says what stays on Claude (principle 7, about line 23), in the runner's step and model rules (about lines 59-64) and in the goal template (about line 125), keeping the goal under 4,000 characters; `test-matrix.md` gets one row for it if it lists the other model rules.
 Acceptance: the three places name the copy rule; the goal template stays under 4,000 characters; `claude plugin validate plugins/goal-prompt` passes.
 
