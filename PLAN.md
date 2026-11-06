@@ -117,4 +117,4 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 stays on Opus medium.
-Phase 1: S1 done (6df43c7). S2 done (cfd2b22, 12 tests pass, validate passed). S4 done (a1b6a38, byte-identical). S2's status mark landed in S4's commit a1b6a38 (parallel staging of PLAN.md); content correct, noted for the phase review. Running: S3 (S3-prompt-fw1). Next: S5 at Opus medium.
+Phase 1: S1 done (6df43c7). S2 done (cfd2b22, 12 tests pass). S4 done (a1b6a38, byte-identical). S3 done (6db8b49, 31 tests pass, validate passed, both skills listed; quoted the two SKILL.md `description:` values so validate passes). S2's status mark landed in S4's commit a1b6a38 (parallel staging); content correct, noted for the phase review. Running: S5 (S5-push-opus) at Opus medium. Next: phase 1 close.
