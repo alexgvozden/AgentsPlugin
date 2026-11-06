@@ -56,7 +56,7 @@ Checked Nov 6, 2026 against code.claude.com/docs (skills, plugins/components, pl
 | Claude | Everything else: repo, files, path changes, tests, commits, pushes, install, moving old copies to a backup folder. |
 
 ## Phase 1: build the repo (gate: you look at the repo on GitHub)
-Status: todo
+Status: shown 2026-11-06
 
 ### S1. Repo skeleton
 Status: done 2026-11-06
@@ -133,4 +133,5 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium.
-Phase 1: S1-S5 done (6df43c7, cfd2b22, 6db8b49, a1b6a38, da00eb6; main pushed at da00eb6). S2's status mark landed in S4's commit a1b6a38 (parallel staging); the review says it does not matter. Phase close: suites passed once (validate passed, 12 tests pass, ext-build 31 pass). Review P1-review-opus: no high; medium and low 1 become fix 3 and open question 2, and rule 4 now names the launcher's path after S7; low 2 (where to run `-SetKey`) deferred, since the README gives the checkout command. fix 1 done (345b656). fix 3 done (d13869d, validate passed). Running: fix2-pane-fw1. Fix commits stay local until S7's push.
+Phase 1 shown, waiting for the user's sign-off (look at the repo on GitHub). S1-S5 done (6df43c7, cfd2b22, 6db8b49, a1b6a38, da00eb6; main pushed at da00eb6). fix 1 (345b656, README), fix 2 (f50a504, pane reads from `$.session.root()` and keeps the last good state; 13 tests pass), fix 3 (d13869d, launcher path in goals) done, local until S7's push. Phase close: validate passed, 13 tests pass, ext-build 31 pass; review P1-review-opus: no high, medium/low 1 fixed (fix 3, open question 2, rule 4), low 2 deferred (README gives the `-SetKey` command). S2's mark landed in S4's commit a1b6a38; the review says it does not matter.
+Next after sign-off: Phase 1 done, then S6.
