@@ -269,6 +269,7 @@ Acceptance:
 6. Pushes: Phase 3 pushes in S13 only (like S5 and S7).
 
 ## Later
+- `design-image.ps1` prints the API's error body as is; OpenAI's "invalid_api_key" message echoes its own masked fragment of the key (first and last 4 characters). Mask any `key_...`/`sk-...` fragment in error text (seen Nov 6, 2026 at the release check).
 - Ship the status line scripts (`~/.claude/hooks/statusline.js`, `subagent-statusline.js`) too.
 - A second machine: run `scripts/install.ps1` there, then `ext-build.ps1 -SetKey`.
 
@@ -287,4 +288,4 @@ Acceptance:
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
 Phase 1 done (4e15b7b). Phase 2 done (fix 14 at 128d05e). Phase 3 done: the user, Nov 6, 2026: "working pleaes push and relase, all 3 keys are set" (sign-off, and leave to push fix 15-17 and release ag 1.1.2). Phase 3: S8 (c4e25d4), S9 (086cded), S10 (336b309), S11 (89dda9a), S12 (0ef3e4d), S13 (07874b1), fix 15 (1faa58f), fix 16 (e7e7506), fix 17 (7b838c1, `~/.claude/ag/ag-key.ps1`); suites passed; the review's 11 findings fixed, none deferred; macOS and Linux run only on mocks here (no `pwsh`).
-Release: push main, install ag 1.1.2 here, `ag-key.ps1 check` for the three providers, tag `v1.1.2`.
+Released Nov 6, 2026: pushed 1f731e0 and tag `v1.1.2` (no GitHub release page: `gh` is not installed here); ag 1.1.2 installed here, second install run all `skip:`; from the home folder `ag-key.ps1 check` OK for fireworks and gemini (a real image), openai rejected the stored key (`invalid_api_key`): the user sets it again with `ag-key.ps1 set openai`.
