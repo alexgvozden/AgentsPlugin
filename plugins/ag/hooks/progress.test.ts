@@ -40,6 +40,23 @@ test('keeps the waiting status for a gate', () => {
   expect(statusLine(p!)).toBe('Goal ██████████ 1/1 · waiting: review the mockups')
 })
 
+test('at a gate, the bar names the last shown task, not the next todo', () => {
+  const p = parseProgress(JSON.stringify({
+    goal: 'g',
+    status: 'waiting',
+    note: 'sign off Phase 2',
+    tasks: [
+      { id: 'P1', title: 'Phase 1', status: 'done' },
+      { id: 'P2', title: 'Phase 2', status: 'shown' },
+      { id: 'P2.9', title: 'Phase 2 polish', status: 'shown' },
+      { id: 'P3', title: 'Phase 3', status: 'todo' },
+    ],
+  }))!
+  expect(p.status).toBe('waiting')
+  expect(current(p)?.id).toBe('P2.9')
+  expect(statusLine(p)).toBe('Goal ████████░░ 3/4 · P2.9 Phase 2 polish · waiting: sign off Phase 2')
+})
+
 test('unknown task statuses count as todo', () => {
   const p = parseProgress('{"goal":"g","tasks":[{"id":"1","title":"a","status":"weird"}]}')
   expect(p?.tasks[0]?.status).toBe('todo')

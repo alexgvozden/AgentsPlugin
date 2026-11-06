@@ -256,11 +256,19 @@ export function bar(done: number, total: number, width = 20): string {
   return '█'.repeat(filled) + '░'.repeat(width - filled)
 }
 
-/** The task being worked on: the first "doing", else the first "blocked", else the first "todo". */
+/**
+ * The task the bar names: the first "doing", else the first "waiting", else the
+ * first "blocked", else — when the goal itself is "waiting", at a gate — the last
+ * "shown" task (the one the person is being asked to sign off), else the first "todo".
+ */
 export function current(p: GoalProgress): GoalTask | undefined {
+  const shown = p.status === 'waiting' ? [...p.tasks].reverse().find(t => t.status === 'shown') : undefined
+
   return (
     p.tasks.find(t => t.status === 'doing') ??
+    p.tasks.find(t => t.status === 'waiting') ??
     p.tasks.find(t => t.status === 'blocked') ??
+    shown ??
     p.tasks.find(t => t.status === 'todo')
   )
 }

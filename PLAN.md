@@ -158,7 +158,7 @@ After fix 11: `README.md` describes one plugin `ag` and its commands `/ag:goal-p
 Acceptance: `grep -n "goal-prompt@\|goal-progress@\|plugins/goal-prompt\|plugins/goal-progress" README.md` finds nothing; every command named is an `/ag:` command; `claude plugin validate .` passes.
 
 ### fix 13. `/ag:goal-progress` and the bar names the waiting phase
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026, with a screenshot (menu: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/goal-progress`; band: "67% P3 Design images and keys on every OS" while Phase 2 waits for sign-off): "goal progress is not showing up good, 2 are showing". Two faults: the mod registers its command as bare `goal-progress` (`plugins/ag/hooks/register.tsx` lines 188 and 226), so it is not under `ag`; and `current()` (`plugins/ag/hooks/progress.ts` lines 258-265) skips `waiting` and `shown` tasks, so at a gate the band names the next phase. Fix: the command shows as `/ag:goal-progress` (per the mods docs on command names; if a `:` is not allowed in a registered name, say so and stop); `current()` returns, in order, the first `doing`, `waiting`, `blocked`, then (when the goal's status is `waiting`) the last `shown` task, then the first `todo`. ag version 1.0.1; push and reinstall here so the user sees it.
 Acceptance: one unit test for the gate case (a `shown` task and a later `todo`, goal `waiting`: current is the `shown` one); `claude plugin test plugins/ag` all pass (14); `claude plugin validate plugins/ag` passes with no gating warning; after the push and install, `claude plugin list` shows ag 1.0.1; the user sees `/ag:goal-progress` and the band names Phase 2 while it waits.
 

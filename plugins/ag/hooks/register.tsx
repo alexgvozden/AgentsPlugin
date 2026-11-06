@@ -185,7 +185,7 @@ const width = (segs: Seg[]) => segs.reduce((n, s) => n + Array.from(s.text).leng
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'goal-progress',
+      name: 'ag:goal-progress',
       description: 'List the goal tasks from .claude/goal-progress.json (args: open | hide | show)',
     })
     await refresh($)
@@ -223,7 +223,7 @@ export const register: Register = on => {
     return result
   })
 
-  on('command.run', { command: 'goal-progress' }, async ($, e) => {
+  on('command.run', { command: 'ag:goal-progress' }, async ($, e) => {
     const arg = e.args.trim()
     if (arg === 'hide' || arg === 'show') {
       await update($, isHidden, () => arg === 'hide')
