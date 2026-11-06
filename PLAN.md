@@ -110,7 +110,7 @@ The user, Nov 6, 2026: "explain fully in readme what models are used when and al
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
-Status: shown 2026-11-06
+Status: todo
 
 ### S6. Install script
 Status: done 2026-11-06
@@ -156,6 +156,11 @@ Acceptance: `claude plugin validate .` and `claude plugin validate plugins/ag` p
 Status: done 2026-11-06
 After fix 11: `README.md` describes one plugin `ag` and its commands `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress` (and `/ag:design` once Phase 3 adds it); in `plugins/ag/goal-progress.md` the old `local-mods` install lines become the `ag` install; the install `claude plugin install ag@agents-plugin` or `scripts/install.ps1`, the launcher path `plugins/ag/scripts/ext-build.ps1`. End-user copy, Opus high.
 Acceptance: `grep -n "goal-prompt@\|goal-progress@\|plugins/goal-prompt\|plugins/goal-progress" README.md` finds nothing; every command named is an `/ag:` command; `claude plugin validate .` passes.
+
+### fix 13. `/ag:goal-progress` and the bar names the waiting phase
+Status: todo
+The user, Nov 6, 2026, with a screenshot (menu: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/goal-progress`; band: "67% P3 Design images and keys on every OS" while Phase 2 waits for sign-off): "goal progress is not showing up good, 2 are showing". Two faults: the mod registers its command as bare `goal-progress` (`plugins/ag/hooks/register.tsx` lines 188 and 226), so it is not under `ag`; and `current()` (`plugins/ag/hooks/progress.ts` lines 258-265) skips `waiting` and `shown` tasks, so at a gate the band names the next phase. Fix: the command shows as `/ag:goal-progress` (per the mods docs on command names; if a `:` is not allowed in a registered name, say so and stop); `current()` returns, in order, the first `doing`, `waiting`, `blocked`, then (when the goal's status is `waiting`) the last `shown` task, then the first `todo`. ag version 1.0.1; push and reinstall here so the user sees it.
+Acceptance: one unit test for the gate case (a `shown` task and a later `todo`, goal `waiting`: current is the `shown` one); `claude plugin test plugins/ag` all pass (14); `claude plugin validate plugins/ag` passes with no gating warning; after the push and install, `claude plugin list` shows ag 1.0.1; the user sees `/ag:goal-progress` and the band names Phase 2 while it waits.
 
 ## Phase 3: design images and keys on every OS (gate: you run the design command in a new session and review its folder)
 Status: todo
@@ -217,5 +222,5 @@ Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new ver
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 shown again, waiting for the user's check in a new session: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress`, the progress bar. Done: S6, S7, fix 6-12; fix 11 (13abdd3) pushed and installed here (only `ag@agents-plugin` 1.0.0, `-Check` OK, install rerun all `skip:`); fix 12 (01813db, README and goal-progress.md for `ag`) local until S13's push. Phase close: suites passed (validate, 13 tests, ext-build 31); review findings fixed (fix 8) or deferred.
+Phase 1 done (4e15b7b). Phase 2 reopened for fix 13 (fix13-progress-fw1: `/ag:goal-progress`, the bar at a gate). Before that it was shown, waiting for the user's check in a new session: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress`, the progress bar. Done: S6, S7, fix 6-12; fix 11 (13abdd3) pushed and installed here (only `ag@agents-plugin` 1.0.0, `-Check` OK, install rerun all `skip:`); fix 12 (01813db, README and goal-progress.md for `ag`) local until S13's push. Phase close: suites passed (validate, 13 tests, ext-build 31); review findings fixed (fix 8) or deferred.
 Next after sign-off: Phase 2 done, then Phase 3 (S8; design as `/ag:design`).
