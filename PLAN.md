@@ -118,7 +118,7 @@ Status: done 2026-11-06
 Acceptance: `-WhatIf` run prints every action; a real run prints done for each; a second run changes nothing.
 
 ### S7. Run it here and check
-Status: todo
+Status: done 2026-11-06
 Run the install script on this machine, then: `claude plugin list` shows both plugins enabled; `ext-build.ps1 -Check` from the plugin path prints OK; `~/.claude/settings.json` no longer names `local-mods`. Push.
 Acceptance: those three outputs printed; phase marked `shown`; you open a new session and confirm `/goal-prompt` and `/goal-prompt-3rdparty` (or their namespaced names) are listed and the progress bar loads.
 
