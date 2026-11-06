@@ -128,7 +128,7 @@ The user, Nov 6, 2026, after the switch: "I dont' see /goal-prompt command". A f
 Acceptance: `grep -n "bare" README.md` finds no claim that the bare names work; every command example uses the namespaced name; `claude plugin validate .` passes.
 
 ### fix 7. README: the bare command names
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026: "no it doen'st work and I don't want this namign at all , I want /goal-prompt and /goal-promt-3rdparty or minimu /goal-prompt:3rdparty". Checked the same day in fresh sessions: `/goal-prompt` and `/goal-prompt-3rdparty` load the plugin skills (so fix 6 was wrong to drop them); `/goal-prompt:3rdparty` does not exist. `README.md`: name the commands `/goal-prompt` and `/goal-prompt-3rdparty` everywhere, with one line that the plugin's long names (`/goal-prompt:goal-prompt`, `/goal-prompt:goal-prompt-3rdparty`) also work and that a session opened before the install needs a restart. End-user copy, Opus high.
 Acceptance: every command example in README uses the bare name; the long names appear once as the alternative; `claude plugin validate .` passes.
 

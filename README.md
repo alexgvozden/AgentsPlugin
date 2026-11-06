@@ -11,13 +11,14 @@ Marketplace name: `agents-plugin`. It lists two plugins:
 
 ## What you get
 
-**Two skills.** `/goal-prompt:goal-prompt` turns a plan file into one ready-to-paste
+**Two skills.** `/goal-prompt` turns a plan file into one ready-to-paste
 `/goal` that carries out that plan, with light checks and printed evidence. It
 pauses only at sign-offs the plan asks for; re-run the same goal to continue.
-`/goal-prompt:goal-prompt-3rdparty` does the same, but the function builders run on
+`/goal-prompt-3rdparty` does the same, but the function builders run on
 a Fireworks model through `ext-build.ps1`. Both take `[plan file or step range]`.
-A Claude Code session opened before the install needs a restart to see them; type
-`/goal` to find them.
+The long names `/goal-prompt:goal-prompt` and `/goal-prompt:goal-prompt-3rdparty`
+also work. A Claude Code session opened before the install needs a restart to see
+them; type `/goal` to find them.
 
 **The ext-build launcher.** `plugins/goal-prompt/scripts/ext-build.ps1` runs one
 headless builder on a Fireworks model (`-Brief`, `-Cwd`, `-Step`, `-LogDir`). It
@@ -65,7 +66,7 @@ keeps to them after the chat is gone.
 **Make a goal from a plan.** In Claude Code, in the project:
 
 ```text
-/goal-prompt:goal-prompt-3rdparty PLAN.md
+/goal-prompt-3rdparty PLAN.md
 ```
 
 The skill reads the plan, adds a `Status:` line to each step and prints one
