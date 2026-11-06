@@ -3,10 +3,11 @@
 A private Claude Code plugin marketplace that packages the goal tooling so every
 machine and project gets the same skills, launcher, progress bar and global rules.
 
-Marketplace name: `agents-plugin`. It lists two plugins:
+Marketplace name: `agents-plugin`. It lists three plugins:
 
-- **goal-prompt** — the `goal-prompt` and `goal-prompt-3rdparty` skills, the
-  `ext-build` launcher scripts and the default `ext-build.json`.
+- **goal-prompt** — the `goal-prompt` skill.
+- **goal-prompt-3rdparty** — the `goal-prompt-3rdparty` skill, the `ext-build`
+  launcher scripts and the default `ext-build.json`.
 - **goal-progress** — the goal progress bar mod.
 
 ## What you get
@@ -16,11 +17,10 @@ Marketplace name: `agents-plugin`. It lists two plugins:
 pauses only at sign-offs the plan asks for; re-run the same goal to continue.
 `/goal-prompt-3rdparty` does the same, but the function builders run on
 a Fireworks model through `ext-build.ps1`. Both take `[plan file or step range]`.
-The long names `/goal-prompt:goal-prompt` and `/goal-prompt:goal-prompt-3rdparty`
-also work. A Claude Code session opened before the install needs a restart to see
-them; type `/goal` to find them.
+A Claude Code session opened before the install needs a restart to see them; type
+`/goal` to find them.
 
-**The ext-build launcher.** `plugins/goal-prompt/scripts/ext-build.ps1` runs one
+**The ext-build launcher.** `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1` runs one
 headless builder on a Fireworks model (`-Brief`, `-Cwd`, `-Step`, `-LogDir`). It
 reads the user config `~/.claude/ext-build.json` first, then the plugin's
 `ext-build.default.json`. `-SetKey` stores the API key (DPAPI), `-Check` tests it,
@@ -112,8 +112,11 @@ The `/goal-progress` output: every task and step as a plain list.
 ```sh
 claude plugin marketplace add alexgvozden/AgentsPlugin
 claude plugin install goal-prompt@agents-plugin
+claude plugin install goal-prompt-3rdparty@agents-plugin
 claude plugin install goal-progress@agents-plugin
 ```
+
+Or run `scripts/install.ps1` from this checkout: it installs all three in one run.
 
 Update later with:
 
@@ -128,7 +131,7 @@ Auto-update is off until it is turned on in `/plugin` → Marketplaces.
 `ext-build.ps1` needs a Fireworks API key to run. Set it once per machine with:
 
 ```powershell
-plugins/goal-prompt/scripts/ext-build.ps1 -SetKey
+plugins/goal-prompt-3rdparty/scripts/ext-build.ps1 -SetKey
 ```
 
 The key is stored by DPAPI in `~/.claude/secrets/` and is **never committed** to

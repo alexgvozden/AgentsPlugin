@@ -144,7 +144,7 @@ The user, Nov 6, 2026, in a new session: "I don't need /goal-prompt:goal-prompt 
 Acceptance: `claude plugin validate .` and `claude plugin validate plugins/goal-prompt-3rdparty` pass; `ext-build.test.ps1` passes from its new folder (31); `grep -rn "plugins/goal-prompt/scripts" plugins scripts` finds nothing; after the push and install here, `claude plugin list` shows goal-prompt 1.1.0, goal-prompt-3rdparty 1.0.0 and goal-progress enabled; `-Check` from the installed goal-prompt-3rdparty folder prints OK; a second install run prints only `skip:`; the user sees `/goal-prompt` and `/goal-prompt-3rdparty` in a new session.
 
 ### fix 10. README for the two plugins
-Status: todo
+Status: done 2026-11-06
 After fix 9: `README.md` lists three plugins, the launcher path `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1` (key setup, examples), the commands `/goal-prompt` and `/goal-prompt-3rdparty` only (the long names no longer mentioned, at the user's request). End-user copy, Opus high.
 Acceptance: `grep -n "goal-prompt:goal-prompt\|plugins/goal-prompt/scripts" README.md` finds nothing; `claude plugin validate .` passes.
 
