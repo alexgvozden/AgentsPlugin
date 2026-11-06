@@ -94,7 +94,7 @@ The user, Nov 6, 2026: "also very often I loose tasks" (screenshot: the Goal tas
 Acceptance: one unit test for the keep-last-good-state rule; `claude plugin test plugins/goal-progress` all pass (12 + new); `claude plugin validate plugins/goal-progress` passes.
 
 ### fix 3. Goals name the launcher by a path that works
-Status: todo
+Status: done 2026-11-06
 From the phase 1 review (P1-review-opus, medium and low): goals made by `goal-prompt-3rdparty` name only a bare `ext-build.ps1` (`plugins/goal-prompt/skills/goal-prompt-3rdparty/SKILL.md` lines 59 and 125), which a running goal cannot find once the user-level copy is gone; and lines 3 and 13 say the default model comes from `~/.claude/ext-build.json` only. Write the launcher as the full path the skill sees (open question 2), and add "else `ext-build.default.json` in the plugin" to lines 3 and 13.
 Acceptance: `grep -n "ext-build.ps1" plugins/goal-prompt/skills/goal-prompt-3rdparty/SKILL.md` shows no bare launcher in the goal and runner templates; `claude plugin validate plugins/goal-prompt` passes.
 
