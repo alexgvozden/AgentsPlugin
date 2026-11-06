@@ -169,7 +169,7 @@ The user, Nov 6, 2026: "so goal progress is not a command or ? beucase it's stil
 Acceptance: `grep -rn "ag:goal-progress" plugins README.md` finds nothing; `claude plugin test plugins/ag` (14 pass); `claude plugin validate plugins/ag` shows `answers its own command: command.run{command=goal-progress}`; after the push and install, `claude plugin list` shows ag 1.0.2; the user sees `/goal-progress` and the band in a new session.
 
 ## Phase 3: design images and keys on every OS (gate: you run the design command in a new session and review its folder)
-Status: shown 2026-11-06
+Status: todo
 The user, Nov 6, 2026: "can you add to goals and planning to also accept gemini and open AI api key to generate desig images as part of goal exeuction in same way as 3rd party and add also design command that ca nbe run any time, I will provide API keys in prompt similar as fireworks". Answers the same day: a new Phase 3; keys set up the same way as Fireworks (never in chat); "separate deisgn plugin that expecct a plan / descirption to come and plan a design btw make sure all commands use proper folder structures etc in the projects it's run so user can review it - same way deisgn will be used as part of the goals commadns"; "the goal should use design anytime UI is involved for new pages if it's minor change skip design step"; "btw key setup should be possible both on mac and windows and linux".
 
 ### S8. Keys on Windows, macOS and Linux
@@ -245,6 +245,21 @@ Acceptance:
 - No key is printed or logged.
 - `claude plugin validate plugins/ag` passes.
 
+### fix 17. One key command that works from any folder, and where a key is stored
+Status: todo
+The user, Nov 6, 2026, after fix 15: "I need readme fix for setting keys, this still doesnt work , is it because where I run it, but we should have generic place for key or at least a way to retrieve a key location powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/ext-build.ps1 -Check". The keys already have one place per OS (S8). Only the script path depends on the folder the command runs in. So:
+- `scripts/install.ps1` writes one small, stable entry point, `~/.claude/ag/ag-key.ps1`. It finds the scripts of the newest installed `ag` (`~/.claude/plugins/cache/agents-plugin/ag/<version>/scripts/`, highest version) and falls back to this checkout. It takes `set|check|where <fireworks|gemini|openai>`: `check fireworks` maps to `ext-build.ps1 -Check`, and `check gemini|openai` maps to `design-image.ps1 -Check <provider>`.
+- `ext-build.ps1 -Where [<provider>]` and `design-image.ps1 -Where [<provider>]` print the store and location (file path, Keychain service and account, or secret-tool attributes) and whether a key is set. They never print the key.
+- README keys section: the commands are `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set gemini` on Windows and `pwsh -File ~/.claude/ag/ag-key.ps1 set gemini` on macOS and Linux. They work from any folder. The README also says where each OS keeps the key.
+- ag version 1.1.2. The entry point and `-Where` are code touching secrets (Opus medium); the README is end-user copy (Opus high); one Opus high builder does both (rule: take the higher).
+
+Acceptance:
+- `ext-build.test.ps1` and `design-image.test.ps1` pass, with one `-Where` check each and one entry-point check (resolving the newest version, falling back to the checkout).
+- `install.ps1 -WhatIf` names the entry point, and a second run prints `skip:` for it.
+- Run from `C:\Users\User`, `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check fireworks` prints OK, and `... where gemini` prints the location.
+- `claude plugin validate .` passes.
+- No key is printed.
+
 ## Open questions (with defaults)
 1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README. Checked again Nov 6, 2026 in fresh sessions: the bare `/goal-prompt` and `/goal-prompt-3rdparty` work; the long names work too (fix 7).
 2. How does a goal made by `goal-prompt-3rdparty` find the launcher after the user-level copy is gone? Default: the skill writes `${CLAUDE_PLUGIN_ROOT}/scripts/ext-build.ps1` into the goal and the runner, which the skill text shows as the full path of the installed version; after a plugin update, make the goal again (fix 3).
@@ -271,5 +286,5 @@ Acceptance:
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 done (signed off; fix 14 at 128d05e). Phase 3 shown, waiting for the user: run `/ag:design` in a new session and review its `design/<date>-<slug>/` folder. Done: S8 (c4e25d4, keys per OS), S9 (086cded, `design-image.ps1`), S10 (336b309, `/ag:design`, ag 1.1.0), S11 (89dda9a, goals design new pages first), S12 (0ef3e4d, README with the user's four reasons), S13 (07874b1 pushed; ag 1.1.0 installed here, second install all `skip:`, Fireworks `-Check` OK, Gemini/OpenAI keys not set yet). Phase close: suites passed (validate, plugin test 14, ext-build 36, design-image 42); the Opus high review's 11 findings fixed in fix 15 (1faa58f, README pwsh links, paths, `-Check` wording) and fix 16 (e7e7506, launchers, ag 1.1.1; ext-build 40, design-image 47 pass); none deferred. macOS and Linux run only on mocks here (no `pwsh`). The Gemini id `gemini-3.1-flash-image` is in Google's model list; its docs now show the Interactions API, so the first real `-Check gemini` settles `generateContent`.
-Next: the user's sign-off; fix 15-16 are committed but not pushed (Phase 3 pushed in S13), so ag 1.1.1 reaches this machine only after a push the user allows.
+Phase 1 done (4e15b7b). Phase 2 done (signed off; fix 14 at 128d05e). Phase 3 reopened for fix 17 (one key command from any folder, `-Where`), from the user's note after fix 15; before that it was shown. Done: S8 (c4e25d4, keys per OS), S9 (086cded, `design-image.ps1`), S10 (336b309, `/ag:design`, ag 1.1.0), S11 (89dda9a, goals design new pages first), S12 (0ef3e4d, README with the user's four reasons), S13 (07874b1 pushed; ag 1.1.0 installed here, second install all `skip:`, Fireworks `-Check` OK, Gemini/OpenAI keys not set yet). Phase close: suites passed (validate, plugin test 14, ext-build 36, design-image 42); the Opus high review's 11 findings fixed in fix 15 (1faa58f, README pwsh links, paths, `-Check` wording) and fix 16 (e7e7506, launchers, ag 1.1.1; ext-build 40, design-image 47 pass); none deferred. macOS and Linux run only on mocks here (no `pwsh`). The Gemini id `gemini-3.1-flash-image` is in Google's model list; its docs now show the Interactions API, so the first real `-Check gemini` settles `generateContent`.
+Next: fix 17 (Opus high), then Phase 3 shown again; fix 15-17 are committed but not pushed (Phase 3 pushed in S13), so they reach this machine only after a push the user allows.
