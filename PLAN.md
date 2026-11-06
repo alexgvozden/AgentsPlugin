@@ -110,7 +110,7 @@ The user, Nov 6, 2026: "explain fully in readme what models are used when and al
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
-Status: todo
+Status: shown 2026-11-06
 
 ### S6. Install script
 Status: done 2026-11-06
@@ -217,4 +217,5 @@ Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new ver
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 reopened at the gate. fix 11 done (13abdd3, pushed): one plugin `ag` (skills, launcher, mod; mod state renamed `ag` so validate passes; install.ps1 also drops the old names from settings.json); installed here: only `ag@agents-plugin` 1.0.0, `-Check` OK, install rerun all `skip:`; a fresh session lists `ag:goal-prompt`, `ag:goal-prompt-3rdparty`. Running: fix12-readme-opus. Then Phase 2 shown again; the user checks the `/ag:` commands and the bar in a new session.
+Phase 1 done (4e15b7b). Phase 2 shown again, waiting for the user's check in a new session: `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress`, the progress bar. Done: S6, S7, fix 6-12; fix 11 (13abdd3) pushed and installed here (only `ag@agents-plugin` 1.0.0, `-Check` OK, install rerun all `skip:`); fix 12 (01813db, README and goal-progress.md for `ag`) local until S13's push. Phase close: suites passed (validate, 13 tests, ext-build 31); review findings fixed (fix 8) or deferred.
+Next after sign-off: Phase 2 done, then Phase 3 (S8; design as `/ag:design`).
