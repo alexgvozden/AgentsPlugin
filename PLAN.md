@@ -11,11 +11,11 @@ Goal: put the user-level goal tooling into one private git repo that Claude Code
 
 | Source (today) | Goes to | Notes |
 |---|---|---|
-| `~/.claude/skills/goal-prompt/` (`SKILL.md`, `test-matrix.md`) | `plugins/goal-prompt/skills/goal-prompt/` | `.bak-*` files stay out |
-| `~/.claude/skills/goal-prompt-3rdparty/` | `plugins/goal-prompt-3rdparty/skills/goal-prompt-3rdparty/` (fix 9) | launcher paths changed to the plugin's own path |
-| `~/.claude/bin/ext-build.ps1`, `ext-build.test.ps1` | `plugins/goal-prompt-3rdparty/scripts/` (fix 9) | `scripts/`, not `bin/` (Facts) |
-| `~/.claude/ext-build.json` | `plugins/goal-prompt-3rdparty/ext-build.default.json` (fix 9) | user override stays in `~/.claude/ext-build.json` |
-| `~/.claude/mods/goal-progress/` | `plugins/goal-progress/` | version 0.9.1 → 0.10.0 (engine label) |
+| `~/.claude/skills/goal-prompt/` (`SKILL.md`, `test-matrix.md`) | `plugins/ag/skills/goal-prompt/` | `.bak-*` files stay out |
+| `~/.claude/skills/goal-prompt-3rdparty/` | `plugins/ag/skills/goal-prompt-3rdparty/` (fix 9) | launcher paths changed to the plugin's own path |
+| `~/.claude/bin/ext-build.ps1`, `ext-build.test.ps1` | `plugins/ag/scripts/` (fix 9) | `scripts/`, not `bin/` (Facts) |
+| `~/.claude/ext-build.json` | `plugins/ag/ext-build.default.json` (fix 11) | user override stays in `~/.claude/ext-build.json` |
+| `~/.claude/mods/goal-progress/` | `plugins/ag/` (hooks, types; fix 11) | version 0.9.1 → 0.10.0 (engine label) |
 | `~/.claude/CLAUDE.md` (12 lines) | `rules/CLAUDE.global.md` | not a plugin part (see Facts) |
 
 **Never in the repo:** `~/.claude/secrets/` (the DPAPI Fireworks key), any `*.key`, run logs, `.claude/goal-prompt/` run folders, `.bak-*` files.
@@ -23,14 +23,13 @@ Goal: put the user-level goal tooling into one private git repo that Claude Code
 ## Layout
 
 ```
-.claude-plugin/marketplace.json     marketplace "agents-plugin": goal-prompt, goal-prompt-3rdparty, goal-progress
-plugins/goal-prompt/.claude-plugin/plugin.json
-plugins/goal-prompt/skills/goal-prompt/{SKILL.md,test-matrix.md}
-plugins/goal-prompt-3rdparty/.claude-plugin/plugin.json      (fix 9)
-plugins/goal-prompt-3rdparty/skills/goal-prompt-3rdparty/{SKILL.md,test-matrix.md}
-plugins/goal-prompt-3rdparty/scripts/{ext-build.ps1,ext-build.test.ps1}
-plugins/goal-prompt-3rdparty/ext-build.default.json
-plugins/goal-progress/...           (the mod as it is)
+.claude-plugin/marketplace.json     marketplace "agents-plugin": one plugin, ag (fix 11)
+plugins/ag/.claude-plugin/plugin.json
+plugins/ag/skills/goal-prompt/{SKILL.md,test-matrix.md}             /ag:goal-prompt
+plugins/ag/skills/goal-prompt-3rdparty/{SKILL.md,test-matrix.md}    /ag:goal-prompt-3rdparty
+plugins/ag/scripts/{ext-build.ps1,ext-build.test.ps1}
+plugins/ag/ext-build.default.json
+plugins/ag/hooks/, types/, goal-progress.md   the goal-progress mod, /ag:goal-progress
 rules/CLAUDE.global.md
 scripts/install.ps1                 marketplace add + install, global rules link, old copies to backup
 README.md, .gitignore
@@ -155,7 +154,7 @@ Acceptance: `claude plugin validate .` and `claude plugin validate plugins/ag` p
 
 ### fix 12. README for the `ag` plugin
 Status: todo
-After fix 11: `README.md` describes one plugin `ag` and its commands `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress` (and `/ag:design` once Phase 3 adds it), the install `claude plugin install ag@agents-plugin` or `scripts/install.ps1`, the launcher path `plugins/ag/scripts/ext-build.ps1`. End-user copy, Opus high.
+After fix 11: `README.md` describes one plugin `ag` and its commands `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress` (and `/ag:design` once Phase 3 adds it); in `plugins/ag/goal-progress.md` the old `local-mods` install lines become the `ag` install; the install `claude plugin install ag@agents-plugin` or `scripts/install.ps1`, the launcher path `plugins/ag/scripts/ext-build.ps1`. End-user copy, Opus high.
 Acceptance: `grep -n "goal-prompt@\|goal-progress@\|plugins/goal-prompt\|plugins/goal-progress" README.md` finds nothing; every command named is an `/ag:` command; `claude plugin validate .` passes.
 
 ## Phase 3: design images and keys on every OS (gate: you run the design command in a new session and review its folder)
@@ -209,14 +208,13 @@ Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new ver
 1. **Status** is the `Status:` line on each step and on each phase: a step sets its own mark (`done <date>` or `blocked: <reason>`) in its own commit; the main thread sets a phase's mark (`shown <date>` at a gate, `done <date>` after the sign-off) at its close and rewrites "Where the run stands" at each landing. No other list is kept. This section and the status lines are committed with S1 (the repo does not exist before it).
 2. **Scope is the plan.** Build each step's acceptance as written, nothing more. A real gap is an open question in "Open questions" with a default; ideas go to "Later".
 3. **Order.** Steps run one after another in this checkout on `main` (all are small; no worktrees). S2, S3 and S4 touch different folders and may run side by side, up to 3. The main thread assigns names when a step starts.
-4. **A step** is built by a fresh Fireworks builder (`~/.claude/bin/ext-build.ps1` until S7 moves it, then `plugins/goal-prompt/scripts/ext-build.ps1` in this checkout, and `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1` after fix 9; `-Brief <brief> -Cwd C:\Users\User\Code\AgentsPlugin -Step <id> -LogDir .claude/goal-prompt/20261106-plugin/logs`, model `accounts/fireworks/models/deepseek-v4p1-flash`, started as a background shell job), except S5, which is kept on Claude at Opus medium. The brief is pointers, in `.claude/goal-prompt/20261106-plugin/briefs/<step>.md`: this file with the step's line range and this section's range, and the source paths from "What goes in". The builder reads by range only (Read with offset and limit, Grep with a limit), makes its first edit within about 20 tool calls, writes only the tests the plan names, runs the step's own checks once, sets its status mark and commits.
+4. **A step** is built by a fresh Fireworks builder (`~/.claude/bin/ext-build.ps1` until S7 moves it, then `plugins/goal-prompt/scripts/ext-build.ps1` in this checkout, and `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1` after fix 9, `plugins/ag/scripts/ext-build.ps1` after fix 11; `-Brief <brief> -Cwd C:\Users\User\Code\AgentsPlugin -Step <id> -LogDir .claude/goal-prompt/20261106-plugin/logs`, model `accounts/fireworks/models/deepseek-v4p1-flash`, started as a background shell job), except S5, which is kept on Claude at Opus medium. The brief is pointers, in `.claude/goal-prompt/20261106-plugin/briefs/<step>.md`: this file with the step's line range and this section's range, and the source paths from "What goes in". The builder reads by range only (Read with offset and limit, Grep with a limit), makes its first edit within about 20 tool calls, writes only the tests the plan names, runs the step's own checks once, sets its status mark and commits.
 5. **Handoff.** At about 100 tool calls a builder stops at a safe point (committed, nothing half written) and returns "HANDOFF" with a note of at most 15 lines in its report: done (commits), left, what fails (command and first error lines), files with line ranges, next action. The next builder starts from the note and `git log`, and makes its first change within about 10 tool calls. A failed step's report is the same note, and a fresh Opus high subagent continues the step (never restarted, no other step in its place). A Fireworks HANDOFF (exit 3) goes to a fresh Fireworks builder with the note; a Fireworks failure (exit 1) goes to Opus high; a setup error (exit 2) stops the run and is reported to the user.
 6. **Landing:** the step's own acceptance checks, then its commit on `main`; pushes happen only in S5 and S7. After a fix only the failed check runs again.
-7. **Phase close:** every step of the phase marked; once: `claude plugin validate .`, `claude plugin test plugins/goal-progress`, `plugins/goal-prompt-3rdparty/scripts/ext-build.test.ps1` (phase 2 also the install script's second run); one review of the phase's diff at Opus high (it touches secrets and `~/.claude`; findings fixed or deferred with a reason); the phase marked `shown`; `git status` clean.
+7. **Phase close:** every step of the phase marked; once: `claude plugin validate .`, `claude plugin test plugins/ag`, `plugins/ag/scripts/ext-build.test.ps1` (phase 2 also the install script's second run); one review of the phase's diff at Opus high (it touches secrets and `~/.claude`; findings fixed or deferred with a reason); the phase marked `shown`; `git status` clean.
 8. **Model and effort:** planning and reviews at Opus high; copy is never written on Fireworks (the user, Nov 6, 2026): end-user-facing copy at Opus high, technical copy at Opus medium; building on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (S5 at Opus medium); a failed step at Opus high; mechanical work at Sonnet. A builder report is at most 20 lines; longer output goes to `.claude/goal-prompt/20261106-plugin/logs/`, and Fireworks runs also log one line each to `logs/ext-runs.jsonl`.
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
-2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 reopened at the gate for fix 11 (one plugin `ag`, push, reinstall; fix11-ag-fw1) and fix 12 (README; fix12-readme-opus). Before that it was shown, waiting for the user's check in a new session: `/goal-prompt`, `/goal-prompt-3rdparty`, the progress bar. Done: S6, S7, fix 6-8, fix 9 (b79853d, pushed: three plugins, installed here, `-Check` OK, install rerun all `skip:`), fix 10 (d36b9bc, README for three plugins, short names only; local until S13's push). Phase close: suites passed; review P2-review-opus findings fixed (fix 8) or deferred.
-Next after sign-off: Phase 2 done, then Phase 3 (S8).
+2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
+Phase 1 done (4e15b7b). Phase 2 reopened at the gate. fix 11 done (13abdd3, pushed): one plugin `ag` (skills, launcher, mod; mod state renamed `ag` so validate passes; install.ps1 also drops the old names from settings.json); installed here: only `ag@agents-plugin` 1.0.0, `-Check` OK, install rerun all `skip:`; a fresh session lists `ag:goal-prompt`, `ag:goal-prompt-3rdparty`. Running: fix12-readme-opus. Then Phase 2 shown again; the user checks the `/ag:` commands and the bar in a new session.
