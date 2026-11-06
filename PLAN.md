@@ -56,7 +56,8 @@ Checked Nov 6, 2026 against code.claude.com/docs (skills, plugins/components, pl
 | Claude | Everything else: repo, files, path changes, tests, commits, pushes, install, moving old copies to a backup folder. |
 
 ## Phase 1: build the repo (gate: you look at the repo on GitHub)
-Status: shown 2026-11-06
+Status: done 2026-11-06
+The user at the gate, Nov 6, 2026: "please push and than let's switch to plugin than improve the code and push and update install": one extra push of fix 1-5 at the gate, then sign-off; Phase 2, then Phase 3.
 
 ### S1. Repo skeleton
 Status: done 2026-11-06
@@ -181,6 +182,4 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 shown again, waiting for the user's sign-off (look at the repo on GitHub). Done: S1-S5 (main pushed at da00eb6), fix 1 (345b656), fix 2 (f50a504), fix 3 (d13869d), fix 4 (ff5f567), fix 5 (d7cc39c, README models table, examples, 3 SVGs rendered by the mod's own test kit). Fix commits local until S7's push unless the user asks for one now. Phase close: validate passed, 13 tests pass, ext-build 31 pass; review P1-review-opus: no high, medium/low 1 fixed, low 2 deferred.
-Phase 3 added at the user's request (design images, design plugin, keys on every OS); runs after Phase 2.
-Next after sign-off: Phase 1 done, then S6.
+Phase 1 done (signed off at the gate after one extra push of fix 1-5, at the user's request). Phase 2: S6 next (S6-install-fw1). Phase 3 (design images, design plugin, keys on every OS) after Phase 2's sign-off.
