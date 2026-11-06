@@ -56,7 +56,7 @@ Checked Nov 6, 2026 against code.claude.com/docs (skills, plugins/components, pl
 | Claude | Everything else: repo, files, path changes, tests, commits, pushes, install, moving old copies to a backup folder. |
 
 ## Phase 1: build the repo (gate: you look at the repo on GitHub)
-Status: todo
+Status: shown 2026-11-06
 
 ### S1. Repo skeleton
 Status: done 2026-11-06
@@ -121,10 +121,47 @@ Status: todo
 Run the install script on this machine, then: `claude plugin list` shows both plugins enabled; `ext-build.ps1 -Check` from the plugin path prints OK; `~/.claude/settings.json` no longer names `local-mods`. Push.
 Acceptance: those three outputs printed; phase marked `shown`; you open a new session and confirm `/goal-prompt` and `/goal-prompt-3rdparty` (or their namespaced names) are listed and the progress bar loads.
 
+## Phase 3: design images and keys on every OS (gate: you run the design command in a new session and review its folder)
+Status: todo
+The user, Nov 6, 2026: "can you add to goals and planning to also accept gemini and open AI api key to generate desig images as part of goal exeuction in same way as 3rd party and add also design command that ca nbe run any time, I will provide API keys in prompt similar as fireworks". Answers the same day: a new Phase 3; keys set up the same way as Fireworks (never in chat); "separate deisgn plugin that expecct a plan / descirption to come and plan a design btw make sure all commands use proper folder structures etc in the projects it's run so user can review it - same way deisgn will be used as part of the goals commadns"; "the goal should use design anytime UI is involved for new pages if it's minor change skip design step"; "btw key setup should be possible both on mac and windows and linux".
+
+### S8. Keys on Windows, macOS and Linux
+Status: todo
+One key store used by every launcher: `-SetKey <fireworks|gemini|openai>` and `-Check <provider>`; Windows DPAPI as today, macOS Keychain (`security`), Linux `secret-tool` when present, else a file only the user can read (open question 4). The launchers run under Windows PowerShell 5.1 and PowerShell 7 (`pwsh`) on macOS and Linux. Opus medium (secrets). The Fireworks key already stored on this machine keeps working.
+Acceptance: `ext-build.test.ps1` passes (all existing checks plus one per OS branch, with the OS store mocked); no key is printed or logged; `ext-build.ps1 -Check` still prints OK here.
+
+### S9. Image launcher
+Status: todo
+`plugins/design/scripts/design-image.ps1`: makes images from a prompt with Gemini or OpenAI (`-Provider`, `-Model`, `-Out`, `-Count`), keys from S8, models and defaults in `~/.claude/design.json` then `design.default.json` in the plugin; writes each image with a sidecar `.md` (prompt, provider, model, time); `-DryRun`; exit codes as `ext-build.ps1`. Built on Fireworks.
+Acceptance: `design-image.test.ps1` passes (no real API call: request shape, config order, file and sidecar names, missing key exits 2); `-Check gemini` and `-Check openai` each print OK once the user has set the key.
+
+### S10. design plugin
+Status: todo
+`plugins/design/` (`plugin.json` name `design`, version 0.1.0; listed in the root `marketplace.json`) with a `design` skill: takes a plan path or a description, plans the design (pages, states, components, copy), then makes the images with S9, all in the project under `design/<yyyymmdd>-<slug>/` (`brief.md`, `design-plan.md`, `images/`, `review.md` for the user's notes) so the user can review it (open question 5). Skill text at Opus medium (technical copy); the design plan itself is made at Opus high when the skill runs.
+Acceptance: `claude plugin validate plugins/design` passes; `claude --plugin-dir plugins/design -p "list your skills"` names it; a dry run on a two-line description writes the folder with `brief.md` and `design-plan.md` and the `-DryRun` image commands.
+
+### S11. Goals use design for new pages
+Status: todo
+In both goal-prompt skills: a step that adds a new page or screen gets a design step first (the design skill, Opus high), whose folder the UI builder then works from and the user can review; a minor UI change skips it; with no image key set, the design step writes the plan without images. Both skills name the project folders they write (`design/...` committed for review; `.claude/goal-prompt/<run>/` git-ignored for briefs and logs). Opus medium (technical copy). Versions: goal-prompt 1.1.0.
+Acceptance: both SKILL.md files name the design step, the new-page rule and the folders; the goal templates stay under 4,000 characters; `claude plugin validate plugins/goal-prompt` passes.
+
+### S12. Install and README for all three plugins
+Status: todo
+`scripts/install.ps1` also installs `design@agents-plugin` (all plugins in one run); README: key setup on Windows, macOS and Linux for the three providers, the design plugin and its folder, an example. README at Opus high (end-user copy); the script on Fireworks.
+Acceptance: `install.ps1 -WhatIf` lists the three plugins; README names the three providers and the three OSes; `claude plugin validate .` passes.
+
+### S13. Push and run it here
+Status: todo
+Run the install script here, `-Check` for each provider whose key is set, push `main`.
+Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` lines printed; `git push` succeeds; `git status` clean.
+
 ## Open questions (with defaults)
 1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README.
 2. How does a goal made by `goal-prompt-3rdparty` find the launcher after the user-level copy is gone? Default: the skill writes `${CLAUDE_PLUGIN_ROOT}/scripts/ext-build.ps1` into the goal and the runner, which the skill text shows as the full path of the installed version; after a plugin update, make the goal again (fix 3).
 3. How are the screenshots made? Default: render the mod's band, pane and `/goal-progress` output from `docs/examples/goal-progress.json` with the mod's own components (the mod test or render tools), and turn that output into images; never capture the user's screen. If no render route works, a terminal window that shows only a demo session.
+4. Key store on Linux without `secret-tool`? Default: `~/.claude/secrets/<provider>.key` readable only by the user (mode 600), and `-SetKey` says it is not encrypted.
+5. Folder layout in a project? Default: design work in `design/<yyyymmdd>-<slug>/` (committed, for review); goal runs keep `.claude/goal-prompt/<yyyymmdd>-<slug>/` (git-ignored: briefs, logs) and `.claude/goal-progress.json`; each skill says which folders it writes.
+6. Pushes: Phase 3 pushes in S13 only (like S5 and S7).
 
 ## Later
 - Ship the status line scripts (`~/.claude/hooks/statusline.js`, `subagent-statusline.js`) too.
@@ -144,5 +181,6 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 reopened at the gate for the user's feedback: fix 4 (copy on Opus in goal-prompt-3rdparty; technical copy, so fix4-copy-opus at Opus medium) and fix 5 (README models, examples, screenshots; end-user copy, so fix5-readme-opus at Opus high, after fix 4). Done: S1-S5 (main pushed at da00eb6), fix 1 (345b656), fix 2 (f50a504), fix 3 (d13869d); fix commits local until S7's push unless the user asks for one now. Phase close so far: validate passed, 13 tests pass, ext-build 31 pass; review P1-review-opus: no high, medium/low 1 fixed, low 2 deferred.
-fix 4 done (ff5f567; goal template 3,286 chars; validate passed). Running: fix5-readme-opus. Next: Phase 1 shown again.
+Phase 1 shown again, waiting for the user's sign-off (look at the repo on GitHub). Done: S1-S5 (main pushed at da00eb6), fix 1 (345b656), fix 2 (f50a504), fix 3 (d13869d), fix 4 (ff5f567), fix 5 (d7cc39c, README models table, examples, 3 SVGs rendered by the mod's own test kit). Fix commits local until S7's push unless the user asks for one now. Phase close: validate passed, 13 tests pass, ext-build 31 pass; review P1-review-opus: no high, medium/low 1 fixed, low 2 deferred.
+Phase 3 added at the user's request (design images, design plugin, keys on every OS); runs after Phase 2.
+Next after sign-off: Phase 1 done, then S6.
