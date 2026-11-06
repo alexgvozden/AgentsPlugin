@@ -84,7 +84,7 @@ Search the tree and the staged files for key material (`fw_`, `-----BEGIN`, long
 Acceptance: the search prints no hits; `git ls-files` printed; `git push -u origin main` succeeds; `git status` clean.
 
 ### fix 1. README says what you get
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026: "also please update readme to explain what you get". `README.md`: what each plugin gives you once installed (the two skills and how to call them, the `ext-build.ps1` launcher and its config/key, the progress band, `/goal-progress` and the Goal tasks pane, the global rules import), kept short.
 Acceptance: README names every part listed above; `claude plugin validate .` passes.
 
