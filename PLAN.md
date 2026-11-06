@@ -183,7 +183,7 @@ Status: done 2026-11-06
 Acceptance: `design-image.test.ps1` passes (no real API call: request shape, config order, file and sidecar names, missing key exits 2); `-Check gemini` and `-Check openai` each print OK once the user has set the key.
 
 ### S10. design skill `ag:design`
-Status: todo
+Status: done 2026-11-06
 `plugins/ag/skills/design/` (the user moved design into the `ag` plugin as `ag:design`, fix 11; ag version 1.1.0): takes a plan path or a description, plans the design (pages, states, components, copy), then makes the images with S9, all in the project under `design/<yyyymmdd>-<slug>/` (`brief.md`, `design-plan.md`, `images/`, `review.md` for the user's notes) so the user can review it (open question 5). Skill text at Opus medium (technical copy); the design plan itself is made at Opus high when the skill runs.
 Acceptance: `claude plugin validate plugins/ag` passes; `claude --plugin-dir plugins/ag -p "list your skills"` names `ag:design`; a dry run on a two-line description writes the folder with `brief.md` and `design-plan.md` and the `-DryRun` image commands.
 
