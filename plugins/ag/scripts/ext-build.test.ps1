@@ -138,18 +138,22 @@ try {
     $hasCmd = { param($n) $n -eq 'secret-tool' }
     $script:calls = New-Object System.Collections.ArrayList
     $script:vault = @{}
+    $script:chmods = New-Object System.Collections.ArrayList
+    $script:tamper = $false
+    $script:storeFail = $false
     $mock = {
         param([string]$Exe, [string[]]$ArgList, [string]$Stdin)
         [void]$script:calls.Add([pscustomobject]@{ Exe = $Exe; Args = ($ArgList -join ' '); Stdin = $Stdin })
         $code = 0; $out = ''
-        if ($Exe -eq 'security' -and $ArgList[0] -eq '-i') {
-            if ($Stdin -match '-s (\S+) .* -w "(.*)"\n$') { $script:vault[$Matches[1]] = $Matches[2] } else { $code = 1 }
+        if ($Exe -eq 'chmod') { [void]$script:chmods.Add([pscustomobject]@{ Args = ($ArgList -join ' '); Len = $(if (Test-Path -LiteralPath $ArgList[1] -PathType Leaf) { (Get-Item -LiteralPath $ArgList[1]).Length } else { -1 }) }) }
+        elseif ($Exe -eq 'security' -and $ArgList[0] -eq '-i') {
+            if ($Stdin -match '-s (\S+) .* -w "(.*)"\n$') { $script:vault[$Matches[1]] = $(if ($script:tamper) { 'other-value' } else { $Matches[2] }) } else { $code = 1 }
         }
         elseif ($Exe -eq 'security' -and $ArgList[0] -eq 'find-generic-password') {
             $svc = $ArgList[[array]::IndexOf($ArgList, '-s') + 1]
             if ($script:vault.ContainsKey($svc)) { $out = $script:vault[$svc] + "`n" } else { $code = 44 }
         }
-        elseif ($Exe -eq 'secret-tool' -and $ArgList[0] -eq 'store') { $script:vault[$ArgList[[array]::IndexOf($ArgList, 'service') + 1]] = $Stdin }
+        elseif ($Exe -eq 'secret-tool' -and $ArgList[0] -eq 'store') { if ($script:storeFail) { $code = 1 } else { $script:vault[$ArgList[[array]::IndexOf($ArgList, 'service') + 1]] = $Stdin } }
         elseif ($Exe -eq 'secret-tool' -and $ArgList[0] -eq 'lookup') {
             $svc = $ArgList[2]
             if ($script:vault.ContainsKey($svc)) { $out = $script:vault[$svc] } else { $code = 1 }
@@ -185,6 +189,36 @@ try {
     $back = Get-ProviderKey -Provider gemini -KeyFile $linKey -Os linux -Runner $mock -HasCommand $noCmd
     $chmod = @($script:calls | Where-Object { $_.Exe -eq 'chmod' -and $_.Args -eq "600 $linKey" }).Count
     Assert ($back -eq $dummy -and $chmod -eq 1 -and ($lines -join ' ') -match 'NOT encrypted' -and -not ($lines -join ' ').Contains($dummy)) 'linux fallback file (chmod 600, says unencrypted)' ($lines -join "`n")
+
+    # fix 16 (6): folder 700 and empty file 600 before the key is written
+    $c700 = [array]::IndexOf(@($script:chmods | ForEach-Object { $_.Args }), "700 $(Split-Path -Parent $linKey)")
+    $c600 = [array]::IndexOf(@($script:chmods | ForEach-Object { $_.Args }), "600 $linKey")
+    Assert ($c700 -ge 0 -and $c600 -gt $c700 -and $script:chmods[$c600].Len -eq 0) 'linux file: secrets folder 700, then empty key file 600, then the key' (($script:chmods | ForEach-Object { "$($_.Args) len=$($_.Len)" }) -join "`n")
+
+    # fix 16 (5): secret-tool store fails (no unlocked keyring) -> mode-600 file, says unencrypted
+    $script:calls.Clear(); $script:vault.Clear(); $script:chmods.Clear(); $script:storeFail = $true
+    $failKey = Join-Path $root 'ks\linux2\gemini.key'
+    $lines = Set-ProviderKey -Provider gemini -Secure $sec -KeyFile $failKey -Os linux -Runner $mock -HasCommand $hasCmd
+    $back = Get-ProviderKey -Provider gemini -KeyFile $failKey -Os linux -Runner $mock -HasCommand $hasCmd
+    $script:storeFail = $false
+    $txt = $lines -join ' '
+    Assert ($back -eq $dummy -and $txt -match 'NOT encrypted' -and $txt -match 'secret-tool could not store' -and -not $txt.Contains($dummy) -and @($script:chmods | Where-Object { $_.Args -eq "600 $failKey" }).Count -eq 1) 'linux secret-tool store fails -> 600 file fallback, says unencrypted' $txt
+
+    # fix 16 (7): macOS read-back differs from the new key -> setup failure (exit 2), no value shown
+    $script:calls.Clear(); $script:vault.Clear(); $script:tamper = $true
+    $msg = Get-SetupError { Set-ProviderKey -Provider openai -Secure $sec -Os macos -Runner $mock -HasCommand $noCmd }
+    $script:tamper = $false
+    Assert ($msg -match 'does not match' -and -not $msg.Contains($dummy) -and -not $msg.Contains('other-value')) 'macOS read-back mismatch -> setup error, values never shown' $msg
+
+    # fix 16 (1): on macOS/Linux plain `claude` is found (Get-Command mocked)
+    function Get-Command {
+        param([Parameter(Position = 0)][string]$Name, [string]$CommandType)
+        if ($Name -eq 'claude') { return [pscustomobject]@{ Source = '/usr/local/bin/claude' } }
+    }
+    $found = Resolve-ExtClaude ([pscustomobject]@{ ClaudePath = '' }) 'linux'
+    $foundMac = Resolve-ExtClaude ([pscustomobject]@{ ClaudePath = '' }) 'macos'
+    Remove-Item -LiteralPath function:Get-Command
+    Assert ($found -eq '/usr/local/bin/claude' -and $foundMac -eq '/usr/local/bin/claude') 'non-Windows finds plain claude on PATH' "$found / $foundMac"
 
     $r = Run-Launcher @('-Config', $cfgOk, '-Check', 'bogus')
     Assert ($r.Code -eq 2 -and $r.Out -match "unknown key provider 'bogus'") 'unknown provider exit 2' "code $($r.Code): $($r.Out)"

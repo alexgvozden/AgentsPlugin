@@ -65,17 +65,37 @@ function Get-DesignProp($Obj, [string]$Name, $Default = $null) {
     return $p.Value
 }
 
-# User file first (~/.claude/design.json), then the plugin default (design.default.json).
+# Key by key: values in $Over win; nested objects (providers.<name>.*) merge the same way.
+function Merge-DesignObject($Base, $Over) {
+    $obj = [System.Management.Automation.PSCustomObject]
+    if (-not ($Base -is $obj) -or -not ($Over -is $obj)) { return $Over }
+    $out = [ordered]@{}
+    foreach ($p in $Base.PSObject.Properties) { $out[$p.Name] = $p.Value }
+    foreach ($p in $Over.PSObject.Properties) {
+        if ($out.Contains($p.Name)) { $out[$p.Name] = Merge-DesignObject $out[$p.Name] $p.Value }
+        else { $out[$p.Name] = $p.Value }
+    }
+    return (New-Object psobject -Property $out)
+}
+
+function Read-DesignJson([string]$Path) {
+    try { return ([IO.File]::ReadAllText($Path) | ConvertFrom-Json) }
+    catch { Stop-DesignSetup "config is not valid JSON: $Path" }
+}
+
+# The user file (~/.claude/design.json) is merged over the plugin default (design.default.json).
 function Read-DesignConfig([string]$Path) {
+    $defaultCfg = Join-Path (Split-Path -Parent $PSScriptRoot) 'design.default.json'
+    $merge = $false
     if (-not $Path) {
         $userCfg = Join-Path (Join-Path (Get-KeyHome) '.claude') 'design.json'
-        if (Test-Path -LiteralPath $userCfg -PathType Leaf) { $Path = $userCfg }
-        else { $Path = Join-Path (Split-Path -Parent $PSScriptRoot) 'design.default.json' }
+        if (Test-Path -LiteralPath $userCfg -PathType Leaf) { $Path = $userCfg; $merge = $true }
+        else { $Path = $defaultCfg }
     }
     $Path = Expand-DesignPath $Path
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { Stop-DesignSetup "config not found: $Path" }
-    try { $cfg = [IO.File]::ReadAllText($Path) | ConvertFrom-Json }
-    catch { Stop-DesignSetup "config is not valid JSON: $Path" }
+    $cfg = Read-DesignJson $Path
+    if ($merge -and (Test-Path -LiteralPath $defaultCfg -PathType Leaf)) { $cfg = Merge-DesignObject (Read-DesignJson $defaultCfg) $cfg }
     $def = [string](Get-DesignProp $cfg 'defaultProvider' '')
     if (-not $def) { Stop-DesignSetup "config $Path is missing 'defaultProvider'" }
     $def = $def.Trim().ToLowerInvariant()
@@ -144,15 +164,21 @@ function Get-DesignRequest($Cfg, [string]$ProviderName, [string]$ModelId, [strin
 function Invoke-DesignHttpSend {
     param([string]$Url, [string]$Method, [hashtable]$Headers, [string]$Body, [int]$TimeoutSec = 180)
     try {
-        $r = Invoke-WebRequest -Uri $Url -Method $Method -Headers $Headers -Body $Body `
-            -ContentType 'application/json' -TimeoutSec $TimeoutSec -UseBasicParsing
+        # UTF-8 bytes: PowerShell 5.1 would send a string body as Latin-1.
+        $bytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($Body)
+        $r = Invoke-WebRequest -Uri $Url -Method $Method -Headers $Headers -Body $bytes `
+            -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSec -UseBasicParsing
         return [pscustomobject]@{ StatusCode = [int]$r.StatusCode; Content = [string]$r.Content; ErrorMessage = '' }
     }
     catch {
-        $resp = $_.Exception.Response
+        $resp = $null
+        $rp = $_.Exception.PSObject.Properties['Response']
+        if ($rp) { $resp = $rp.Value }
         $code = 0; $content = ''
-        if ($resp) {
-            try { $code = [int]$resp.StatusCode } catch { }
+        if ($resp) { try { $code = [int]$resp.StatusCode } catch { } }
+        # The API's error text: ErrorDetails on PowerShell 7 (and often 5.1), else the response stream.
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $content = [string]$_.ErrorDetails.Message }
+        if (-not $content -and $resp) {
             try {
                 $stream = $resp.GetResponseStream()
                 if ($stream) { $content = (New-Object IO.StreamReader($stream)).ReadToEnd() }
@@ -171,6 +197,7 @@ function Get-DesignImages([string]$ProviderName, [string]$Content) {
     catch { throw "the $ProviderName response is not JSON: $(([string]$Content).Substring(0, [Math]::Min(300, ([string]$Content).Length)))" }
     $out = @()
     if ($ProviderName -eq 'gemini') {
+        $why = @()
         foreach ($cand in @(Get-DesignProp $parsed 'candidates' @())) {
             # not $content: that would collide with the [string]$Content parameter, and
             # PowerShell would coerce the node back to a string on assignment.
@@ -180,7 +207,16 @@ function Get-DesignImages([string]$ProviderName, [string]$Content) {
                 if ($d -and (Get-DesignProp $d 'data')) {
                     $out += [pscustomobject]@{ Data = [string](Get-DesignProp $d 'data'); MimeType = [string](Get-DesignProp $d 'mimeType' 'image/png') }
                 }
+                $txt = [string](Get-DesignProp $part 'text' '')
+                if ($txt) { $why += $txt.Trim() }
             }
+            $fr = [string](Get-DesignProp $cand 'finishReason' '')
+            if ($fr -and $fr -ne 'STOP') { $why += "finishReason $fr" }
+        }
+        if ($out.Count -lt 1) {
+            $t = if ($why.Count) { $why -join '; ' } else { 'no text or finish reason given' }
+            if ($t.Length -gt 300) { $t = $t.Substring(0, 300) }
+            throw "gemini returned no image: $t"
         }
     }
     else {
@@ -190,6 +226,15 @@ function Get-DesignImages([string]$ProviderName, [string]$Content) {
         }
     }
     return $out
+}
+
+# File extension from the returned mime type (png, jpeg, webp); png when unknown.
+function Get-DesignImageExt([string]$MimeType) {
+    switch -Regex (([string]$MimeType).ToLowerInvariant()) {
+        '^image/jpe?g' { return 'jpg' }
+        '^image/webp' { return 'webp' }
+        default { return 'png' }
+    }
 }
 
 # Error text for the user: the key is masked and the text is trimmed.
@@ -282,10 +327,11 @@ function Invoke-DesignGenerate($Cfg, [string]$ProviderName, [string]$ModelName, 
             }
             $images = @(Get-DesignImages $ProviderName $r.Content)
             if ($images.Count -lt 1) { throw "$ProviderName returned no image" }
-            $png = Join-Path $outPath "$slug-$i.png"
+            $ext = Get-DesignImageExt $images[0].MimeType
+            $png = Join-Path $outPath "$slug-$i.$ext"
             [IO.File]::WriteAllBytes($png, [Convert]::FromBase64String($images[0].Data))
             $md = Join-Path $outPath "$slug-$i.md"
-            Write-DesignSidecar $md $PromptText $ProviderName $modelId "$slug-$i.png" $now
+            Write-DesignSidecar $md $PromptText $ProviderName $modelId "$slug-$i.$ext" $now
             Write-Output "design-image: wrote $png"
             Write-Output "design-image: wrote $md"
         }

@@ -31,6 +31,7 @@ try {
 
     # --- load the launcher first: it only defines functions, then we replace the network seam ---
     . $launcher
+    $realSend = ${function:Invoke-DesignHttpSend}
     # --- mock the single network seam (defined after the dot-source, so it wins) ---
     $script:lastReq = $null
     $script:calls = 0
@@ -118,6 +119,47 @@ try {
     $script:status = 200; $script:response = $geminiBody
     $checkOut = (Invoke-DesignCheck 'gemini' $cfg '') -join "`n"
     Assert ($checkOut -match 'design-image check: OK') 'check prints OK' $checkOut
+
+    # --- fix 16 (9): a user file with one model only is merged over the plugin default ---
+    [IO.File]::WriteAllText((Join-Path $home2 '.claude\design.json'), '{"providers":{"gemini":{"defaultModel":"g-only"}}}')
+    $cfgOne = Read-DesignConfig ''
+    Remove-Item -LiteralPath (Join-Path $home2 '.claude\design.json') -Force
+    Assert ($cfgOne.Providers['gemini'].DefaultModel -eq 'g-only' -and $cfgOne.Providers['gemini'].BaseUrl -eq 'https://generativelanguage.googleapis.com/v1beta' -and $cfgOne.Providers['openai'].DefaultModel -eq 'gpt-image-2' -and $cfgOne.DefaultProvider -eq 'gemini') 'user file with one model merges key by key over the default'
+
+    # --- fix 16 (2), (3): the real send, with Invoke-WebRequest mocked (no network) ---
+    function Invoke-WebRequest {
+        param($Uri, $Method, $Headers, $Body, $ContentType, $TimeoutSec, [switch]$UseBasicParsing)
+        $script:iwr = [pscustomobject]@{ Body = $Body; ContentType = $ContentType }
+        if ($script:iwrFail) {
+            $er = New-Object System.Management.Automation.ErrorRecord((New-Object System.Exception 'The remote server returned an error: (400) Bad Request.'), 'WebFail', 'InvalidOperation', $null)
+            $er.ErrorDetails = New-Object System.Management.Automation.ErrorDetails('{"error":{"message":"API key not valid: ' + $dummy + '"}}')
+            throw $er
+        }
+        [pscustomobject]@{ StatusCode = 200; Content = '{}' }
+    }
+    $script:iwrFail = $false
+    $uni = '{"text":"caf' + [char]0xE9 + ' ' + [char]0x2713 + '"}'
+    $null = & $realSend -Url 'https://x.example' -Method 'POST' -Headers @{} -Body $uni
+    $sent = $script:iwr.Body
+    Assert ($sent -is [byte[]] -and [Text.Encoding]::UTF8.GetString($sent) -eq $uni -and $sent.Length -eq ($uni.Length + 3) -and $script:iwr.ContentType -eq 'application/json; charset=utf-8') 'body sent as UTF-8 bytes with charset=utf-8' "$($script:iwr.ContentType)"
+    $script:iwrFail = $true
+    $resp = & $realSend -Url 'https://x.example' -Method 'POST' -Headers @{} -Body '{}'
+    $script:iwrFail = $false
+    $shown = Get-DesignErrorText $resp $dummy
+    Remove-Item -LiteralPath function:Invoke-WebRequest
+    Assert ($shown -match 'API key not valid' -and -not $shown.Contains($dummy) -and $shown -match '\*\*\*') 'API error text from ErrorDetails reaches the user, key masked' $shown
+
+    # --- fix 16 (11): no image -> text / finishReason in the error; extension follows mimeType ---
+    $script:status = 200
+    $script:response = '{"candidates":[{"content":{"parts":[{"text":"I cannot draw that."}]},"finishReason":"IMAGE_SAFETY"}]}'
+    $err = ''
+    try { $null = Invoke-DesignGenerate $cfg 'gemini' '' 'a login page' (Join-Path $root 'out-noimg') 1 } catch { $err = $_.Exception.Message }
+    Assert ($err -match 'I cannot draw that' -and $err -match 'IMAGE_SAFETY') 'gemini no image -> its text and finishReason in the error' $err
+    $script:response = ([ordered]@{ candidates = @(@{ content = @{ parts = @(@{ inlineData = @{ mimeType = 'image/jpeg'; data = $b64 } }) } }) } | ConvertTo-Json -Depth 10 -Compress)
+    $jpgDir = Join-Path $root 'out-jpg'
+    $null = Invoke-DesignGenerate $cfg 'gemini' '' 'a login page' $jpgDir 1
+    Assert ((Test-Path (Join-Path $jpgDir 'a-login-page-1.jpg')) -and -not (Test-Path (Join-Path $jpgDir 'a-login-page-1.png')) -and ([IO.File]::ReadAllText((Join-Path $jpgDir 'a-login-page-1.md')) -match '# a-login-page-1\.jpg')) 'image/jpeg -> .jpg file, sidecar names it'
+    $script:response = $geminiBody
 
     # --- 6. child process: missing key exits 2 with the -SetKey hint, no request made ---
     $noKeyHome = Join-Path $root 'home-nokey'

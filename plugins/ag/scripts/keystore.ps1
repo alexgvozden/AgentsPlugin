@@ -3,7 +3,7 @@
   Providers: fireworks, gemini, openai. Any other provider is a setup error (exit 2).
     Windows (PowerShell 5.1): DPAPI current-user file ~/.claude/secrets/<provider>.key
     macOS (pwsh): Keychain via `security`, service ag-<provider>, account $env:USER
-    Linux (pwsh): `secret-tool` when on PATH, else ~/.claude/secrets/<provider>.key (mode 600, not encrypted)
+    Linux (pwsh): `secret-tool` when on PATH and it can store, else ~/.claude/secrets/<provider>.key (mode 600, not encrypted)
   The key is never printed or logged. The OS (-Os), the command runner (-Runner) and the
   "is this command on PATH" check (-HasCommand) can be injected, so tests mock each branch.
   Windows PowerShell 5.1 and PowerShell 7 compatible.
@@ -136,8 +136,12 @@ function Get-ProviderKey {
         }
         'linux-secret-tool' {
             $r = & $Runner 'secret-tool' @('lookup', 'service', "ag-$p", 'account', $user) ''
-            if ($r.ExitCode -ne 0 -or -not ([string]$r.Stdout).Trim()) { Stop-KeySetup "$label key not found (secret-tool service ag-$p): $hint" }
-            $plain = ([string]$r.Stdout).Trim()
+            if ($r.ExitCode -eq 0 -and ([string]$r.Stdout).Trim()) { $plain = ([string]$r.Stdout).Trim() }
+            elseif (Test-Path -LiteralPath $KeyFile -PathType Leaf) {
+                # -SetKey fell back to the mode-600 file when secret-tool could not store the key.
+                $plain = ([IO.File]::ReadAllText($KeyFile)).Trim()
+            }
+            if (-not $plain) { Stop-KeySetup "$label key not found (secret-tool service ag-$p): $hint" }
         }
         'linux-file' {
             if (-not (Test-Path -LiteralPath $KeyFile -PathType Leaf)) { Stop-KeySetup "$label key not found ($KeyFile): $hint" }
@@ -153,6 +157,18 @@ function Test-ProviderKey {
     $p = Assert-KeyProvider $Provider
     try { $null = Get-ProviderKey -Provider $p -KeyFile $KeyFile -Os $Os -Runner $Runner -HasCommand $HasCommand; return $true }
     catch { if ($_.Exception.Data['ExtSetup']) { return $false } else { throw } }
+}
+
+# Unix key file: the folder is set to 700 and the empty file to 600 before the key is written.
+function Write-KeyFile([string]$KeyFile, [string]$Plain, [scriptblock]$Runner) {
+    $dir = Split-Path -Parent $KeyFile
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    $r = & $Runner 'chmod' @('700', $dir) ''
+    if ($r.ExitCode -ne 0) { Stop-KeySetup "chmod 700 failed on $dir; key not written" }
+    [IO.File]::WriteAllText($KeyFile, '')
+    $r = & $Runner 'chmod' @('600', $KeyFile) ''
+    if ($r.ExitCode -ne 0) { Stop-KeySetup "chmod 600 failed on $KeyFile; key not written" }
+    [IO.File]::WriteAllText($KeyFile, $Plain)
 }
 
 # Stores the key; returns the lines to show the user (never the key itself).
@@ -185,21 +201,27 @@ function Set-ProviderKey {
                 $r = & $Runner 'security' @('-i') $cmd
                 $cmd = $null
                 if ($r.ExitCode -ne 0) { Stop-KeySetup "security could not store the key in the Keychain (exit $($r.ExitCode))" }
-                if (-not (Test-ProviderKey -Provider $p -Os $Os -Runner $Runner -HasCommand $HasCommand)) { Stop-KeySetup 'the Keychain did not keep the key' }
+                # Read the key back and compare it in memory; neither value is ever printed.
+                $back = $null
+                try { $back = Get-ProviderKey -Provider $p -Os $Os -Runner $Runner -HasCommand $HasCommand }
+                catch { if (-not $_.Exception.Data['ExtSetup']) { throw } }
+                $same = ($back -ceq $plain)
+                $back = $null
+                if (-not $same) { Stop-KeySetup 'the Keychain did not keep the key (the key read back does not match); run -SetKey again' }
                 return @("key stored for $p in the macOS Keychain (service ag-$p, account $user)")
             }
             'linux-secret-tool' {
                 $r = & $Runner 'secret-tool' @('store', '--label', "ag $p API key", 'service', "ag-$p", 'account', $user) $plain
-                if ($r.ExitCode -ne 0) { Stop-KeySetup "secret-tool could not store the key (exit $($r.ExitCode))" }
-                return @("key stored for $p with secret-tool (service ag-$p, account $user)")
+                if ($r.ExitCode -eq 0) { return @("key stored for $p with secret-tool (service ag-$p, account $user)") }
+                # No unlocked keyring (or another secret-tool failure): fall back to the mode-600 file.
+                Write-KeyFile $KeyFile $plain $Runner
+                return @(
+                    "secret-tool could not store the key (exit $($r.ExitCode)); stored it in $KeyFile instead (mode 600, readable only by you)",
+                    'warning: this file is NOT encrypted; unlock your keyring and run -SetKey again to use it'
+                )
             }
             'linux-file' {
-                $dir = Split-Path -Parent $KeyFile
-                if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-                [IO.File]::WriteAllText($KeyFile, '')
-                $r = & $Runner 'chmod' @('600', $KeyFile) ''
-                if ($r.ExitCode -ne 0) { Stop-KeySetup "chmod 600 failed on $KeyFile; key not written" }
-                [IO.File]::WriteAllText($KeyFile, $plain)
+                Write-KeyFile $KeyFile $plain $Runner
                 return @(
                     "key stored for $p in $KeyFile (mode 600, readable only by you)",
                     'warning: this file is NOT encrypted (secret-tool not found); install libsecret-tools and run -SetKey again to use the keyring'

@@ -226,7 +226,7 @@ Acceptance:
 - `claude plugin validate .` passes.
 
 ### fix 16. Launchers: the Phase 3 review findings
-Status: todo
+Status: done 2026-11-06
 From the Phase 3 review (Opus high, Nov 6, 2026):
 1. `ext-build.ps1` finds `claude` on macOS and Linux, not only `claude.exe`/`claude.cmd`.
 2. `design-image.ps1` sends the request body as UTF-8 bytes with `charset=utf-8`; 5.1 sent Latin-1.

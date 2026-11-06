@@ -189,10 +189,16 @@ function ConvertTo-ExtWinArg([string]$s) {
     return $sb.ToString()
 }
 
-function Resolve-ExtClaude($Cfg) {
+function Resolve-ExtClaude($Cfg, [string]$Os) {
     if ($Cfg.ClaudePath) {
         if (Test-Path -LiteralPath $Cfg.ClaudePath) { return (Expand-ExtPath $Cfg.ClaudePath) }
         Stop-Setup "claudePath from config not found: $($Cfg.ClaudePath)"
+    }
+    if ((Get-KeyOs $Os) -ne 'windows') {
+        # macOS and Linux: the binary (or npm link) is plain `claude`.
+        $nix = Get-Command claude -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($nix) { return $nix.Source }
+        Stop-Setup 'claude executable not found on PATH (set "claudePath" in the config)'
     }
     $exe = Get-Command claude.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($exe) { return $exe.Source }
