@@ -111,7 +111,7 @@ The user, Nov 6, 2026: "explain fully in readme what models are used when and al
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
-Status: todo
+Status: shown 2026-11-06
 
 ### S6. Install script
 Status: done 2026-11-06
@@ -207,5 +207,6 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
-2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher now `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 reopened at the gate. fix 9 done (b79853d, pushed): three plugins; installed here: goal-prompt 1.1.0, goal-prompt-3rdparty 1.0.0, goal-progress 0.10.0; `-Check` OK from the installed 3rdparty folder; install rerun all `skip:`; a fresh session lists `goal-prompt:goal-prompt` and `goal-prompt-3rdparty:goal-prompt-3rdparty`. Running: fix10-readme-opus. Then Phase 2 shown again; the user checks `/goal-prompt-3rdparty` in a new session.
+2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
+Phase 1 done (4e15b7b). Phase 2 shown again, waiting for the user's check in a new session: `/goal-prompt`, `/goal-prompt-3rdparty`, the progress bar. Done: S6, S7, fix 6-8, fix 9 (b79853d, pushed: three plugins, installed here, `-Check` OK, install rerun all `skip:`), fix 10 (d36b9bc, README for three plugins, short names only; local until S13's push). Phase close: suites passed; review P2-review-opus findings fixed (fix 8) or deferred.
+Next after sign-off: Phase 2 done, then Phase 3 (S8).
