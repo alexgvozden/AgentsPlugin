@@ -203,6 +203,48 @@ Status: done 2026-11-06
 Run the install script here, `-Check` for each provider whose key is set, push `main`.
 Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new version; the `-Check` lines printed; `git push` succeeds; `git status` clean.
 
+### fix 15. README: pwsh, paths that work from anywhere, review copy
+Status: todo
+The user, Nov 6, 2026, asked whether pwsh works on macOS and Linux, then chose: "keep pwsh explain just it needs install and link to setup link from pwsh itself". Then, running the README's key command from their home folder: "The argument 'plugins/ag/scripts/design-image.ps1' to the -File parameter does not exist".
+So:
+- The README says macOS and Linux need PowerShell 7 installed once, and links to Microsoft's own pages:
+  - https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-macos
+  - https://learn.microsoft.com/powershell/scripting/install/linux-overview
+- Every script command in the README works from any folder: it starts with a `cd` to the checkout, or gives the full path.
+- The Phase 3 review's copy findings:
+  - (8) `design-image.ps1 -Check` makes one small paid image call, while `ext-build.ps1 -Check gemini|openai` only checks the key is set.
+  - (10) `goal-prompt-3rdparty/SKILL.md` line 29 names the key store per OS and the `pwsh -File` form, like the design skill.
+- Model ids (review 4):
+  - Google's model list names `gemini-3.1-flash-image` (Nano Banana 2), so it stays. Its REST examples now use the Interactions API, so the first real `-Check gemini` tells whether `generateContent` still answers; if not, that becomes a fix step.
+  - `gpt-image-2` stays until `-Check openai`.
+- README at Opus high (end-user copy); the skill line at Opus medium.
+
+Acceptance:
+- `grep -n "learn.microsoft.com/powershell" README.md` shows both links.
+- No README command uses a bare relative `plugins/ag/scripts/` path without a `cd` to the checkout first or a full path.
+- The `-Check` sentence matches the scripts.
+- `claude plugin validate .` passes.
+
+### fix 16. Launchers: the Phase 3 review findings
+Status: todo
+From the Phase 3 review (Opus high, Nov 6, 2026):
+1. `ext-build.ps1` finds `claude` on macOS and Linux, not only `claude.exe`/`claude.cmd`.
+2. `design-image.ps1` sends the request body as UTF-8 bytes with `charset=utf-8`; 5.1 sent Latin-1.
+3. The API's error text reaches the user on 5.1 and 7 (`ErrorDetails.Message` first), key masked.
+5. On Linux, when `secret-tool` fails (no unlocked keyring), `-SetKey` falls back to the mode-600 file and says so.
+6. The `secrets` folder is set to 700 and the key file to 600 before the key is written.
+7. After a macOS Keychain store, the key read back is compared with the new key in memory, never printed.
+9. `~/.claude/design.json` overrides `design.default.json` per key, so a file with one model in it works.
+11. A Gemini answer with no image shows its text or finish reason, and the file extension follows the returned mime type.
+
+ag version 1.1.1. Opus medium (secrets).
+
+Acceptance:
+- `ext-build.test.ps1` and `design-image.test.ps1` pass, with one new check per finding above (mocked OS and HTTP, no real call).
+- `ext-build.ps1 -Check` still prints OK here.
+- No key is printed or logged.
+- `claude plugin validate plugins/ag` passes.
+
 ## Open questions (with defaults)
 1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README. Checked again Nov 6, 2026 in fresh sessions: the bare `/goal-prompt` and `/goal-prompt-3rdparty` work; the long names work too (fix 7).
 2. How does a goal made by `goal-prompt-3rdparty` find the launcher after the user-level copy is gone? Default: the skill writes `${CLAUDE_PLUGIN_ROOT}/scripts/ext-build.ps1` into the goal and the runner, which the skill text shows as the full path of the installed version; after a plugin update, make the goal again (fix 3).
