@@ -64,7 +64,7 @@ Status: done 2026-11-06
 Acceptance: `git status` clean after the commit; `claude plugin validate .` passes for the marketplace.
 
 ### S2. goal-progress plugin
-Status: todo
+Status: done 2026-11-06
 Copy `~/.claude/mods/goal-progress/` into `plugins/goal-progress/` (its own `marketplace.json` dropped; the root one lists it), version 0.10.0.
 Acceptance: `claude plugin test plugins/goal-progress` 12 pass; `claude plugin validate plugins/goal-progress` passes.
 
@@ -74,7 +74,7 @@ Copy both skills and the launcher as in "What goes in"; `plugin.json` (name `goa
 Acceptance: `ext-build.test.ps1` passes (29 + new config check); `claude plugin validate plugins/goal-prompt` passes; `grep -r "~/.claude/bin" plugins/` finds nothing; `claude --plugin-dir plugins/goal-prompt -p "list your skills"` names both skills.
 
 ### S4. Global rules
-Status: todo
+Status: done 2026-11-06
 `rules/CLAUDE.global.md` = the current `~/.claude/CLAUDE.md` text.
 Acceptance: the file matches `~/.claude/CLAUDE.md` byte for byte (`fc /b` or `cmp`).
 
