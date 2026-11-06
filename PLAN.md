@@ -83,6 +83,16 @@ Status: done 2026-11-06
 Search the tree and the staged files for key material (`fw_`, `-----BEGIN`, long base64/DPAPI blobs, `ANTHROPIC_AUTH_TOKEN=`), check `git ls-files` against the "Never in the repo" list, then push `main`.
 Acceptance: the search prints no hits; `git ls-files` printed; `git push -u origin main` succeeds; `git status` clean.
 
+### fix 1. README says what you get
+Status: todo
+The user, Nov 6, 2026: "also please update readme to explain what you get". `README.md`: what each plugin gives you once installed (the two skills and how to call them, the `ext-build.ps1` launcher and its config/key, the progress band, `/goal-progress` and the Goal tasks pane, the global rules import), kept short.
+Acceptance: README names every part listed above; `claude plugin validate .` passes.
+
+### fix 2. Progress pane loses the tasks
+Status: todo
+The user, Nov 6, 2026: "also very often I loose tasks" (screenshot: the Goal tasks pane shows "No goal progress yet: .claude/goal-progress.json is missing." while the file exists). In `plugins/goal-progress/hooks/register.tsx` (`PLACES`, `readFile`, `refresh`, lines 31-69): find the file from the project folder even after the session's working directory moves, and keep the last good state when a read comes back empty or fails, as a half-written file already does.
+Acceptance: one unit test for the keep-last-good-state rule; `claude plugin test plugins/goal-progress` all pass (12 + new); `claude plugin validate plugins/goal-progress` passes.
+
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
 Status: todo
 
@@ -116,5 +126,5 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
-2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 stays on Opus medium.
-Phase 1: S1 done (6df43c7). S2 done (cfd2b22, 12 tests pass). S4 done (a1b6a38, byte-identical). S3 done (6db8b49, 31 tests pass, validate passed, both skills listed; quoted the two SKILL.md `description:` values so validate passes). S2's status mark landed in S4's commit a1b6a38 (parallel staging); content correct, noted for the phase review. Running: S5 (S5-push-opus) at Opus medium. Next: phase 1 close.
+2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium.
+Phase 1: S1-S5 done (6df43c7, cfd2b22, 6db8b49, a1b6a38, da00eb6; main pushed at da00eb6). S2's status mark landed in S4's commit a1b6a38 (parallel staging); content correct. Phase close: suites passed once (validate passed, 12 tests pass, ext-build 31 pass); review P1-review-opus running. User feedback added as fix 1 (README) and fix 2 (pane loses tasks); running: fix1-readme-fw1, fix2-pane-fw1. Fix commits stay local until S7's push.
