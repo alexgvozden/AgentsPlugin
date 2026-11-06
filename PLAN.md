@@ -199,7 +199,7 @@ The user, Nov 6, 2026, during S12: "expalin in readme why I build this, to see c
 Acceptance: `install.ps1 -WhatIf` names `ag@agents-plugin`; README names the three providers and the three OSes; `claude plugin validate .` passes; the README's first section after the title gives those four reasons.
 
 ### S13. Push and run it here
-Status: todo
+Status: done 2026-11-06
 Run the install script here, `-Check` for each provider whose key is set, push `main`.
 Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new version; the `-Check` lines printed; `git push` succeeds; `git status` clean.
 
