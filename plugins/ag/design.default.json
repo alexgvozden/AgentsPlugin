@@ -1,0 +1,14 @@
+{
+  "defaultProvider": "gemini",
+  "defaultSize": "1024x1024",
+  "providers": {
+    "gemini": {
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "defaultModel": "gemini-3.1-flash-image"
+    },
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "defaultModel": "gpt-image-2"
+    }
+  }
+}

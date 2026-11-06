@@ -178,7 +178,7 @@ One key store used by every launcher: `-SetKey <fireworks|gemini|openai>` and `-
 Acceptance: `ext-build.test.ps1` passes (all existing checks plus one per OS branch, with the OS store mocked); no key is printed or logged; `ext-build.ps1 -Check` still prints OK here.
 
 ### S9. Image launcher
-Status: todo
+Status: done 2026-11-06
 `plugins/ag/scripts/design-image.ps1` (fix 11: one plugin `ag`): makes images from a prompt with Gemini or OpenAI (`-Provider`, `-Model`, `-Out`, `-Count`), keys from S8, models and defaults in `~/.claude/design.json` then `design.default.json` in the plugin; writes each image with a sidecar `.md` (prompt, provider, model, time); `-DryRun`; exit codes as `ext-build.ps1`. Built on Fireworks.
 Acceptance: `design-image.test.ps1` passes (no real API call: request shape, config order, file and sidecar names, missing key exits 2); `-Check gemini` and `-Check openai` each print OK once the user has set the key.
 
