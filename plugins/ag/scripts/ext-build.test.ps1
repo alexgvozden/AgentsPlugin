@@ -131,6 +131,63 @@ try {
     New-TestConfig 'home\.claude\ext-build.json' $keyFile | Out-Null
     $r = Run-LauncherAs $home2 $common
     Assert ($r.Code -eq 0 -and $r.Out -match 'config: .*home\\\.claude\\ext-build\.json') 'user config wins over the plugin default' "code $($r.Code): $($r.Out)"
+
+    # 8. key store, one check per OS branch (no real key, Keychain, secret-tool or network)
+    $sec = ConvertTo-SecureString $dummy -AsPlainText -Force
+    $noCmd = { param($n) $false }
+    $hasCmd = { param($n) $n -eq 'secret-tool' }
+    $script:calls = New-Object System.Collections.ArrayList
+    $script:vault = @{}
+    $mock = {
+        param([string]$Exe, [string[]]$ArgList, [string]$Stdin)
+        [void]$script:calls.Add([pscustomobject]@{ Exe = $Exe; Args = ($ArgList -join ' '); Stdin = $Stdin })
+        $code = 0; $out = ''
+        if ($Exe -eq 'security' -and $ArgList[0] -eq '-i') {
+            if ($Stdin -match '-s (\S+) .* -w "(.*)"\n$') { $script:vault[$Matches[1]] = $Matches[2] } else { $code = 1 }
+        }
+        elseif ($Exe -eq 'security' -and $ArgList[0] -eq 'find-generic-password') {
+            $svc = $ArgList[[array]::IndexOf($ArgList, '-s') + 1]
+            if ($script:vault.ContainsKey($svc)) { $out = $script:vault[$svc] + "`n" } else { $code = 44 }
+        }
+        elseif ($Exe -eq 'secret-tool' -and $ArgList[0] -eq 'store') { $script:vault[$ArgList[[array]::IndexOf($ArgList, 'service') + 1]] = $Stdin }
+        elseif ($Exe -eq 'secret-tool' -and $ArgList[0] -eq 'lookup') {
+            $svc = $ArgList[2]
+            if ($script:vault.ContainsKey($svc)) { $out = $script:vault[$svc] } else { $code = 1 }
+        }
+        [pscustomobject]@{ ExitCode = $code; Stdout = $out }
+    }
+    function Get-SetupError([scriptblock]$Block) {
+        try { & $Block; return '' } catch { if ($_.Exception.Data['ExtSetup']) { return $_.Exception.Message } else { throw } }
+    }
+
+    $winKey = Join-Path $root 'ks\win\gemini.key'
+    $lines = Set-ProviderKey -Provider gemini -Secure $sec -KeyFile $winKey -Os windows
+    $back = Get-ProviderKey -Provider gemini -KeyFile $winKey -Os windows
+    $raw = [IO.File]::ReadAllText($winKey)
+    Assert ($back -eq $dummy -and -not $raw.Contains($dummy) -and -not ($lines -join ' ').Contains($dummy)) 'windows DPAPI round trip (temp folder, file encrypted)'
+
+    $script:calls.Clear(); $script:vault.Clear()
+    $lines = Set-ProviderKey -Provider openai -Secure $sec -Os macos -Runner $mock -HasCommand $noCmd
+    $back = Get-ProviderKey -Provider openai -Os macos -Runner $mock -HasCommand $noCmd
+    $argsSeen = ($script:calls | ForEach-Object { $_.Args }) -join ' | '
+    $miss = Get-SetupError { Get-ProviderKey -Provider gemini -Os macos -Runner $mock -HasCommand $noCmd }
+    Assert ($back -eq $dummy -and -not $argsSeen.Contains($dummy) -and $argsSeen -match 'find-generic-password -s ag-openai .*-w' -and $miss -match '-SetKey gemini') 'macOS Keychain (security mocked; key only on stdin)' "$argsSeen`n$miss"
+
+    $script:calls.Clear(); $script:vault.Clear()
+    $lines = Set-ProviderKey -Provider gemini -Secure $sec -Os linux -Runner $mock -HasCommand $hasCmd
+    $back = Get-ProviderKey -Provider gemini -Os linux -Runner $mock -HasCommand $hasCmd
+    $argsSeen = ($script:calls | ForEach-Object { $_.Args }) -join ' | '
+    Assert ($back -eq $dummy -and -not $argsSeen.Contains($dummy) -and $script:calls[0].Stdin -eq $dummy -and $argsSeen -match '^store .*service ag-gemini') 'linux secret-tool (mocked; secret on stdin)' $argsSeen
+
+    $script:calls.Clear()
+    $linKey = Join-Path $root 'ks\linux\gemini.key'
+    $lines = Set-ProviderKey -Provider gemini -Secure $sec -KeyFile $linKey -Os linux -Runner $mock -HasCommand $noCmd
+    $back = Get-ProviderKey -Provider gemini -KeyFile $linKey -Os linux -Runner $mock -HasCommand $noCmd
+    $chmod = @($script:calls | Where-Object { $_.Exe -eq 'chmod' -and $_.Args -eq "600 $linKey" }).Count
+    Assert ($back -eq $dummy -and $chmod -eq 1 -and ($lines -join ' ') -match 'NOT encrypted' -and -not ($lines -join ' ').Contains($dummy)) 'linux fallback file (chmod 600, says unencrypted)' ($lines -join "`n")
+
+    $r = Run-Launcher @('-Config', $cfgOk, '-Check', 'bogus')
+    Assert ($r.Code -eq 2 -and $r.Out -match "unknown key provider 'bogus'") 'unknown provider exit 2' "code $($r.Code): $($r.Out)"
 }
 finally {
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue

@@ -5,16 +5,20 @@
 .DESCRIPTION
   ext-build.ps1 -Brief <file> -Cwd <worktree> -Step <id> -LogDir <dir>
                 [-Model <name>] [-Resume <sessionId>] [-MaxBudgetUsd <n>] [-DryRun] [-Config <path>]
-  ext-build.ps1 -SetKey [-Config <path>]
-  ext-build.ps1 -Check [-Model <name>] [-Config <path>]
+  ext-build.ps1 -SetKey [<fireworks|gemini|openai>] [-Config <path>]
+  ext-build.ps1 -Check [<fireworks|gemini|openai>] [-Model <name>] [-Config <path>]
+  The provider defaults to fireworks. -Check gemini|openai only reports whether the key is set.
 
   Exit codes: 0 ok, 3 handoff, 1 failed, 2 setup error.
-  Windows PowerShell 5.1 compatible. The API key is never printed, logged or written
-  anywhere except the DPAPI-encrypted key file created by -SetKey.
+  Windows PowerShell 5.1 and PowerShell 7 (pwsh) compatible. Keys live in the store of
+  keystore.ps1 (Windows DPAPI file, macOS Keychain, Linux secret-tool or a mode-600 file);
+  a key is never printed or logged.
   Dot-sourcing this file (". ext-build.ps1") only defines the functions (used by tests).
 #>
 [CmdletBinding()]
 param(
+    [Parameter(Position = 0)]
+    [string]$Provider,
     [string]$Brief,
     [string]$Cwd,
     [string]$Step,
@@ -33,6 +37,7 @@ $ErrorActionPreference = 'Stop'
 
 $script:Dot = [string][char]0x00B7
 $script:SetKeyMessage = 'run ext-build.ps1 -SetKey in your own PowerShell window'
+. (Join-Path $PSScriptRoot 'keystore.ps1')
 
 function Stop-Setup([string]$Message) {
     $e = New-Object System.Exception $Message
@@ -43,7 +48,7 @@ function Stop-Setup([string]$Message) {
 function Expand-ExtPath([string]$Path, [string]$BaseDir) {
     if ([string]::IsNullOrWhiteSpace($Path)) { return $Path }
     if ($Path -eq '~' -or $Path.StartsWith('~/') -or $Path.StartsWith('~\')) {
-        $Path = Join-Path $env:USERPROFILE $Path.Substring([Math]::Min(2, $Path.Length))
+        $Path = Join-Path (Get-KeyHome) $Path.Substring([Math]::Min(2, $Path.Length))
     }
     if (-not [IO.Path]::IsPathRooted($Path)) {
         if (-not $BaseDir) { $BaseDir = (Get-Location).ProviderPath }
@@ -61,7 +66,7 @@ function Get-ExtProp($Obj, [string]$Name, $Default = $null) {
 
 function Read-ExtConfig([string]$Path) {
     if (-not $Path) {
-        $userCfg = Join-Path $env:USERPROFILE '.claude\ext-build.json'
+        $userCfg = Join-Path (Join-Path (Get-KeyHome) '.claude') 'ext-build.json'
         if (Test-Path -LiteralPath $userCfg -PathType Leaf) { $Path = $userCfg }
         else { $Path = Join-Path (Split-Path -Parent $PSScriptRoot) 'ext-build.default.json' }
     }
@@ -95,37 +100,25 @@ function Resolve-ExtModel([string]$Name, $Cfg) {
 }
 
 function Get-ExtKey([string]$KeyFile) {
-    if (-not (Test-Path -LiteralPath $KeyFile -PathType Leaf)) {
-        Stop-Setup "Fireworks key not found ($KeyFile): $script:SetKeyMessage"
-    }
-    try {
-        $enc = ([IO.File]::ReadAllText($KeyFile)).Trim()
-        if (-not $enc) { throw 'empty' }
-        $sec = ConvertTo-SecureString -String $enc
-        $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-        try { $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
-        finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
-        if (-not $plain) { throw 'empty' }
-        return $plain
-    }
-    catch {
-        Stop-Setup "Fireworks key in $KeyFile cannot be decrypted for this Windows user: $script:SetKeyMessage"
-    }
+    return (Get-ProviderKey -Provider 'fireworks' -KeyFile $KeyFile)
 }
 
-function Invoke-ExtSetKey($Cfg) {
-    $sec = Read-Host -AsSecureString -Prompt 'Fireworks API key (input hidden)'
-    if ($null -eq $sec -or $sec.Length -eq 0) { Stop-Setup 'no key entered; nothing written' }
-    $dir = Split-Path -Parent $Cfg.KeyFile
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    # Create the file empty, lock it to the current user, then write the encrypted key.
-    [IO.File]::WriteAllText($Cfg.KeyFile, '')
-    $grant = "${env:USERNAME}:(R,W)"
-    & icacls.exe $Cfg.KeyFile /inheritance:r /grant:r $grant | Out-Null
-    if ($LASTEXITCODE -ne 0) { Stop-Setup "icacls failed on $($Cfg.KeyFile); key not written" }
-    [IO.File]::WriteAllText($Cfg.KeyFile, (ConvertFrom-SecureString -SecureString $sec))
-    Write-Output "ext-build: key stored (DPAPI, current user only) in $($Cfg.KeyFile)"
-    Write-Output 'ext-build: now run ext-build.ps1 -Check'
+function Invoke-ExtSetKey($Cfg, [string]$ProviderName) {
+    $p = Assert-KeyProvider $ProviderName
+    $keyFile = if ($p -eq 'fireworks') { $Cfg.KeyFile } else { '' }
+    $sec = Read-Host -AsSecureString -Prompt "$($script:KeyLabels[$p]) API key (input hidden)"
+    foreach ($line in (Set-ProviderKey -Provider $p -Secure $sec -KeyFile $keyFile)) { Write-Output "ext-build: $line" }
+    $sec = $null
+    $next = if ($p -eq 'fireworks') { '' } else { " $p" }
+    Write-Output "ext-build: now run ext-build.ps1 -Check$next"
+}
+
+function Invoke-ExtKeyStatus([string]$ProviderName) {
+    $p = Assert-KeyProvider $ProviderName
+    $null = Get-ProviderKey -Provider $p
+    Write-Output "ext-build check: $p key is set ($(Get-KeyStoreKind))"
+    Write-Output 'ext-build check: OK'
+    return 0
 }
 
 function Get-ExtBuilderRules([string]$ModelId) {
@@ -341,8 +334,13 @@ function Invoke-ExtCheck($Cfg, [string]$ModelName) {
 
 function Invoke-ExtMain {
     $cfg = Read-ExtConfig $Config
-    if ($SetKey) { Invoke-ExtSetKey $cfg; return 0 }
-    if ($Check) { return (Invoke-ExtCheck $cfg $Model) }
+    if ($SetKey -or $Check) {
+        $prov = Assert-KeyProvider $Provider
+        if ($SetKey) { Invoke-ExtSetKey $cfg $prov; return 0 }
+        if ($prov -ne 'fireworks') { return (Invoke-ExtKeyStatus $prov) }
+        return (Invoke-ExtCheck $cfg $Model)
+    }
+    if ($Provider) { Stop-Setup "unexpected argument '$Provider' (a provider goes after -SetKey or -Check)" }
 
     foreach ($pair in @(@('Brief', $Brief), @('Cwd', $Cwd), @('Step', $Step), @('LogDir', $LogDir))) {
         if ([string]::IsNullOrWhiteSpace($pair[1])) { Stop-Setup "missing -$($pair[0])" }

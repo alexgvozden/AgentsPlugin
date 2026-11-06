@@ -173,7 +173,7 @@ Status: todo
 The user, Nov 6, 2026: "can you add to goals and planning to also accept gemini and open AI api key to generate desig images as part of goal exeuction in same way as 3rd party and add also design command that ca nbe run any time, I will provide API keys in prompt similar as fireworks". Answers the same day: a new Phase 3; keys set up the same way as Fireworks (never in chat); "separate deisgn plugin that expecct a plan / descirption to come and plan a design btw make sure all commands use proper folder structures etc in the projects it's run so user can review it - same way deisgn will be used as part of the goals commadns"; "the goal should use design anytime UI is involved for new pages if it's minor change skip design step"; "btw key setup should be possible both on mac and windows and linux".
 
 ### S8. Keys on Windows, macOS and Linux
-Status: todo
+Status: done 2026-11-06
 One key store used by every launcher: `-SetKey <fireworks|gemini|openai>` and `-Check <provider>`; Windows DPAPI as today, macOS Keychain (`security`), Linux `secret-tool` when present, else a file only the user can read (open question 4). The launchers run under Windows PowerShell 5.1 and PowerShell 7 (`pwsh`) on macOS and Linux. Opus medium (secrets). The Fireworks key already stored on this machine keeps working.
 Acceptance: `ext-build.test.ps1` passes (all existing checks plus one per OS branch, with the OS store mocked); no key is printed or logged; `ext-build.ps1 -Check` still prints OK here.
 
