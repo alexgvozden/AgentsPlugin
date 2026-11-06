@@ -1,0 +1,9 @@
+{
+  "name": "ag",
+  "version": "1.0.0",
+  "description": "Goal tooling in one plugin: the goal-prompt skills, the Fireworks launcher and the goal-progress bar.",
+  "author": {
+    "name": "Aleksandar Gvozden"
+  },
+  "types": "./types/index.d.ts"
+}

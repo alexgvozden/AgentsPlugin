@@ -4,11 +4,11 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { GoalProgress, GoalStep, TaskStatus } from '../types'
 import { FILE, ago, bar, counts, current, engineLabel, fit, isOpen, keepLastGood, onFireworks, orderedSteps, parseProgress, runningLines, shortTokens, STATUS_LABEL } from './progress'
 
-const progress = atom({ plugin: 'goal-progress', key: 'progress' } as const, null)
-const isHidden = atom({ plugin: 'goal-progress', key: 'isHidden' } as const, false)
+const progress = atom({ plugin: 'ag', key: 'progress' } as const, null)
+const isHidden = atom({ plugin: 'ag', key: 'isHidden' } as const, false)
 /** Bumped every TICK_MS, so times and "updated ... ago" move. */
-const tick = atom({ plugin: 'goal-progress', key: 'tick' } as const, 0)
-const opened = atom({ plugin: 'goal-progress', key: 'opened' } as const, {})
+const tick = atom({ plugin: 'ag', key: 'tick' } as const, 0)
+const opened = atom({ plugin: 'ag', key: 'opened' } as const, {})
 
 /** The docs' own example for a value from outside the session polls once a second. */
 const POLL_MS = 1000
@@ -158,7 +158,7 @@ const MARK: Record<TaskStatus, string> = {
 
 const tokensLine = (n: number | undefined) => (n === undefined ? '' : ` · ${shortTokens(n)} tokens`)
 
-/** The text list `/goal-progress` answers with. */
+/** The text list `/ag:goal-progress` answers with. */
 function listText(p: GoalProgress): string {
   const { done, total } = counts(p)
 

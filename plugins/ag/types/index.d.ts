@@ -36,7 +36,7 @@ export type GoalProgress = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'goal-progress': {
+    'ag': {
       progress: GoalProgress | null
       isHidden: boolean
       tick: number

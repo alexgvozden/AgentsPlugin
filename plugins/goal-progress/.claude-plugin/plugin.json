@@ -1,6 +1,0 @@
-{
-  "name": "goal-progress",
-  "version": "0.10.0",
-  "description": "Shows /goal progress from .claude/goal-progress.json: a progress bar, tasks done out of total and a short status above the prompt, what is running now (deploys, test suites, builders), and a Goal tasks timeline pane.",
-  "types": "./types/index.d.ts"
-}

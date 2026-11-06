@@ -49,7 +49,12 @@ $ImportLine = '@' + $CheckoutFwd + '/rules/CLAUDE.global.md'
 
 # The plugins this marketplace ships. The list is used to install, to refresh
 # and to update, so a new plugin is added in one place.
-$AgentsPlugins = @('goal-prompt', 'goal-prompt-3rdparty', 'goal-progress')
+$AgentsPlugins = @('ag')
+
+# The three plugins the marketplace used to ship, now folded into ag. Each is
+# uninstalled before ag is installed, so two copies of the goal-progress mod
+# never load at once.
+$OldAgentsPlugins = @('goal-prompt', 'goal-prompt-3rdparty', 'goal-progress')
 
 $ClaudeHome = Get-CleanPath $ClaudeHome
 if (-not (Test-Path -LiteralPath $ClaudeHome)) {
@@ -263,10 +268,22 @@ function Move-ToBackup([string]$Relative) {
     Move-Item -LiteralPath $source -Destination $target
 }
 
+# The plugin names settings.json must not keep: the local-mods copy and the
+# three plugins the marketplace used to ship, which ag replaces.
+function Get-StalePluginNames {
+    $names = @('goal-progress@local-mods')
+    foreach ($old in $OldAgentsPlugins) { $names += $old + '@agents-plugin' }
+    return $names
+}
+
 # --- what each action would change (also decides whether a backup is worth it)
-function Test-NeedsLocalModsDrop {
+function Test-NeedsStaleDrop {
     $s = Read-Settings
-    ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-progress@local-mods')) -or
+    if (Test-Prop $s 'enabledPlugins') {
+        foreach ($name in Get-StalePluginNames) {
+            if (Test-Prop $s.enabledPlugins $name) { return $true }
+        }
+    }
     ((Test-Prop $s 'extraKnownMarketplaces') -and (Test-Prop $s.extraKnownMarketplaces 'local-mods'))
 }
 
@@ -278,12 +295,18 @@ function Test-NeedsPlugin([string]$Id) {
     -not (Test-PluginInstalled $Id)
 }
 
+# Any of the three old plugins still installed (as a plugin copy).
+function Test-NeedsOldPluginUninstall {
+    foreach ($old in $OldAgentsPlugins) {
+        if (Test-PluginInstalled ($old + '@agents-plugin')) { return $true }
+    }
+    return $false
+}
+
 function Test-NeedsSettingsSync {
     $s = Read-Settings
     (-not ((Test-Prop $s 'extraKnownMarketplaces') -and (Test-Prop $s.extraKnownMarketplaces 'agents-plugin'))) -or
-    (-not ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-prompt@agents-plugin'))) -or
-    (-not ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-prompt-3rdparty@agents-plugin'))) -or
-    (-not ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-progress@agents-plugin')))
+    (-not ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'ag@agents-plugin')))
 }
 
 function Test-NeedsMove([string]$Relative) {
@@ -301,15 +324,12 @@ function Test-NeedsClaudeMd {
 }
 
 function Test-AnythingToDo {
-    (Test-NeedsLocalModsDrop) -or
+    (Test-NeedsStaleDrop) -or
     (Test-NeedsMarketplaceAdd) -or
     (Test-NeedsMarketplaceRefresh) -or
-    (Test-NeedsPlugin 'goal-prompt@agents-plugin') -or
-    (Test-NeedsPlugin 'goal-prompt-3rdparty@agents-plugin') -or
-    (Test-NeedsPlugin 'goal-progress@agents-plugin') -or
-    (Test-NeedsPluginUpdate 'goal-prompt') -or
-    (Test-NeedsPluginUpdate 'goal-prompt-3rdparty') -or
-    (Test-NeedsPluginUpdate 'goal-progress') -or
+    (Test-NeedsOldPluginUninstall) -or
+    (Test-NeedsPlugin 'ag@agents-plugin') -or
+    (Test-NeedsPluginUpdate 'ag') -or
     (Test-NeedsSettingsSync) -or
     (Test-NeedsMove 'skills/goal-prompt') -or
     (Test-NeedsMove 'skills/goal-prompt-3rdparty') -or
@@ -342,12 +362,16 @@ Step 'claude plugin marketplace remove local-mods' {
     Invoke-Claude @('plugin', 'marketplace', 'remove', 'local-mods')
 }
 
-Step 'settings.json: drop every local-mods name' {
-    Test-NeedsLocalModsDrop
+Step 'settings.json: drop the local-mods and old plugin names' {
+    Test-NeedsStaleDrop
 } {
     $s = Read-Settings
-    if ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-progress@local-mods')) {
-        $s.enabledPlugins.PSObject.Properties.Remove('goal-progress@local-mods')
+    if (Test-Prop $s 'enabledPlugins') {
+        foreach ($name in Get-StalePluginNames) {
+            if (Test-Prop $s.enabledPlugins $name) {
+                $s.enabledPlugins.PSObject.Properties.Remove($name)
+            }
+        }
     }
     if ((Test-Prop $s 'extraKnownMarketplaces') -and (Test-Prop $s.extraKnownMarketplaces 'local-mods')) {
         $s.extraKnownMarketplaces.PSObject.Properties.Remove('local-mods')
@@ -383,25 +407,23 @@ foreach ($plugin in $AgentsPlugins) {
     }
 }
 
-Step 'claude plugin install goal-prompt@agents-plugin' {
-    Test-NeedsPlugin 'goal-prompt@agents-plugin'
-} {
-    Invoke-Claude @('plugin', 'install', 'goal-prompt@agents-plugin')
+# Uninstall the three old plugins before installing ag, so the goal-progress mod
+# is never loaded from two plugin copies at once.
+foreach ($old in $OldAgentsPlugins) {
+    Step ('claude plugin uninstall ' + $old + '@agents-plugin') {
+        Test-PluginInstalled ($old + '@agents-plugin')
+    } {
+        Invoke-Claude @('plugin', 'uninstall', ($old + '@agents-plugin'))
+    }
 }
 
-Step 'claude plugin install goal-prompt-3rdparty@agents-plugin' {
-    Test-NeedsPlugin 'goal-prompt-3rdparty@agents-plugin'
+Step 'claude plugin install ag@agents-plugin' {
+    Test-NeedsPlugin 'ag@agents-plugin'
 } {
-    Invoke-Claude @('plugin', 'install', 'goal-prompt-3rdparty@agents-plugin')
+    Invoke-Claude @('plugin', 'install', 'ag@agents-plugin')
 }
 
-Step 'claude plugin install goal-progress@agents-plugin' {
-    Test-NeedsPlugin 'goal-progress@agents-plugin'
-} {
-    Invoke-Claude @('plugin', 'install', 'goal-progress@agents-plugin')
-}
-
-Step 'settings.json: name the agents-plugin marketplace and all three plugins' {
+Step 'settings.json: name the agents-plugin marketplace and the ag plugin' {
     Test-NeedsSettingsSync
 } {
     $s = Read-Settings
