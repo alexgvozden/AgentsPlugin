@@ -10,7 +10,7 @@ commands:
 - `/ag:goal-prompt-3rdparty` — the same, with the function builders on a
   Fireworks model. The plugin also holds the `ext-build` launcher and its
   default `ext-build.json`.
-- `/ag:goal-progress` — the goal progress bar and the tasks pane.
+- `/goal-progress` — the goal progress bar and the tasks pane.
 
 `/ag:design` is coming; it is not built yet.
 
@@ -33,7 +33,7 @@ reads the user config `~/.claude/ext-build.json` first, then the plugin's
 
 **The progress band and the tasks pane.** The goal-progress mod shows one line per
 running job above the prompt — a bar, the current step, and the jobs running now —
-read from `.claude/goal-progress.json` in the project. `/ag:goal-progress open` (or the
+read from `.claude/goal-progress.json` in the project. `/goal-progress open` (or the
 `[ Tasks ▸ ]` button) opens the Goal tasks pane: the goal, status chips, a "Running
 now" card, and a timeline of every task and its steps.
 
@@ -94,7 +94,7 @@ ext-build: S1 · accounts/fireworks/models/deepseek-v4p1-flash · 15 turns · 41
 ## Screenshots
 
 These are drawn from the example file by the mod's own code: its band, its pane
-and its `/ag:goal-progress` command, run under `claude plugin test` and laid out as
+and its `/goal-progress` command, run under `claude plugin test` and laid out as
 a terminal would. To draw them again, run `node docs/render-screenshots.mjs`.
 
 ![The progress band](docs/images/goal-progress-band.svg)
@@ -107,9 +107,9 @@ Tasks button.
 The Goal tasks pane: what is running, the latest updates, and each phase with its
 steps, models and tokens.
 
-![The /ag:goal-progress output](docs/images/goal-progress-command.svg)
+![The /goal-progress output](docs/images/goal-progress-command.svg)
 
-The `/ag:goal-progress` output: every task and step as a plain list.
+The `/goal-progress` output: every task and step as a plain list.
 
 ## Install
 

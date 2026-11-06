@@ -164,7 +164,7 @@ The user, Nov 6, 2026, with a screenshot (menu: `/ag:goal-prompt`, `/ag:goal-pro
 Acceptance: one unit test for the gate case (a `shown` task and a later `todo`, goal `waiting`: current is the `shown` one); `claude plugin test plugins/ag` all pass (14); `claude plugin validate plugins/ag` passes with no gating warning; after the push and install, `claude plugin list` shows ag 1.0.1; the user sees `/ag:goal-progress` and the band names Phase 2 while it waits.
 
 ### fix 14. The progress command is `/goal-progress` again
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026: "so goal progress is not a command or ? beucase it's still not availaable"; asked to choose, the user picked `/goal-progress`. The mods reference (Limits: command names are "Letters, digits, `_`, and `-`, up to 64 characters") and the d.ts (`the person runs it as /<name>`) rule out `ag:goal-progress`; a refused name makes `register` throw and the rest of `session.start` is skipped. Fix: `plugins/ag/hooks/register.tsx` registers and answers `goal-progress` again (lines 188 and 226), keeping fix 13's `current()` change; every `/ag:goal-progress` in `README.md`, `plugins/ag/goal-progress.md` and the SKILL.md files becomes `/goal-progress` (a name swap, no other text); ag version 1.0.2; push and reinstall here.
 Acceptance: `grep -rn "ag:goal-progress" plugins README.md` finds nothing; `claude plugin test plugins/ag` (14 pass); `claude plugin validate plugins/ag` shows `answers its own command: command.run{command=goal-progress}`; after the push and install, `claude plugin list` shows ag 1.0.2; the user sees `/goal-progress` and the band in a new session.
 
