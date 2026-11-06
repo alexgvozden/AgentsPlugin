@@ -182,4 +182,4 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (signed off after one extra push, 4e15b7b). Phase 2: S6 done (5b0b1f7; -WhatIf, real and second run against a temp home: do/done/skip lines, real ~/.claude untouched). Running: S7 (S7-switch-fw1), launched from `plugins/goal-prompt/scripts/ext-build.ps1` in this checkout because the install moves `~/.claude/bin/ext-build.ps1`. Phase 3 after Phase 2's sign-off.
+Phase 1 done (4e15b7b). Phase 2: S6 done (5b0b1f7), S7 done (ee3a4d2, pushed; both plugins enabled from agents-plugin, `-Check` OK from the plugin cache, settings.json names no local-mods, old copies in `~/.claude/backup-20261106/`). Phase close running: suites, second install run, review P2-review-opus. Phase 3 after Phase 2's sign-off.
