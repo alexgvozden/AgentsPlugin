@@ -197,4 +197,4 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2: S6 done (5b0b1f7), S7 done (ee3a4d2, pushed). Phase close: suites passed (validate, 13 tests, ext-build 31), second install run all skip; review P2-review-opus: no high; medium and three lows become fix 8, two lows deferred with reasons. fix 6 done (aa7d869) but wrong about bare names; fix 7 restores them in the README. Running: fix7-readme-opus, fix8-install-fw1. Then Phase 2 shown. Phase 3 after Phase 2's sign-off.
+Phase 1 done (4e15b7b). Phase 2: S6 done (5b0b1f7), S7 done (ee3a4d2, pushed). Phase close: suites passed (validate, 13 tests, ext-build 31), second install run all skip; review P2-review-opus: no high; medium and three lows become fix 8, two lows deferred with reasons. fix 6 done (aa7d869) but wrong about bare names; fix 7 restores them in the README. fix 7 done (9bac3ff). Running: fix8-install-fw1. Then Phase 2 shown. Phase 3 after Phase 2's sign-off.
