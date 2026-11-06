@@ -56,7 +56,7 @@ Checked Nov 6, 2026 against code.claude.com/docs (skills, plugins/components, pl
 | Claude | Everything else: repo, files, path changes, tests, commits, pushes, install, moving old copies to a backup folder. |
 
 ## Phase 1: build the repo (gate: you look at the repo on GitHub)
-Status: shown 2026-11-06
+Status: todo
 
 ### S1. Repo skeleton
 Status: done 2026-11-06
@@ -98,6 +98,16 @@ Status: done 2026-11-06
 From the phase 1 review (P1-review-opus, medium and low): goals made by `goal-prompt-3rdparty` name only a bare `ext-build.ps1` (`plugins/goal-prompt/skills/goal-prompt-3rdparty/SKILL.md` lines 59 and 125), which a running goal cannot find once the user-level copy is gone; and lines 3 and 13 say the default model comes from `~/.claude/ext-build.json` only. Write the launcher as the full path the skill sees (open question 2), and add "else `ext-build.default.json` in the plugin" to lines 3 and 13.
 Acceptance: `grep -n "ext-build.ps1" plugins/goal-prompt/skills/goal-prompt-3rdparty/SKILL.md` shows no bare launcher in the goal and runner templates; `claude plugin validate plugins/goal-prompt` passes.
 
+### fix 4. goal-prompt-3rdparty: copy is written on Opus, never on Fireworks
+Status: todo
+The user, Nov 6, 2026: "for content writing please update goal-promt-3rdparrty to use opus high for writing end user facing copy and medium for technical copy and not to use fireworks for it". In `plugins/goal-prompt/skills/goal-prompt-3rdparty/SKILL.md`: a step (or the part of a step) that writes end-user-facing copy (UI text, emails, marketing pages, README and help for end users) runs at Opus high; technical copy (developer docs, code comments, API docs, plan and brief text) at Opus medium; neither goes to Fireworks. The rule appears where the skill says what stays on Claude (principle 7, about line 23), in the runner's step and model rules (about lines 59-64) and in the goal template (about line 125), keeping the goal under 4,000 characters; `test-matrix.md` gets one row for it if it lists the other model rules.
+Acceptance: the three places name the copy rule; the goal template stays under 4,000 characters; `claude plugin validate plugins/goal-prompt` passes.
+
+### fix 5. README: models, examples and screenshots
+Status: todo
+The user, Nov 6, 2026: "explain fully in readme what models are used when and also give examples and some screenshots for tasks panel etc". `README.md`: a "Which model does what" section covering both skills and the global rules (planning, reviews, UI, development, Fireworks builders, failed steps raised to high, browser testing, copy per fix 4); examples (making a goal from a plan, a run's progress file, a builder's report line); screenshots of the progress band, the Goal tasks pane and `/goal-progress` output, made from the mod's real rendering of an example progress file (open question 3), stored in `docs/images/` with the example file in `docs/examples/`.
+Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
+
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
 Status: todo
 
@@ -114,6 +124,7 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 ## Open questions (with defaults)
 1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README.
 2. How does a goal made by `goal-prompt-3rdparty` find the launcher after the user-level copy is gone? Default: the skill writes `${CLAUDE_PLUGIN_ROOT}/scripts/ext-build.ps1` into the goal and the runner, which the skill text shows as the full path of the installed version; after a plugin update, make the goal again (fix 3).
+3. How are the screenshots made? Default: render the mod's band, pane and `/goal-progress` output from `docs/examples/goal-progress.json` with the mod's own components (the mod test or render tools), and turn that output into images; never capture the user's screen. If no render route works, a terminal window that shows only a demo session.
 
 ## Later
 - Ship the status line scripts (`~/.claude/hooks/statusline.js`, `subagent-statusline.js`) too.
@@ -128,10 +139,10 @@ Acceptance: those three outputs printed; phase marked `shown`; you open a new se
 5. **Handoff.** At about 100 tool calls a builder stops at a safe point (committed, nothing half written) and returns "HANDOFF" with a note of at most 15 lines in its report: done (commits), left, what fails (command and first error lines), files with line ranges, next action. The next builder starts from the note and `git log`, and makes its first change within about 10 tool calls. A failed step's report is the same note, and a fresh Opus high subagent continues the step (never restarted, no other step in its place). A Fireworks HANDOFF (exit 3) goes to a fresh Fireworks builder with the note; a Fireworks failure (exit 1) goes to Opus high; a setup error (exit 2) stops the run and is reported to the user.
 6. **Landing:** the step's own acceptance checks, then its commit on `main`; pushes happen only in S5 and S7. After a fix only the failed check runs again.
 7. **Phase close:** every step of the phase marked; once: `claude plugin validate .`, `claude plugin test plugins/goal-progress`, `plugins/goal-prompt/scripts/ext-build.test.ps1` (phase 2 also the install script's second run); one review of the phase's diff at Opus high (it touches secrets and `~/.claude`; findings fixed or deferred with a reason); the phase marked `shown`; `git status` clean.
-8. **Model and effort:** planning and reviews at Opus high; building on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (S5 at Opus medium); a failed step at Opus high; mechanical work at Sonnet. A builder report is at most 20 lines; longer output goes to `.claude/goal-prompt/20261106-plugin/logs/`, and Fireworks runs also log one line each to `logs/ext-runs.jsonl`.
+8. **Model and effort:** planning and reviews at Opus high; copy is never written on Fireworks (the user, Nov 6, 2026): end-user-facing copy at Opus high, technical copy at Opus medium; building on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (S5 at Opus medium); a failed step at Opus high; mechanical work at Sonnet. A builder report is at most 20 lines; longer output goes to `.claude/goal-prompt/20261106-plugin/logs/`, and Fireworks runs also log one line each to `logs/ext-runs.jsonl`.
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
-2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium.
-Phase 1 shown, waiting for the user's sign-off (look at the repo on GitHub). S1-S5 done (6df43c7, cfd2b22, 6db8b49, a1b6a38, da00eb6; main pushed at da00eb6). fix 1 (345b656, README), fix 2 (f50a504, pane reads from `$.session.root()` and keeps the last good state; 13 tests pass), fix 3 (d13869d, launcher path in goals) done, local until S7's push. Phase close: validate passed, 13 tests pass, ext-build 31 pass; review P1-review-opus: no high, medium/low 1 fixed (fix 3, open question 2, rule 4), low 2 deferred (README gives the `-SetKey` command). S2's mark landed in S4's commit a1b6a38; the review says it does not matter.
-Next after sign-off: Phase 1 done, then S6.
+2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
+Phase 1 reopened at the gate for the user's feedback: fix 4 (copy on Opus in goal-prompt-3rdparty; technical copy, so fix4-copy-opus at Opus medium) and fix 5 (README models, examples, screenshots; end-user copy, so fix5-readme-opus at Opus high, after fix 4). Done: S1-S5 (main pushed at da00eb6), fix 1 (345b656), fix 2 (f50a504), fix 3 (d13869d); fix commits local until S7's push unless the user asks for one now. Phase close so far: validate passed, 13 tests pass, ext-build 31 pass; review P1-review-opus: no high, medium/low 1 fixed, low 2 deferred.
+Next: fix 4, fix 5, then Phase 1 shown again.
