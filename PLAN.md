@@ -111,7 +111,7 @@ The user, Nov 6, 2026: "explain fully in readme what models are used when and al
 Acceptance: README has the models section, the examples and at least three images that open; no image shows anything outside the demo (no real paths with secrets, no other windows); `claude plugin validate .` passes.
 
 ## Phase 2: switch this machine to the plugins (gate: you confirm in a new session)
-Status: shown 2026-11-06
+Status: todo
 
 ### S6. Install script
 Status: done 2026-11-06
@@ -148,6 +148,16 @@ Status: done 2026-11-06
 After fix 9: `README.md` lists three plugins, the launcher path `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1` (key setup, examples), the commands `/goal-prompt` and `/goal-prompt-3rdparty` only (the long names no longer mentioned, at the user's request). End-user copy, Opus high.
 Acceptance: `grep -n "goal-prompt:goal-prompt\|plugins/goal-prompt/scripts" README.md` finds nothing; `claude plugin validate .` passes.
 
+### fix 11. One plugin `ag` with the commands under it
+Status: todo
+The user, Nov 6, 2026, with a screenshot of the menu (`/goal-prompt:goal-prompt (goal-prompt)`, `/goal-prompt-3rdparty:goal-prompt-3rdparty (goal-prompt-3rdparty)`): "I see what happens with commands if they are plugins , they show as [screenshot] let's fix this with one plugin install and subcommands, I am ok with it but we need to update it again pleae, I am ok with ag:goal-prompt ag:goal-prompt-3rdparty and ag:goal-progress and ag:design". So: one plugin `plugins/ag/` (`plugin.json` name `ag`, version 1.0.0, author Aleksandar Gvozden, `types` from the mod) holding `skills/goal-prompt/`, `skills/goal-prompt-3rdparty/`, `scripts/{ext-build.ps1,ext-build.test.ps1}`, `ext-build.default.json`, and the goal-progress mod (`hooks/`, `types/`, its README as `goal-progress.md`), moved with `git mv`; `plugins/goal-prompt`, `plugins/goal-prompt-3rdparty`, `plugins/goal-progress` are gone. The mod's command shows as `/ag:goal-progress` (check the mods docs for how a registered command is named; register it so the menu shows `ag:goal-progress`). Root `marketplace.json` lists only `ag`. Skill text that names `/goal-progress` says `/ag:goal-progress`. `scripts/install.ps1`: uninstall `goal-prompt`, `goal-prompt-3rdparty` and `goal-progress` `@agents-plugin` when installed (two copies of the mod must never load), then install `ag@agents-plugin`; keep the local-mods, backup, CLAUDE.md, update and do/done/skip behaviour. "we need to update it again" covers one push and the reinstall here.
+Acceptance: `claude plugin validate .` and `claude plugin validate plugins/ag` pass; `claude plugin test plugins/ag` (13 pass); `ext-build.test.ps1` from `plugins/ag/scripts/` (31 pass); `grep -rn "plugins/goal-prompt\|plugins/goal-progress" plugins scripts` finds nothing; after the push and install here, `claude plugin list` shows only `ag@agents-plugin` from this marketplace, enabled; `-Check` from the installed ag folder prints OK; a second install run prints only `skip:`; the user sees `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress` and the progress bar in a new session.
+
+### fix 12. README for the `ag` plugin
+Status: todo
+After fix 11: `README.md` describes one plugin `ag` and its commands `/ag:goal-prompt`, `/ag:goal-prompt-3rdparty`, `/ag:goal-progress` (and `/ag:design` once Phase 3 adds it), the install `claude plugin install ag@agents-plugin` or `scripts/install.ps1`, the launcher path `plugins/ag/scripts/ext-build.ps1`. End-user copy, Opus high.
+Acceptance: `grep -n "goal-prompt@\|goal-progress@\|plugins/goal-prompt\|plugins/goal-progress" README.md` finds nothing; every command named is an `/ag:` command; `claude plugin validate .` passes.
+
 ## Phase 3: design images and keys on every OS (gate: you run the design command in a new session and review its folder)
 Status: todo
 The user, Nov 6, 2026: "can you add to goals and planning to also accept gemini and open AI api key to generate desig images as part of goal exeuction in same way as 3rd party and add also design command that ca nbe run any time, I will provide API keys in prompt similar as fireworks". Answers the same day: a new Phase 3; keys set up the same way as Fireworks (never in chat); "separate deisgn plugin that expecct a plan / descirption to come and plan a design btw make sure all commands use proper folder structures etc in the projects it's run so user can review it - same way deisgn will be used as part of the goals commadns"; "the goal should use design anytime UI is involved for new pages if it's minor change skip design step"; "btw key setup should be possible both on mac and windows and linux".
@@ -159,28 +169,28 @@ Acceptance: `ext-build.test.ps1` passes (all existing checks plus one per OS bra
 
 ### S9. Image launcher
 Status: todo
-`plugins/design/scripts/design-image.ps1`: makes images from a prompt with Gemini or OpenAI (`-Provider`, `-Model`, `-Out`, `-Count`), keys from S8, models and defaults in `~/.claude/design.json` then `design.default.json` in the plugin; writes each image with a sidecar `.md` (prompt, provider, model, time); `-DryRun`; exit codes as `ext-build.ps1`. Built on Fireworks.
+`plugins/ag/scripts/design-image.ps1` (fix 11: one plugin `ag`): makes images from a prompt with Gemini or OpenAI (`-Provider`, `-Model`, `-Out`, `-Count`), keys from S8, models and defaults in `~/.claude/design.json` then `design.default.json` in the plugin; writes each image with a sidecar `.md` (prompt, provider, model, time); `-DryRun`; exit codes as `ext-build.ps1`. Built on Fireworks.
 Acceptance: `design-image.test.ps1` passes (no real API call: request shape, config order, file and sidecar names, missing key exits 2); `-Check gemini` and `-Check openai` each print OK once the user has set the key.
 
-### S10. design plugin
+### S10. design skill `ag:design`
 Status: todo
-`plugins/design/` (`plugin.json` name `design`, version 0.1.0; listed in the root `marketplace.json`) with a `design` skill: takes a plan path or a description, plans the design (pages, states, components, copy), then makes the images with S9, all in the project under `design/<yyyymmdd>-<slug>/` (`brief.md`, `design-plan.md`, `images/`, `review.md` for the user's notes) so the user can review it (open question 5). Skill text at Opus medium (technical copy); the design plan itself is made at Opus high when the skill runs.
-Acceptance: `claude plugin validate plugins/design` passes; `claude --plugin-dir plugins/design -p "list your skills"` names it; a dry run on a two-line description writes the folder with `brief.md` and `design-plan.md` and the `-DryRun` image commands.
+`plugins/ag/skills/design/` (the user moved design into the `ag` plugin as `ag:design`, fix 11; ag version 1.1.0): takes a plan path or a description, plans the design (pages, states, components, copy), then makes the images with S9, all in the project under `design/<yyyymmdd>-<slug>/` (`brief.md`, `design-plan.md`, `images/`, `review.md` for the user's notes) so the user can review it (open question 5). Skill text at Opus medium (technical copy); the design plan itself is made at Opus high when the skill runs.
+Acceptance: `claude plugin validate plugins/ag` passes; `claude --plugin-dir plugins/ag -p "list your skills"` names `ag:design`; a dry run on a two-line description writes the folder with `brief.md` and `design-plan.md` and the `-DryRun` image commands.
 
 ### S11. Goals use design for new pages
 Status: todo
 In both goal-prompt skills: a step that adds a new page or screen gets a design step first (the design skill, Opus high), whose folder the UI builder then works from and the user can review; a minor UI change skips it; with no image key set, the design step writes the plan without images. Both skills name the project folders they write (`design/...` committed for review; `.claude/goal-prompt/<run>/` git-ignored for briefs and logs). Opus medium (technical copy). Versions: goal-prompt 1.1.0.
-Acceptance: both SKILL.md files name the design step, the new-page rule and the folders; the goal templates stay under 4,000 characters; `claude plugin validate plugins/goal-prompt` passes.
+Acceptance: both SKILL.md files name the design step, the new-page rule and the folders; the goal templates stay under 4,000 characters; `claude plugin validate plugins/ag` passes.
 
-### S12. Install and README for all three plugins
+### S12. Install and README with design
 Status: todo
-`scripts/install.ps1` also installs `design@agents-plugin` (all plugins in one run); README: key setup on Windows, macOS and Linux for the three providers, the design plugin and its folder, an example. README at Opus high (end-user copy); the script on Fireworks.
-Acceptance: `install.ps1 -WhatIf` lists the three plugins; README names the three providers and the three OSes; `claude plugin validate .` passes.
+`scripts/install.ps1` updates `ag` to the version with design; README: key setup on Windows, macOS and Linux for the three providers, `/ag:design` and its folder, an example. README at Opus high (end-user copy); the script on Fireworks.
+Acceptance: `install.ps1 -WhatIf` names `ag@agents-plugin`; README names the three providers and the three OSes; `claude plugin validate .` passes.
 
 ### S13. Push and run it here
 Status: todo
 Run the install script here, `-Check` for each provider whose key is set, push `main`.
-Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` lines printed; `git push` succeeds; `git status` clean.
+Acceptance: `claude plugin list` shows `ag@agents-plugin` enabled at the new version; the `-Check` lines printed; `git push` succeeds; `git status` clean.
 
 ## Open questions (with defaults)
 1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README. Checked again Nov 6, 2026 in fresh sessions: the bare `/goal-prompt` and `/goal-prompt-3rdparty` work; the long names work too (fix 7).
@@ -208,5 +218,5 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/goal-prompt-3rdparty/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2 shown again, waiting for the user's check in a new session: `/goal-prompt`, `/goal-prompt-3rdparty`, the progress bar. Done: S6, S7, fix 6-8, fix 9 (b79853d, pushed: three plugins, installed here, `-Check` OK, install rerun all `skip:`), fix 10 (d36b9bc, README for three plugins, short names only; local until S13's push). Phase close: suites passed; review P2-review-opus findings fixed (fix 8) or deferred.
+Phase 1 done (4e15b7b). Phase 2 reopened at the gate for fix 11 (one plugin `ag`, push, reinstall; fix11-ag-fw1) and fix 12 (README; fix12-readme-opus). Before that it was shown, waiting for the user's check in a new session: `/goal-prompt`, `/goal-prompt-3rdparty`, the progress bar. Done: S6, S7, fix 6-8, fix 9 (b79853d, pushed: three plugins, installed here, `-Check` OK, install rerun all `skip:`), fix 10 (d36b9bc, README for three plugins, short names only; local until S13's push). Phase close: suites passed; review P2-review-opus findings fixed (fix 8) or deferred.
 Next after sign-off: Phase 2 done, then Phase 3 (S8).
