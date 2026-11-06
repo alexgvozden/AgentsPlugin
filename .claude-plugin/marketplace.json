@@ -9,6 +9,10 @@
       "source": "./plugins/goal-prompt"
     },
     {
+      "name": "goal-prompt-3rdparty",
+      "source": "./plugins/goal-prompt-3rdparty"
+    },
+    {
       "name": "goal-progress",
       "source": "./plugins/goal-progress"
     }

@@ -1,0 +1,8 @@
+{
+  "name": "goal-prompt-3rdparty",
+  "version": "1.0.0",
+  "description": "Goal-prompt for third-party builders: run an implementation plan on a Fireworks AI model.",
+  "author": {
+    "name": "Aleksandar Gvozden"
+  }
+}

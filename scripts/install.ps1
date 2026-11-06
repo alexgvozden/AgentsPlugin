@@ -15,6 +15,9 @@
       - ext-build.json, secrets\ and the *.bak-* files are left alone.
       - Whether the plugins are installed is read from the CLI
         (claude plugin list --json), not from settings.json.
+      - Before the installs the marketplace is refreshed and every plugin
+        already installed at an older version than the marketplace offers is
+        updated, so a rerun once all are current prints only "skip:" lines.
 
     Parameters
       -ClaudeHome <dir>  the Claude config folder (default ~/.claude). When it is
@@ -43,6 +46,10 @@ function Get-CleanPath([string]$Path) {
 $Checkout = Get-CleanPath (Join-Path $PSScriptRoot '..')
 $CheckoutFwd = $Checkout -replace '\\', '/'
 $ImportLine = '@' + $CheckoutFwd + '/rules/CLAUDE.global.md'
+
+# The plugins this marketplace ships. The list is used to install, to refresh
+# and to update, so a new plugin is added in one place.
+$AgentsPlugins = @('goal-prompt', 'goal-prompt-3rdparty', 'goal-progress')
 
 $ClaudeHome = Get-CleanPath $ClaudeHome
 if (-not (Test-Path -LiteralPath $ClaudeHome)) {
@@ -123,10 +130,14 @@ function Invoke-Claude([string[]]$Arguments, [switch]$Capture) {
     return $out
 }
 
+# Windows PowerShell 5.1 turns a JSON array into one object that @() wraps once
+# more, so the parsed list is copied out element by element: callers then loop
+# over one plugin per turn, not over the whole list in a single turn.
 function Get-PluginList {
     if ($null -eq $script:PluginList) {
         $json = (Invoke-Claude @('plugin', 'list', '--json') -Capture) -join "`n"
-        $script:PluginList = @(ConvertFrom-Json -InputObject $json)
+        $script:PluginList = @()
+        foreach ($p in @(ConvertFrom-Json -InputObject $json)) { $script:PluginList += $p }
     }
     return $script:PluginList
 }
@@ -134,7 +145,8 @@ function Get-PluginList {
 function Get-MarketplaceList {
     if ($null -eq $script:MarketplaceList) {
         $json = (Invoke-Claude @('plugin', 'marketplace', 'list', '--json') -Capture) -join "`n"
-        $script:MarketplaceList = @(ConvertFrom-Json -InputObject $json)
+        $script:MarketplaceList = @()
+        foreach ($m in @(ConvertFrom-Json -InputObject $json)) { $script:MarketplaceList += $m }
     }
     return $script:MarketplaceList
 }
@@ -151,6 +163,67 @@ function Test-MarketplaceKnown([string]$Name) {
         if ($m.name -eq $Name) { return $true }
     }
     return $false
+}
+
+function Get-InstalledVersion([string]$Id) {
+    foreach ($p in @(Get-PluginList)) {
+        if ($p.id -eq $Id) { return $p.version }
+    }
+    return $null
+}
+
+# The version this checkout ships for a plugin (the copy the marketplace is
+# built from), or $null when it does not ship one.
+function Get-CheckoutVersion([string]$Name) {
+    $p = Join-Path $Checkout ('plugins/' + $Name + '/.claude-plugin/plugin.json')
+    if (-not (Test-Path -LiteralPath $p)) { return $null }
+    return ([System.IO.File]::ReadAllText($p) | ConvertFrom-Json).version
+}
+
+# The version the added agents-plugin marketplace offers for a plugin, read from
+# its own catalog clone. $null when the marketplace or the entry is unknown.
+function Get-OfferedVersion([string]$Name) {
+    $mp = $null
+    foreach ($m in @(Get-MarketplaceList)) {
+        if ($m.name -eq 'agents-plugin') { $mp = $m.installLocation }
+    }
+    if (-not $mp) { return $null }
+    $catPath = Join-Path $mp '.claude-plugin/marketplace.json'
+    if (-not (Test-Path -LiteralPath $catPath)) { return $null }
+    $cat = [System.IO.File]::ReadAllText($catPath) | ConvertFrom-Json
+    $entry = @($cat.plugins | Where-Object { $_.name -eq $Name })
+    if ($entry.Count -eq 0) { return $null }
+    $src = [string]$entry[0].source
+    if (-not $src.StartsWith('./')) { return $null }
+    $rel = ($src.Substring(2) -replace '/', '\')
+    $pj = Join-Path $mp ($rel + '\.claude-plugin\plugin.json')
+    if (-not (Test-Path -LiteralPath $pj)) { return $null }
+    return ([System.IO.File]::ReadAllText($pj) | ConvertFrom-Json).version
+}
+
+# Refresh the marketplace when a plugin is missing, or when one is installed at
+# a version other than the one this checkout ships. When the marketplace is not
+# added yet, the add step clones it fresh, so no refresh is needed here.
+function Test-NeedsMarketplaceRefresh {
+    if (-not (Test-MarketplaceKnown 'agents-plugin')) { return $false }
+    foreach ($name in $AgentsPlugins) {
+        $id = $name + '@agents-plugin'
+        if (Test-NeedsPlugin $id) { return $true }
+        $installed = Get-InstalledVersion $id
+        $want = Get-CheckoutVersion $name
+        if ($installed -and $want -and ($installed -ne $want)) { return $true }
+    }
+    return $false
+}
+
+# An installed plugin whose version is not the one the marketplace offers.
+function Test-NeedsPluginUpdate([string]$Name) {
+    $installed = Get-InstalledVersion ($Name + '@agents-plugin')
+    if (-not $installed) { return $false }
+    $offered = Get-OfferedVersion $Name
+    if (-not $offered) { $offered = Get-CheckoutVersion $Name }
+    if (-not $offered) { return $false }
+    return ($installed -ne $offered)
 }
 
 # One action: print "skip: <name>" if it is already in place, else print the
@@ -209,6 +282,7 @@ function Test-NeedsSettingsSync {
     $s = Read-Settings
     (-not ((Test-Prop $s 'extraKnownMarketplaces') -and (Test-Prop $s.extraKnownMarketplaces 'agents-plugin'))) -or
     (-not ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-prompt@agents-plugin'))) -or
+    (-not ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-prompt-3rdparty@agents-plugin'))) -or
     (-not ((Test-Prop $s 'enabledPlugins') -and (Test-Prop $s.enabledPlugins 'goal-progress@agents-plugin')))
 }
 
@@ -229,8 +303,13 @@ function Test-NeedsClaudeMd {
 function Test-AnythingToDo {
     (Test-NeedsLocalModsDrop) -or
     (Test-NeedsMarketplaceAdd) -or
+    (Test-NeedsMarketplaceRefresh) -or
     (Test-NeedsPlugin 'goal-prompt@agents-plugin') -or
+    (Test-NeedsPlugin 'goal-prompt-3rdparty@agents-plugin') -or
     (Test-NeedsPlugin 'goal-progress@agents-plugin') -or
+    (Test-NeedsPluginUpdate 'goal-prompt') -or
+    (Test-NeedsPluginUpdate 'goal-prompt-3rdparty') -or
+    (Test-NeedsPluginUpdate 'goal-progress') -or
     (Test-NeedsSettingsSync) -or
     (Test-NeedsMove 'skills/goal-prompt') -or
     (Test-NeedsMove 'skills/goal-prompt-3rdparty') -or
@@ -285,10 +364,35 @@ Step 'claude plugin marketplace add alexgvozden/AgentsPlugin' {
     Invoke-Claude @('plugin', 'marketplace', 'add', 'alexgvozden/AgentsPlugin')
 }
 
+# Refresh the marketplace before installing, then bring every plugin already
+# installed up to the version it offers. Both print skip when all are current.
+Step 'claude plugin marketplace update agents-plugin' {
+    Test-NeedsMarketplaceRefresh
+} {
+    Invoke-Claude @('plugin', 'marketplace', 'update', 'agents-plugin')
+}
+
+# The loop variable is not called $name: Step's own parameter is $Name, and
+# PowerShell matches variable names without case, so $name inside these blocks
+# would be the action label instead of the plugin.
+foreach ($plugin in $AgentsPlugins) {
+    Step ('claude plugin update ' + $plugin + '@agents-plugin') {
+        Test-NeedsPluginUpdate $plugin
+    } {
+        Invoke-Claude @('plugin', 'update', ($plugin + '@agents-plugin'))
+    }
+}
+
 Step 'claude plugin install goal-prompt@agents-plugin' {
     Test-NeedsPlugin 'goal-prompt@agents-plugin'
 } {
     Invoke-Claude @('plugin', 'install', 'goal-prompt@agents-plugin')
+}
+
+Step 'claude plugin install goal-prompt-3rdparty@agents-plugin' {
+    Test-NeedsPlugin 'goal-prompt-3rdparty@agents-plugin'
+} {
+    Invoke-Claude @('plugin', 'install', 'goal-prompt-3rdparty@agents-plugin')
 }
 
 Step 'claude plugin install goal-progress@agents-plugin' {
@@ -297,7 +401,7 @@ Step 'claude plugin install goal-progress@agents-plugin' {
     Invoke-Claude @('plugin', 'install', 'goal-progress@agents-plugin')
 }
 
-Step 'settings.json: name the agents-plugin marketplace and both plugins' {
+Step 'settings.json: name the agents-plugin marketplace and all three plugins' {
     Test-NeedsSettingsSync
 } {
     $s = Read-Settings
@@ -312,9 +416,9 @@ Step 'settings.json: name the agents-plugin marketplace and both plugins' {
     if (-not (Test-Prop $s 'enabledPlugins')) {
         $s | Add-Member -NotePropertyName 'enabledPlugins' -NotePropertyValue ([PSCustomObject]@{})
     }
-    foreach ($name in @('goal-prompt@agents-plugin', 'goal-progress@agents-plugin')) {
-        if (-not (Test-Prop $s.enabledPlugins $name)) {
-            $s.enabledPlugins | Add-Member -NotePropertyName $name -NotePropertyValue $true
+    foreach ($plugin in ($AgentsPlugins | ForEach-Object { $_ + '@agents-plugin' })) {
+        if (-not (Test-Prop $s.enabledPlugins $plugin)) {
+            $s.enabledPlugins | Add-Member -NotePropertyName $plugin -NotePropertyValue $true
         }
     }
     Save-Settings $s
