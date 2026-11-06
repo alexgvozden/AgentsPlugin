@@ -182,4 +182,4 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (signed off at the gate after one extra push of fix 1-5, at the user's request). Phase 2: S6 next (S6-install-fw1). Phase 3 (design images, design plugin, keys on every OS) after Phase 2's sign-off.
+Phase 1 done (signed off after one extra push, 4e15b7b). Phase 2: S6 done (5b0b1f7; -WhatIf, real and second run against a temp home: do/done/skip lines, real ~/.claude untouched). Running: S7 (S7-switch-fw1), launched from `plugins/goal-prompt/scripts/ext-build.ps1` in this checkout because the install moves `~/.claude/bin/ext-build.ps1`. Phase 3 after Phase 2's sign-off.
