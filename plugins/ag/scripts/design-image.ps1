@@ -7,6 +7,8 @@
   design-image.ps1 -PromptFile <path> [-Provider gemini|openai] [-Model <id>] [-Out <folder>] [-Count <n>] [-DryRun] [-Config <path>]
   design-image.ps1 -SetKey [<gemini|openai>] [-Config <path>]
   design-image.ps1 -Check [<gemini|openai>] [-Model <id>] [-Config <path>]
+  design-image.ps1 -Where [<gemini|openai>] [-Config <path>]
+  -Where prints the key store, its location and whether a key is set (never the key).
 
   Keys come from the store of keystore.ps1 (Windows DPAPI file, macOS Keychain, Linux
   secret-tool or a mode-600 file); a key is never printed or logged. Models and base URLs
@@ -30,7 +32,8 @@ param(
     [string]$Config,
     [switch]$DryRun,
     [switch]$SetKey,
-    [switch]$Check
+    [switch]$Check,
+    [switch]$Where
 )
 
 Set-StrictMode -Version 2
@@ -343,9 +346,13 @@ function Invoke-DesignGenerate($Cfg, [string]$ProviderName, [string]$ModelName, 
 function Invoke-DesignMain {
     $cfg = Read-DesignConfig $Config
 
-    if ($SetKey -or $Check) {
+    if ($SetKey -or $Check -or $Where) {
         $asked = if ([string]::IsNullOrWhiteSpace($Provider)) { $cfg.DefaultProvider } else { $Provider }
         $prov = Assert-KeyProvider $asked
+        if ($Where) {
+            foreach ($line in (Get-ProviderKeyWhere -Provider $prov)) { Write-Output "design-image where: $line" }
+            return 0
+        }
         if ($prov -eq 'fireworks') { Stop-DesignSetup 'design-image.ps1 makes images with gemini or openai; pass -SetKey gemini or -Check openai' }
         if ($SetKey) { Invoke-DesignSetKey $prov; return 0 }
         return (Invoke-DesignCheck $prov $cfg $Model)

@@ -220,6 +220,27 @@ try {
     Remove-Item -LiteralPath function:Get-Command
     Assert ($found -eq '/usr/local/bin/claude' -and $foundMac -eq '/usr/local/bin/claude') 'non-Windows finds plain claude on PATH' "$found / $foundMac"
 
+    # fix 17: -Where names the store, the file and set / not set, never the key
+    $r = Run-Launcher @('-Config', $cfgOk, '-Where')
+    $r2 = Run-Launcher @('-Config', $cfgNoKey, '-Where', 'fireworks')
+    Assert ($r.Code -eq 0 -and $r.Out -match 'fireworks store: windows-dpapi' -and $r.Out.Contains("fireworks location: file $keyFile") -and $r.Out -match 'fireworks key: set' -and $r2.Code -eq 0 -and $r2.Out -match 'fireworks key: not set' -and -not ($r.Out + $r2.Out).Contains($dummy)) '-Where: store, file, set / not set, no key' "$($r.Out)`n$($r2.Out)"
+
+    # fix 17: ag-key.ps1 runs the newest installed version, else the checkout; exit code passes through
+    $agKey = Join-Path $PSScriptRoot 'ag-key.ps1'
+    $ch = Join-Path $root 'claudehome'
+    $co = Join-Path $root 'checkout'
+    $cache = Join-Path $ch 'plugins\cache\agents-plugin\ag'
+    foreach ($d in @("$cache\1.9.0\scripts", "$cache\1.10.0\scripts", "$co\plugins\ag\scripts")) {
+        New-Item -ItemType Directory -Path $d -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $d 'design-image.ps1'), "Write-Output ('ran ' + `$PSScriptRoot + ' ' + (`$args -join ' ')); exit 7")
+    }
+    . $agKey
+    $newest = Resolve-AgKeyScripts $ch $co
+    $fallback = Resolve-AgKeyScripts (Join-Path $root 'nohome') $co
+    $out = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $agKey where gemini -ClaudeHome $ch 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    Assert ($newest -eq "$cache\1.10.0\scripts" -and $fallback -eq "$co\plugins\ag\scripts" -and $code -eq 7 -and $out -match '1\.10\.0\\scripts -Where gemini') 'ag-key: newest version wins (1.10.0 > 1.9.0), else the checkout; exit code passed through' "$newest | $fallback | $code | $out"
+
     $r = Run-Launcher @('-Config', $cfgOk, '-Check', 'bogus')
     Assert ($r.Code -eq 2 -and $r.Out -match "unknown key provider 'bogus'") 'unknown provider exit 2' "code $($r.Code): $($r.Out)"
 }

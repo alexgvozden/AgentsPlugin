@@ -323,6 +323,20 @@ function Test-NeedsClaudeMd {
     (-not ([System.IO.File]::ReadAllText($p).Contains($ImportLine)))
 }
 
+# The key entry point: plugins/ag/scripts/ag-key.ps1 with this checkout's path filled in.
+function Get-AgKeyPath { Join-Path (Join-Path $ClaudeHome 'ag') 'ag-key.ps1' }
+
+function Get-AgKeyText {
+    $src = [System.IO.File]::ReadAllText((Join-Path $Checkout 'plugins/ag/scripts/ag-key.ps1'))
+    return $src.Replace("'__AG_CHECKOUT__'", "'" + $Checkout.Replace("'", "''") + "'")
+}
+
+function Test-NeedsAgKey {
+    $p = Get-AgKeyPath
+    (-not (Test-Path -LiteralPath $p -PathType Leaf)) -or
+    ([System.IO.File]::ReadAllText($p) -cne (Get-AgKeyText))
+}
+
 function Test-AnythingToDo {
     (Test-NeedsStaleDrop) -or
     (Test-NeedsMarketplaceAdd) -or
@@ -335,7 +349,8 @@ function Test-AnythingToDo {
     (Test-NeedsMove 'skills/goal-prompt-3rdparty') -or
     (Test-NeedsBinMove) -or
     (Test-NeedsMove 'mods/goal-progress') -or
-    (Test-NeedsClaudeMd)
+    (Test-NeedsClaudeMd) -or
+    (Test-NeedsAgKey)
 }
 
 # --- settings.json is copied to the backup before anything can change it ----
@@ -484,4 +499,12 @@ Step 'CLAUDE.md: import rules/CLAUDE.global.md' {
         Copy-Item -LiteralPath $p -Destination $backup
     }
     [System.IO.File]::WriteAllText($p, $ImportLine + "`r`n", (New-Object System.Text.UTF8Encoding($false)))
+}
+
+# --- the key entry point, ~/.claude/ag/ag-key.ps1, works from any folder ----
+Step ('write ' + (Get-AgKeyPath) + ' (key entry point)') {
+    Test-NeedsAgKey
+} {
+    New-Dir (Split-Path -Parent (Get-AgKeyPath))
+    [System.IO.File]::WriteAllText((Get-AgKeyPath), (Get-AgKeyText), (New-Object System.Text.UTF8Encoding($false)))
 }

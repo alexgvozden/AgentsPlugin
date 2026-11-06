@@ -159,6 +159,23 @@ function Test-ProviderKey {
     catch { if ($_.Exception.Data['ExtSetup']) { return $false } else { throw } }
 }
 
+# -Where: the store kind, the location and whether a key is set. Never the key itself.
+function Get-ProviderKeyWhere {
+    param([string]$Provider, [string]$KeyFile, [string]$Os, [scriptblock]$Runner, [scriptblock]$HasCommand)
+    $p = Assert-KeyProvider $Provider
+    if (-not $KeyFile) { $KeyFile = Get-KeyDefaultFile $p }
+    $kind = Get-KeyStoreKind $Os $HasCommand
+    $user = Get-KeyUser
+    $location = switch ($kind) {
+        'windows-dpapi' { "file $KeyFile (DPAPI, this Windows user)" }
+        'macos-keychain' { "Keychain service ag-$p, account $user" }
+        'linux-secret-tool' { "secret-tool attributes service=ag-$p account=$user (fallback file $KeyFile)" }
+        'linux-file' { "file $KeyFile (mode 600, not encrypted)" }
+    }
+    $set = Test-ProviderKey -Provider $p -KeyFile $KeyFile -Os $Os -Runner $Runner -HasCommand $HasCommand
+    return @("$p store: $kind", "$p location: $location", "$p key: $(if ($set) { 'set' } else { 'not set' })")
+}
+
 # Unix key file: the folder is set to 700 and the empty file to 600 before the key is written.
 function Write-KeyFile([string]$KeyFile, [string]$Plain, [scriptblock]$Runner) {
     $dir = Split-Path -Parent $KeyFile

@@ -246,7 +246,7 @@ Acceptance:
 - `claude plugin validate plugins/ag` passes.
 
 ### fix 17. One key command that works from any folder, and where a key is stored
-Status: todo
+Status: done 2026-11-06
 The user, Nov 6, 2026, after fix 15: "I need readme fix for setting keys, this still doesnt work , is it because where I run it, but we should have generic place for key or at least a way to retrieve a key location powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/ext-build.ps1 -Check". The keys already have one place per OS (S8). Only the script path depends on the folder the command runs in. So:
 - `scripts/install.ps1` writes one small, stable entry point, `~/.claude/ag/ag-key.ps1`. It finds the scripts of the newest installed `ag` (`~/.claude/plugins/cache/agents-plugin/ag/<version>/scripts/`, highest version) and falls back to this checkout. It takes `set|check|where <fireworks|gemini|openai>`: `check fireworks` maps to `ext-build.ps1 -Check`, and `check gemini|openai` maps to `design-image.ps1 -Check <provider>`.
 - `ext-build.ps1 -Where [<provider>]` and `design-image.ps1 -Where [<provider>]` print the store and location (file path, Keychain service and account, or secret-tool attributes) and whether a key is set. They never print the key.

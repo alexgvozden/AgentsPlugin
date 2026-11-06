@@ -200,19 +200,30 @@ key; type or paste it there. **Never paste a key into a Claude chat.**
 - `ext-build.ps1 -Check` makes one Fireworks call, about $0.01.
 - `ext-build.ps1 -Check gemini` or `-Check openai` only checks that the key is set.
 
-Each block below starts with a `cd` to your checkout of this repo. Change the
-path if you cloned it somewhere else.
+The key commands go through one small script, `~/.claude/ag/ag-key.ps1`.
+`scripts/install.ps1` writes it. Once it has run, the commands below work from
+any folder. The script runs the newest installed `ag`, or this checkout if `ag`
+is not installed.
+
+It takes `set`, `check` or `where`, then `fireworks`, `gemini` or `openai`:
+
+- `set` asks for the key and stores it.
+- `check fireworks` runs `ext-build.ps1 -Check`. `check gemini` and
+  `check openai` run `design-image.ps1 -Check`. The costs above apply.
+- `where` shows where the key is kept and whether it is set. It never shows the key.
 
 **Windows** (PowerShell, nothing extra to install):
 
 ```powershell
-cd C:\Users\<you>\Code\AgentsPlugin
-powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/ext-build.ps1 -SetKey
-powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/ext-build.ps1 -Check
-powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/design-image.ps1 -SetKey gemini
-powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/design-image.ps1 -Check gemini
-powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/design-image.ps1 -SetKey openai
-powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/design-image.ps1 -Check openai
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set fireworks
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check fireworks
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 where fireworks
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set gemini
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check gemini
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 where gemini
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set openai
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check openai
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 where openai
 ```
 
 **macOS and Linux.** The scripts need PowerShell 7 (`pwsh`). Install it once,
@@ -221,13 +232,15 @@ using Microsoft's guide for
 or [Linux](https://learn.microsoft.com/powershell/scripting/install/linux-overview).
 
 ```sh
-cd ~/Code/AgentsPlugin
-pwsh -File plugins/ag/scripts/ext-build.ps1 -SetKey
-pwsh -File plugins/ag/scripts/ext-build.ps1 -Check
-pwsh -File plugins/ag/scripts/design-image.ps1 -SetKey gemini
-pwsh -File plugins/ag/scripts/design-image.ps1 -Check gemini
-pwsh -File plugins/ag/scripts/design-image.ps1 -SetKey openai
-pwsh -File plugins/ag/scripts/design-image.ps1 -Check openai
+pwsh -File ~/.claude/ag/ag-key.ps1 set fireworks
+pwsh -File ~/.claude/ag/ag-key.ps1 check fireworks
+pwsh -File ~/.claude/ag/ag-key.ps1 where fireworks
+pwsh -File ~/.claude/ag/ag-key.ps1 set gemini
+pwsh -File ~/.claude/ag/ag-key.ps1 check gemini
+pwsh -File ~/.claude/ag/ag-key.ps1 where gemini
+pwsh -File ~/.claude/ag/ag-key.ps1 set openai
+pwsh -File ~/.claude/ag/ag-key.ps1 check openai
+pwsh -File ~/.claude/ag/ag-key.ps1 where openai
 ```
 
 Where each OS keeps the key:

@@ -7,7 +7,9 @@
                 [-Model <name>] [-Resume <sessionId>] [-MaxBudgetUsd <n>] [-DryRun] [-Config <path>]
   ext-build.ps1 -SetKey [<fireworks|gemini|openai>] [-Config <path>]
   ext-build.ps1 -Check [<fireworks|gemini|openai>] [-Model <name>] [-Config <path>]
+  ext-build.ps1 -Where [<fireworks|gemini|openai>] [-Config <path>]
   The provider defaults to fireworks. -Check gemini|openai only reports whether the key is set.
+  -Where prints the key store, its location and whether a key is set (never the key).
 
   Exit codes: 0 ok, 3 handoff, 1 failed, 2 setup error.
   Windows PowerShell 5.1 and PowerShell 7 (pwsh) compatible. Keys live in the store of
@@ -29,7 +31,8 @@ param(
     [switch]$DryRun,
     [string]$Config,
     [switch]$SetKey,
-    [switch]$Check
+    [switch]$Check,
+    [switch]$Where
 )
 
 Set-StrictMode -Version 2
@@ -118,6 +121,13 @@ function Invoke-ExtKeyStatus([string]$ProviderName) {
     $null = Get-ProviderKey -Provider $p
     Write-Output "ext-build check: $p key is set ($(Get-KeyStoreKind))"
     Write-Output 'ext-build check: OK'
+    return 0
+}
+
+function Invoke-ExtWhere($Cfg, [string]$ProviderName) {
+    $p = Assert-KeyProvider $ProviderName
+    $keyFile = if ($p -eq 'fireworks') { $Cfg.KeyFile } else { '' }
+    foreach ($line in (Get-ProviderKeyWhere -Provider $p -KeyFile $keyFile)) { Write-Output "ext-build where: $line" }
     return 0
 }
 
@@ -340,13 +350,14 @@ function Invoke-ExtCheck($Cfg, [string]$ModelName) {
 
 function Invoke-ExtMain {
     $cfg = Read-ExtConfig $Config
-    if ($SetKey -or $Check) {
+    if ($SetKey -or $Check -or $Where) {
         $prov = Assert-KeyProvider $Provider
         if ($SetKey) { Invoke-ExtSetKey $cfg $prov; return 0 }
+        if ($Where) { return (Invoke-ExtWhere $cfg $prov) }
         if ($prov -ne 'fireworks') { return (Invoke-ExtKeyStatus $prov) }
         return (Invoke-ExtCheck $cfg $Model)
     }
-    if ($Provider) { Stop-Setup "unexpected argument '$Provider' (a provider goes after -SetKey or -Check)" }
+    if ($Provider) { Stop-Setup "unexpected argument '$Provider' (a provider goes after -SetKey, -Check or -Where)" }
 
     foreach ($pair in @(@('Brief', $Brief), @('Cwd', $Cwd), @('Step', $Step), @('LogDir', $LogDir))) {
         if ([string]::IsNullOrWhiteSpace($pair[1])) { Stop-Setup "missing -$($pair[0])" }

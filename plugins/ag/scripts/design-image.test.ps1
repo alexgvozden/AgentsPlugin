@@ -193,6 +193,11 @@ try {
     [IO.File]::WriteAllText($pf, 'a pricing page')
     $r = Run-Launcher @('-DryRun', '-PromptFile', $pf)
     Assert ($r.Code -eq 0 -and $r.Out -match 'a pricing page' -and $r.Out -match 'a-pricing-page-1\.png') '-PromptFile is read and slugged' $r.Out
+
+    # --- 8. -Where (provider defaults to gemini): store, location and set, never the key ---
+    $env:USERPROFILE = $home2
+    $r = Run-Launcher @('-Where')
+    Assert ($r.Code -eq 0 -and $r.Out -match 'gemini store: windows-dpapi' -and $r.Out.Contains("gemini location: file $keyFile") -and $r.Out -match 'gemini key: set' -and -not $r.Out.Contains($dummy)) '-Where names the store, the file and set, no key' $r.Out
 }
 finally {
     $env:USERPROFILE = $oldProfile
