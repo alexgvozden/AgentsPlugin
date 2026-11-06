@@ -195,7 +195,8 @@ Acceptance: both SKILL.md files name the design step, the new-page rule and the 
 ### S12. Install and README with design
 Status: todo
 `scripts/install.ps1` updates `ag` to the version with design; README: key setup on Windows, macOS and Linux for the three providers, `/ag:design` and its folder, an example. README at Opus high (end-user copy); the script on Fireworks.
-Acceptance: `install.ps1 -WhatIf` names `ag@agents-plugin`; README names the three providers and the three OSes; `claude plugin validate .` passes.
+The user, Nov 6, 2026, during S12: "expalin in readme why I build this, to see clearl what will be build based on the plan and integrate design steps using best image models for designing UI, see progress during build ,minimiz use of tokens withut secrificing quality". So the README opens with why this exists: see clearly what will be built from the plan; design steps with the best image models for UI; progress visible during the build; fewer tokens without losing quality.
+Acceptance: `install.ps1 -WhatIf` names `ag@agents-plugin`; README names the three providers and the three OSes; `claude plugin validate .` passes; the README's first section after the title gives those four reasons.
 
 ### S13. Push and run it here
 Status: todo
