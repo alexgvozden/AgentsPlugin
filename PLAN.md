@@ -122,6 +122,11 @@ Status: done 2026-11-06
 Run the install script on this machine, then: `claude plugin list` shows both plugins enabled; `ext-build.ps1 -Check` from the plugin path prints OK; `~/.claude/settings.json` no longer names `local-mods`. Push.
 Acceptance: those three outputs printed; phase marked `shown`; you open a new session and confirm `/goal-prompt` and `/goal-prompt-3rdparty` (or their namespaced names) are listed and the progress bar loads.
 
+### fix 6. README: the commands are namespaced
+Status: todo
+The user, Nov 6, 2026, after the switch: "I dont' see /goal-prompt command". A fresh session (Claude Code 2.1.295) lists only `goal-prompt:goal-prompt` and `goal-prompt:goal-prompt-3rdparty`; the bare names are not offered, so open question 1's default applies. `README.md`: name the commands as `/goal-prompt:goal-prompt` and `/goal-prompt:goal-prompt-3rdparty` everywhere, drop the claim that the bare names work, and say a session opened before the install needs a restart. End-user copy, Opus high.
+Acceptance: `grep -n "bare" README.md` finds no claim that the bare names work; every command example uses the namespaced name; `claude plugin validate .` passes.
+
 ## Phase 3: design images and keys on every OS (gate: you run the design command in a new session and review its folder)
 Status: todo
 The user, Nov 6, 2026: "can you add to goals and planning to also accept gemini and open AI api key to generate desig images as part of goal exeuction in same way as 3rd party and add also design command that ca nbe run any time, I will provide API keys in prompt similar as fireworks". Answers the same day: a new Phase 3; keys set up the same way as Fireworks (never in chat); "separate deisgn plugin that expecct a plan / descirption to come and plan a design btw make sure all commands use proper folder structures etc in the projects it's run so user can review it - same way deisgn will be used as part of the goals commadns"; "the goal should use design anytime UI is involved for new pages if it's minor change skip design step"; "btw key setup should be possible both on mac and windows and linux".
@@ -157,7 +162,7 @@ Run the install script here, `-Check` for each provider whose key is set, push `
 Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` lines printed; `git push` succeeds; `git status` clean.
 
 ## Open questions (with defaults)
-1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README.
+1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README. Checked Nov 6, 2026 after S7: the bare names are not offered; the default applies (fix 6).
 2. How does a goal made by `goal-prompt-3rdparty` find the launcher after the user-level copy is gone? Default: the skill writes `${CLAUDE_PLUGIN_ROOT}/scripts/ext-build.ps1` into the goal and the runner, which the skill text shows as the full path of the installed version; after a plugin update, make the goal again (fix 3).
 3. How are the screenshots made? Default: render the mod's band, pane and `/goal-progress` output from `docs/examples/goal-progress.json` with the mod's own components (the mod test or render tools), and turn that output into images; never capture the user's screen. If no render route works, a terminal window that shows only a demo session.
 4. Key store on Linux without `secret-tool`? Default: `~/.claude/secrets/<provider>.key` readable only by the user (mode 600), and `-SetKey` says it is not encrypted.
@@ -182,4 +187,4 @@ Acceptance: `claude plugin list` shows the three plugins enabled; the `-Check` l
 
 ## Where the run stands
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash`; S5 on Opus medium; copy on Opus (rule 8).
-Phase 1 done (4e15b7b). Phase 2: S6 done (5b0b1f7), S7 done (ee3a4d2, pushed; both plugins enabled from agents-plugin, `-Check` OK from the plugin cache, settings.json names no local-mods, old copies in `~/.claude/backup-20261106/`). Phase close running: suites, second install run, review P2-review-opus. Phase 3 after Phase 2's sign-off.
+Phase 1 done (4e15b7b). Phase 2: S6 done (5b0b1f7), S7 done (ee3a4d2, pushed; both plugins enabled from agents-plugin, `-Check` OK from the plugin cache, settings.json names no local-mods, old copies in `~/.claude/backup-20261106/`). Phase close: suites passed (validate, 13 tests, ext-build 31), second install run all skip; review P2-review-opus running. fix 6 (README: namespaced commands) from the user's note; running: fix6-readme-opus. Phase 3 after Phase 2's sign-off.
