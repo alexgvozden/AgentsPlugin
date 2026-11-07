@@ -389,7 +389,7 @@ Status: done 2026-11-08
 - Acceptance: `claude plugin validate .` and `claude plugin validate plugins/ag` pass; `claude plugin test plugins/ag` passes; the runner is at most 3,800 characters.
 
 ### fix 29. Release 1.4.0 and install it here
-Status: todo
+Status: done 2026-11-08
 - As S19: the rule 7 checks once; one review of fix 28's diff at Opus high (findings fixed or deferred with a reason); push `main`, tag `v1.4.0`, `claude plugin update`; the installed version printed. Comes before S20's fourth run, which loads the installed plugin.
 
 ## Open questions (with defaults)
