@@ -297,7 +297,7 @@ Status: todo
 - Acceptance: `ext-build.test.ps1` passes, with the add and remove checks matching by `id`.
 
 ### fix 21. Copy: no model on a subagent line
-Status: todo
+Status: done 2026-11-07
 - `goal-progress.md` and README: drop the claim that a subagent's line shows its model (the mods API's agent list gives none). End-user copy at Opus high.
 - Acceptance: `claude plugin validate .` passes.
 

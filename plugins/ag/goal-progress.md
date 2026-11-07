@@ -11,7 +11,7 @@ Shows the progress of a `/goal` (yellow "waiting" at a gate for your sign-off) a
 The band reads four things:
 
 - **The plan** named by the file's `plan` (`PLAN.md` when it names none): every phase and step, with its title and its mark (a `Status:` line under its heading, or the last column of a tracker table). `done <date>`, `shown <date>`, `blocked: <reason>`, `todo` and `doing` become the statuses below, and the plan's marks win over the file's.
-- **The session's subagents** that are starting or running, each as a running line with its model.
+- **The session's subagents** that are starting or running, each as a running line.
 - **The launcher's job**: each `ext-build.ps1` run adds its own `build` line to the file when it starts and removes it when it ends.
 - **`.claude/goal-progress.json`** in the project, for the goal's status, note and log, and for any other job (a deploy, a test suite). Without this file the band shows nothing.
 
