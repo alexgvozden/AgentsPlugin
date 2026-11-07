@@ -115,6 +115,162 @@ marked with the skill's name. Opus and Sonnet mean Opus 5.5 and Sonnet 5.5.
 The skill writes these rules into each plan's "How this plan is run", so a run
 keeps to them after the chat is gone.
 
+## How a goal works
+
+### The goal, made and run
+
+**Made from a plan.** `/ag:goal-prompt PLAN.md` (or `/ag:goal-prompt-3rdparty`)
+reads the plan and asks you one round of questions: how much to test during the
+build (light by default: lint, typecheck, each step's own tests, screenshots),
+which screens to screenshot, which outward actions it may take (paid APIs,
+production deploys, shared-database migrations; the ones you leave out become
+"stop and tell me"), and git, if the project rules don't say. If the plan has
+steps that touch security, money, personal data or a shared-database migration,
+the 3rdparty skill also asks whether they stay on Claude. In the same round it checks the keys
+the goal will use, as described under "Missing keys are told to you" above. Then
+it writes into the plan, in one setup commit: a `Status:` line on each step (or
+the plan's own tracker column), a mark on each phase, an empty "Where the run
+stands" paragraph, and the section "How this plan is run" with the run's rules.
+Last, it prints the runner: one `/goal` of at most 3,800 characters for you to
+paste.
+
+**Run step by step from the plan's marks.** The run starts from "Where the run
+stands" and the first step whose mark is not `done`. For each step:
+
+1. The main thread writes a brief of pointers: the step's line range in the plan,
+   the range of "How this plan is run", and `path:lines` of the code to build on.
+   It copies no text.
+2. A fresh builder builds the step, in its own worktree when steps run side by
+   side. It reads by range, writes only the tests the plan names, and runs lint,
+   typecheck and those tests once.
+3. The builder sets the step's `Status: done <date>` and commits, so the mark
+   lands with the code.
+4. The main thread lands it on `main`: rebase, lint, typecheck, the step's own
+   tests, merge. Then it rewrites "Where the run stands".
+
+Steps run side by side only when they touch different files. A large step is
+split into two or three parts before it starts. A step that adds a screen is
+built in two parts, the UI first and then the function; a new page first gets
+`/ag:design`.
+
+**Handoff and failure.** At about 100 tool calls (35 on a 200k context window) a
+builder stops at a safe point, everything committed, and returns `HANDOFF` with a
+note of at most 15 lines. A fresh builder of the same kind continues from that
+note. A builder that cannot fix its tests in one more try, or hits a problem it
+cannot solve, stops with the same note, and a fresh Opus high subagent continues
+the same step in the same worktree. The step is never restarted, and no other
+step starts in its place. If the Opus high subagent fails too, the step is marked
+`blocked: <reason>`, and the run stops and tells you why.
+
+**Phase close and the gate.** When every step of a phase is marked, the run runs
+the whole test suite once (never as a gate), has the phase's diff reviewed at
+Opus high, fixes the findings or defers them with a reason, and makes the release
+if the plan has one. A phase without a sign-off is marked `done` and the run goes
+on. A phase with one is marked `shown`; the run asks you to sign off and stops.
+Paste the same `/goal` again to go on.
+
+**The band follows it all.** The goal writes `.claude/goal-progress.json` with its
+status, note and log. The band reads the steps and their marks from the plan
+itself, and adds the subagents and Fireworks runs while they run, so a step shows
+as done as soon as the plan's text says so.
+
+### How the effort is chosen
+
+The effort comes from written rules, in three layers:
+
+- `rules/CLAUDE.global.md` sets them for every project: planning and decisions at
+  Opus high, code written by an agreed plan at Opus medium, a step that fails or
+  raises a design question raised to Opus high, reviews of a larger scope at high,
+  browser testing at Sonnet. A project may add cheaper choices for mechanical
+  work. When in doubt, the higher level. The file says these rules count as your
+  instruction to set the model and effort on each subagent.
+- The goal skills write the same rules into rule 8, "Model and effort", of each
+  plan's "How this plan is run", with the skill's own rows added. A run reads them
+  there, also after a compaction.
+- The main thread starts each subagent with the model and effort the rule gives
+  its kind of work. The table above is the result.
+
+In `/ag:goal-prompt-3rdparty` the function work that would go to Opus medium goes
+to Fireworks instead, except the steps kept on Claude and all copy. A Fireworks
+builder is a separate Claude Code process, not a subagent: the launcher gives it
+a model and no effort setting. A Fireworks builder that hands off (exit 3) is
+followed by a fresh Fireworks builder; one that fails (exit 1) is followed by
+Opus high, never by another Fireworks try.
+
+### How the cheaper Fireworks models are called
+
+```text
+main thread (Opus)
+  writes <run folder>/briefs/S3.md            (pointers only)
+  starts ext-build.ps1 -Brief <brief> -Cwd <worktree> -Step S3 -LogDir <run folder>/logs
+  │        as a background job
+  │  reads ~/.claude/ext-build.json, else the plugin's ext-build.default.json
+  │  reads the Fireworks key from the key store
+  ▼
+claude -p   in the worktree, brief on stdin
+  │  env of this process only:
+  │    ANTHROPIC_BASE_URL = https://api.fireworks.ai/inference
+  │    every model alias  = accounts/fireworks/models/deepseek-v4p1-flash
+  │  builds, tests, commits ("Built-by: fireworks/deepseek-v4p1-flash")
+  ▼
+summary line, report (at most 20 lines), log path
+logs/S3-<yyyyMMdd-HHmmss>.json, one line in logs/ext-runs.jsonl
+exit 0 ok · 3 HANDOFF · 1 failed · 2 setup error
+```
+
+`ext-build.ps1` starts a headless Claude Code, `claude -p`, in the step's
+worktree and sends it the brief on stdin. Claude Code does the work with its own
+tools; only the model behind it changes. The launcher sets `ANTHROPIC_BASE_URL`
+to Fireworks' Anthropic-compatible endpoint (`baseUrl`,
+`https://api.fireworks.ai/inference`) and points `ANTHROPIC_MODEL`, the Opus,
+Sonnet, Haiku and Fable aliases and the subagent model at the chosen model. It
+removes inherited variables that would send the run elsewhere: a Claude login
+token and the Bedrock, Vertex and Foundry switches.
+
+**Another model.** Add `model=<id>` to the skill (the goal passes it as `-Model`),
+or set `defaultModel` in `~/.claude/ext-build.json`. The default is
+`deepseek-v4p1-flash` (DeepSeek V4.1 Flash). A bare name gets
+`accounts/fireworks/models/` in front (`modelPrefix`); a name with a `/` is used
+as is. The user file replaces the plugin's default file rather than adding to
+it, so copy `ext-build.default.json` and change `defaultModel`; it needs
+`baseUrl`, `keyFile` and `defaultModel`. `ext-build.ps1 -Check -Model <id>`
+tests the model with one short call.
+
+**The key.** The launcher reads the Fireworks key from the key store (see
+[Keys](#keys)) into the environment of the child process only. It is not passed as
+an argument, written to a file or logged; `-DryRun` shows it as `***`. The
+child's `ANTHROPIC_API_KEY` is empty.
+
+**No subagents.** The builder runs with `--disallowedTools Agent`, so it cannot
+start subagents, and with `--strict-mcp-config`, so it loads no MCP servers. It
+runs with `--permission-mode bypassPermissions` (`permissionMode`). Its system
+prompt gets the builder rules: do the step itself, read by range, hand off at
+about 100 tool calls, report in at most 20 lines, and end each commit with
+`Built-by: fireworks/<model>` and no Co-Authored-By line. `git log --grep
+"Built-by: fireworks"` lists its work.
+
+**The budget cap.** `--max-budget-usd` comes from `-MaxBudgetUsd`, else
+`maxBudgetUsd` in the config: 25 in the default file, 3 if the config has none.
+Claude Code prices the tokens at Anthropic's rates, far above the Fireworks bill,
+so the cap only stops a runaway. The real cost is on the Fireworks dashboard.
+
+**The run log.** The full JSON output goes to `<LogDir>/<step>-<yyyyMMdd-HHmmss>.json`
+(stderr beside it as `.err.txt`). Each run adds one line to
+`<LogDir>/ext-runs.jsonl`: step, model, start and end, duration, exit code,
+handoff, turns, token use, session id, log file and the cost Claude Code
+reported. The session id lets `-Resume` continue that builder. The launcher's
+stdout is the summary line (see [Examples](#examples)), the report and the log
+path.
+
+**Exit codes.**
+
+- `0` ok.
+- `3` HANDOFF: the report starts with `HANDOFF`; a fresh Fireworks builder continues.
+- `1` failed: Claude Code exited with an error, reported one, or printed output
+  that is not JSON; the step goes to Opus high.
+- `2` setup error: a missing argument, config, key or `claude` executable; the
+  run stops, sets its progress to `blocked` and tells you.
+
 ## Examples
 
 **Make a goal from a plan.** In Claude Code, in the project:

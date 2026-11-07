@@ -331,7 +331,7 @@ The review of fix 22 (Nov 7, 2026, Opus high): key safety holds; 2 medium and 3 
 - Acceptance: `claude plugin validate .` passes; each runner stays within 3,800 characters.
 
 ### fix 25. README: how a goal works, how it picks the effort, how it calls Fireworks
-Status: todo
+Status: done 2026-11-07
 The user, Nov 7, 2026, at the Phase 4 gate: "can you add to readme how the goal works and beside how it selects the effor, how it calls cheaper API based models from fireworks like deepseek v4.1 flash".
 - README, a section "How a goal works" near "Which model does what": a goal is made from a plan (the questions asked, the keys checked, the runner pasted as `/goal`); the run goes step by step from the plan's marks (brief of pointers, builder, the step's own checks, commit on `main`, the mark in the plan, handoff and failure paths, phase close and gate); and the band follows it.
 - How the effort is chosen: the rules behind the existing table (planning, design, UI, reviews and failed steps at Opus high; function builders at Opus medium or on Fireworks; copy never on Fireworks; mechanical work at Sonnet; when in doubt the higher), set on each subagent as its model and effort.
