@@ -340,7 +340,7 @@ The user, Nov 7, 2026, at the Phase 4 gate: "can you add to readme how the goal 
 - Acceptance: `claude plugin validate .` passes; every flag, file and default named matches the code; no key is printed.
 
 ## Phase 5: goal-prompt-haiku, and the three goal skills measured on one small site (gate: you review the results and the three branches)
-Status: todo
+Status: doing
 
 The user, Nov 7, 2026: "can you update the plugin to have also goal-promp-with-haiku which uses haiku for same things it was using deepseek for just with simpler architecture, it's same as goal prompt but uses haiku for well described and clear coding tasks (again simialr to fireworks AI use) , as a test please let's develop an HTML website about New York with goal prompt, goal-prompt-haiku and goal-prompt-3rdparty - create this in it's own branch so we can measure, any other test you want to run you are welcome but it must be reasoanbly small". The user's choices that day: the site lives in a new local repo `C:\Users\User\Code\nyc-goal-bench` (not pushed), one branch per skill; the main thread runs the three goals headless and measures them; no design images (the design step runs with `dry-run`). Checked that day: `/goal` works in a headless `claude -p` run (a probe met its goal in 3 turns). ag version 1.3.0.
 
@@ -368,7 +368,7 @@ Status: done 2026-11-07
 - Acceptance: `claude plugin validate .` passes; each runner stays within 3,800 characters.
 
 ### S19. Release 1.3.0 and install it here
-Status: todo
+Status: done 2026-11-08
 - Phase-close checks for S17-S18 by rule 7 (the three checks once; one review of the S17-S18 diff at Opus high, findings fixed or deferred with a reason); push `main`, tag `v1.3.0`, `claude plugin update`; the installed version printed. Comes before S20, because the headless runs load the installed plugin.
 
 ### S20. One small site built three ways, measured
@@ -409,6 +409,7 @@ Status: todo
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
+2026-11-08: Phase 5: S17 (a3cb07f), S18 (df11f31), fix 26 (bb48767, validate plugins/ag passes with a digest; its builder hung after its last turn and was stopped), fix 27 (276e721) landed; checks passed (validate . and plugins/ag, 22 tests, ext-build 48); released 1.3.0: pushed 27f0313 and tag `v1.3.0`, ag 1.3.0 installed here. S20 next.
 2026-11-07: Phase 5 planned (the user's note: goal-prompt-haiku, and an NYC site built with the three goal skills in `C:/Users/User/Code/nyc-goal-bench`, measured headless, no images); S17 next.
 2026-11-07: Phase 4 (the band follows the plan and the session's subagents, the user's note from NewsIntel): S14 (25e8292), S15 (bd152fb), fix 18 (485f4a9), fix 19 (f474a82), fix 20 (aaeb02e), fix 21 (1b1d271) landed; suites passed (validate, 22 tests, ext-build 48); the review's 2 medium and 4 low findings fixed, 2 low deferred to Later; released: pushed 1a71a7b and tag `v1.2.0`, ag 1.2.0 installed here (`claude plugin update`). Phase 4 reopened at the gate for the user's notes: fix 22 (5339dce, missing keys are told to the user, ag 1.2.1), fix 23 (2316ed9, CHANGELOG.md), fix 24 (6d2487f, fix 22's review: key safety OK, 5 copy findings fixed); suites passed again (validate, 22 tests, ext-build 48; runners 3,049 and 3,474); released 1.2.1: pushed 6bf3e03 and tag `v1.2.1`, ag 1.2.1 installed here. fix 25 (8f0db8f, README: how a goal works, the effort, the Fireworks call; validate passed), pushed to main. Phase 4 done: the user, Nov 7, 2026, after the check in a new NewsIntel session: "looks right" (sign-off).
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
