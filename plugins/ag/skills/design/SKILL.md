@@ -28,12 +28,24 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
    - **Copy**: headings, labels, buttons, empty and error messages, word for word.
    - **Image prompts**: one per page or state, named `<page>-<state>`. Each is written to `prompts/<page>-<state>.txt` and quoted in the plan. A prompt describes layout, components, copy and visual style concretely (UI mockup, device or viewport, light theme unless the input says otherwise).
    - **Image commands**: filled in by step 4.
-4. **Images.** For each prompt file run, from the project root:
+4. **Images.** First the key, when the user ran `/ag:design` themselves without `dry-run`. Check the provider's key; this makes no API call and never prints the key:
+   ```
+   powershell -NoProfile -ExecutionPolicy Bypass -File ${CLAUDE_PLUGIN_ROOT}/scripts/design-image.ps1 -Where [<provider>]
+   ```
+   Without a provider it checks the default one. If the last line reads `<provider> key: not set`, tell the user (shown for Gemini; name the missing one):
+
+   > The Gemini key for the design images is not set. To set it, run this in your own terminal, not in this chat:
+   > `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set gemini`
+   > (macOS and Linux: `pwsh -File ~/.claude/ag/ag-key.ps1 set gemini`)
+
+   and ask: "I've set it; go on" (run `-Where` again, and ask again if it is still not set) / "Go on without images" (run the commands below with `-DryRun`). Called from a goal, do not check or ask: the goal carries the choice (`dry-run` or not).
+
+   Then, for each prompt file run, from the project root:
    ```
    powershell -NoProfile -ExecutionPolicy Bypass -File ${CLAUDE_PLUGIN_ROOT}/scripts/design-image.ps1 -PromptFile design/<yyyymmdd>-<slug>/prompts/<page>-<state>.txt -Out design/<yyyymmdd>-<slug>/images/<page>-<state> [-Provider <provider>] [-Count <n>]
    ```
    On macOS and Linux use `pwsh -File` in place of `powershell -NoProfile -ExecutionPolicy Bypass -File`. Add `-Provider` and `-Count` only when given in the input. Each prompt gets its own `images/<page>-<state>/` folder, because the script names images after the start of the prompt text and prompts of one page would overwrite each other.
-   - With `dry-run`, run each command with `-DryRun` instead.
+   - With `dry-run`, or when the user chose to go on without images, run each command with `-DryRun` instead.
    - If a real run exits 2 (key missing or setup error), stop the real runs and run every command with `-DryRun`.
    - Under **Image commands** in `design-plan.md`, record each command line exactly as run (with `-DryRun` if used) and its exit code. After a dry run, also record: no images were made; set the key with `powershell -NoProfile -ExecutionPolicy Bypass -File ${CLAUDE_PLUGIN_ROOT}/scripts/design-image.ps1 -SetKey <provider>` (macOS and Linux: `pwsh -File ...`) in your own terminal, then run the commands without `-DryRun`.
 5. **`review.md`.** A short checklist for the user's notes, one line each with space to write:

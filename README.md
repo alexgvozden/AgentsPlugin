@@ -58,6 +58,16 @@ image key set, it writes the plan and records the commands instead of making
 images. You can run `/ag:design` any time. A goal runs it first for a step that
 adds a new page or screen, and skips it for a minor change to an existing one.
 
+**Missing keys are told to you.** Before it makes images, `/ag:design` checks the
+image key (no API call; the key is never shown). If it is not set, you get the
+`ag-key.ps1 set <provider>` line for your own terminal (see [Keys](#keys)) and choose:
+set it and go on, or go on without images. The goal skills check the keys a goal
+will use while they make it: the image key if the plan has a design step, and in
+`/ag:goal-prompt-3rdparty` the Fireworks key. Without an image key you choose the
+other image provider (if its key is set), the design plan without images, or no
+design step; without the Fireworks key, builders on Claude at Opus medium. The goal
+carries your choice, so the run does not ask again.
+
 **The ext-build launcher.** `plugins/ag/scripts/ext-build.ps1` runs one
 headless builder on a Fireworks model (`-Brief`, `-Cwd`, `-Step`, `-LogDir`). It
 reads the user config `~/.claude/ext-build.json` first, then the plugin's
