@@ -27,7 +27,7 @@ Input: `$ARGUMENTS` (a plan path, a step range, or a short description). If empt
 - No launcher, no key, nothing to set up or check: the main thread starts it with the Agent tool and `model: "sonnet"`, and its usage is counted in the session like any subagent's.
 - It starts fresh: it sees its brief, the worktree's `CLAUDE.md`/`AGENTS.md`, hooks and skills, and nothing of this conversation.
 - **Its brief is tighter than an Opus brief** (rule 4 of the template): only pointers with exact line ranges (the step's lines in the plan, the rules' range, `path:lines` of each function it changes or reuses, one test of the kind it writes), never a whole file or folder to read; the step's checks named as the commands it runs (lint, typecheck, its test files); its first edit within about 15 tool calls. A step whose brief cannot be written that tightly is not a clear step: it goes to Opus medium.
-- The goal-progress bar shows each running subagent with its model, so a Sonnet builder carries `sonnet` by itself; a step built by one may carry `engine: "sonnet"` in the progress file (step 5).
+- The goal-progress bar shows each running subagent with its model, so a Sonnet builder carries `sonnet` by itself (Sonnet browser checks do too; a builder's title names its step); a step built by one may carry `engine: "sonnet"` in the progress file (step 5).
 
 ## Facts about /goal
 
@@ -146,7 +146,7 @@ Rules: never skip or reorder phases; never add scope; never delete or weaken tes
 - The setup commit (status marks, "Where the run stands" and "How this plan is run") and, if used, the run folder and hook.
 - The runner in one fenced block starting with `/goal `, with its character count; below it the phases with their marks and "After each gate, paste the same goal again to continue."
 - One line each: the testing level chosen, what is not checked and why, and limits that will stop the run.
-- One line: the steps on Sonnet and the steps on Opus (or "none on Sonnet: goal-prompt's goal"), and "see who built what: the `sonnet` label in the goal-progress bar" (browser checks and mechanical work run on Sonnet too).
+- One line: the steps on Sonnet and the steps on Opus (or "none on Sonnet: goal-prompt's goal"), and "see who built what: the `sonnet` label beside the step's title in the goal-progress bar".
 - **Context setting:** if `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` is set, say its value; if not, give `{ "env": { "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "<N>" } }` for `.claude/settings.local.json` or `~/.claude/settings.json`, say it needs a new session, and write it only if the user says yes.
 
 Do not start implementing the plan. This skill only marks the plan, writes its run section, sets up the run folder and writes the runner.

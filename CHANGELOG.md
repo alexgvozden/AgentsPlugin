@@ -13,6 +13,8 @@ in [PLAN.md](PLAN.md).
   The band shows a running Sonnet builder with its model. The README lists the
   skill, adds its row to "Which model does what", and says when to pick which of
   the four goal skills. (fix 28)
+- `/ag:goal-prompt-haiku` is picked on "Haiku builders" instead of "cheaper
+  builders on Claude", which now fits Sonnet too. (fix 29)
 
 ## 1.3.0 - 2026-11-07
 
