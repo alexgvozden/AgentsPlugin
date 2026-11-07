@@ -272,7 +272,7 @@ Status: todo
 - Acceptance: `claude plugin test plugins/ag` passes, with new tests for the plan reader (table tracker, `Status:` lines, the plan winning over the file, a plan that is missing or half written keeping the last good state) and for merging live subagents into "running"; `claude plugin validate .` passes.
 
 ### S15. The launcher registers its own job
-Status: todo
+Status: done 2026-11-07
 - `ext-build.ps1` adds `{ kind: "build", title: "<step>", since, engine: "fw:<model short name>" }` to `running` in the project's `.claude/goal-progress.json` (the main checkout's when `-Cwd` is a worktree under `.claude/worktrees/`) when it starts, and removes it in a `finally` when it ends (ok, HANDOFF, failure or Ctrl+C), writing through a temporary file and a rename; a missing or unreadable progress file is left alone. `-DryRun` writes nothing.
 - Acceptance: `ext-build.test.ps1` passes, with one check that a run adds and then removes its job and one that a missing file is not created.
 

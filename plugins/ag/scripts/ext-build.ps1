@@ -67,6 +67,91 @@ function Get-ExtProp($Obj, [string]$Name, $Default = $null) {
     return $p.Value
 }
 
+# The project's progress file: <Cwd>/.claude/goal-progress.json, or the main checkout's when
+# <Cwd> sits under <root>/.claude/worktrees/<id> (a builder's worktree).
+function Get-ExtProgressPath([string]$CwdPath) {
+    $p = [IO.Path]::GetFullPath($CwdPath).TrimEnd([char[]]('\', '/'))
+    $m = [regex]::Match($p, '^(?<root>.*)[\\/]\.claude[\\/]worktrees([\\/]|$)', 'IgnoreCase')
+    if ($m.Success) { return (Join-Path (Join-Path $m.Groups['root'].Value '.claude') 'goal-progress.json') }
+    return (Join-Path (Join-Path $p '.claude') 'goal-progress.json')
+}
+
+# The progress file as an object, or $null when it is missing or does not parse (never created here).
+function Read-ExtProgress([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
+    try { return ([IO.File]::ReadAllText($Path) | ConvertFrom-Json) } catch { return $null }
+}
+
+function Set-ExtProp($Obj, [string]$Name, $Value) {
+    if ($null -ne $Obj.PSObject.Properties[$Name]) { $Obj.$Name = $Value }
+    else { $Obj | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force }
+}
+
+# Writes through a temporary file and a rename, so a reader never sees half a file.
+function Save-ExtProgress($Prog, [string]$Path) {
+    $tmp = "$Path.tmp-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    try {
+        [IO.File]::WriteAllText($tmp, ($Prog | ConvertTo-Json -Depth 10), (New-Object System.Text.UTF8Encoding($false)))
+        Move-Item -LiteralPath $tmp -Destination $Path -Force
+    }
+    finally { if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue } }
+}
+
+# The model's short name: the part after "models/" ("accounts/fireworks/models/glm-5p3-flash" -> "glm-5p3-flash").
+function Get-ExtModelShort([string]$ModelId) {
+    if ($ModelId -match 'models/(.+)$') { return $Matches[1] }
+    return $ModelId
+}
+
+# Adds this run's job to `running`; returns a handle to remove it with, or $null when there is nothing to write.
+function Add-ExtProgressJob([string]$CwdPath, [string]$Step, [string]$ModelId, [string]$Since) {
+    try {
+        $path = Get-ExtProgressPath $CwdPath
+        $prog = Read-ExtProgress $path
+        if ($null -eq $prog) { return $null }
+        $job = [pscustomobject][ordered]@{
+            kind   = 'build'
+            title  = $Step
+            since  = $Since
+            engine = 'fw:' + (Get-ExtModelShort $ModelId)
+        }
+        $running = @()
+        $existing = Get-ExtProp $prog 'running'
+        if ($null -ne $existing) { $running = @($existing) }
+        Set-ExtProp $prog 'running' @($running + $job)
+        Set-ExtProp $prog 'updated' (Get-Date).ToString('o')
+        Save-ExtProgress $prog $path
+        return [pscustomobject]@{ Path = $path; Kind = 'build'; Title = $Step; Since = $Since }
+    }
+    catch {
+        Write-Output "ext-build: warning: could not add the job to the progress file: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+# Removes the job the handle points at (kind, title and since must all match); a warning, never a failure.
+function Remove-ExtProgressJob($Handle) {
+    if ($null -eq $Handle) { return }
+    try {
+        $prog = Read-ExtProgress $Handle.Path
+        if ($null -eq $prog) { return }
+        $keep = @()
+        foreach ($j in @(Get-ExtProp $prog 'running')) {
+            if ($null -eq $j) { continue }
+            $same = ([string](Get-ExtProp $j 'kind' '') -eq $Handle.Kind) -and
+                    ([string](Get-ExtProp $j 'title' '') -eq $Handle.Title) -and
+                    ([string](Get-ExtProp $j 'since' '') -eq $Handle.Since)
+            if (-not $same) { $keep += $j }
+        }
+        Set-ExtProp $prog 'running' @($keep)
+        Set-ExtProp $prog 'updated' (Get-Date).ToString('o')
+        Save-ExtProgress $prog $Handle.Path
+    }
+    catch {
+        Write-Output "ext-build: warning: could not remove the job from the progress file: $($_.Exception.Message)"
+    }
+}
+
 function Read-ExtConfig([string]$Path) {
     if (-not $Path) {
         $userCfg = Join-Path (Join-Path (Get-KeyHome) '.claude') 'ext-build.json'
@@ -408,8 +493,9 @@ function Invoke-ExtMain {
     $exe = Resolve-ExtClaude $cfg
     if (-not (Test-Path -LiteralPath $logPath)) { New-Item -ItemType Directory -Path $logPath -Force | Out-Null }
     $start = Get-Date
+    $job = Add-ExtProgressJob -CwdPath $cwdPath -Step $Step -ModelId $modelId -Since $start.ToString('o')
     try { $r = Invoke-ExtClaude $exe $argList $envMap $cwdPath $briefText }
-    finally { $key = $null; $envMap = $null }
+    finally { $key = $null; $envMap = $null; Remove-ExtProgressJob $job }
     $end = Get-Date
     $dur = ($end - $start).TotalSeconds
 

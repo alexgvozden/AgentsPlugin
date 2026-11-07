@@ -241,6 +241,56 @@ try {
     $code = $LASTEXITCODE
     Assert ($newest -eq "$cache\1.10.0\scripts" -and $fallback -eq "$co\plugins\ag\scripts" -and $code -eq 7 -and $out -match '1\.10\.0\\scripts -Where gemini') 'ag-key: newest version wins (1.10.0 > 1.9.0), else the checkout; exit code passed through' "$newest | $fallback | $code | $out"
 
+    # S15: a real run registers its own job in the project's progress file, and removes it in a finally.
+    # claude is mocked (the mock reads the progress file while the run is "going on") and so is the exe lookup.
+    function Resolve-ExtClaude($Cfg, [string]$Os) { return 'claude-mock' }
+    $script:progPath = ''
+    $script:during = ''
+    function Invoke-ExtClaude([string]$Exe, [string[]]$ArgList, $EnvMap, [string]$WorkDir, [string]$StdinText) {
+        $script:during = if (Test-Path -LiteralPath $script:progPath) { [IO.File]::ReadAllText($script:progPath) } else { '' }
+        return [pscustomobject]@{ ExitCode = 0; Stdout = $script:okJson; Stderr = '' }
+    }
+    # The launcher's own parameters, as its entry point sets them: a real run of the dot-sourced Invoke-ExtMain.
+    # ($Brief is the same variable as $brief: dot-sourcing the launcher bound it to its empty default.)
+    $Config = $cfgOk; $Brief = Join-Path $root 'brief.md'; $LogDir = (Join-Path $root 'plogs')
+    $Model = ''; $Resume = ''; $MaxBudgetUsd = 0; $Provider = ''
+    $DryRun = $false; $SetKey = $false; $Check = $false; $Where = $false
+
+    $proj = Join-Path $root 'proj'
+    New-Item -ItemType Directory -Path (Join-Path $proj '.claude') -Force | Out-Null
+    $script:progPath = Join-Path $proj '.claude\goal-progress.json'
+    [IO.File]::WriteAllText($script:progPath, '{"goal":"g","status":"running","updated":"2026-11-07T00:00:00.0000000Z","running":[{"kind":"deploy","title":"Keep me","since":"2026-11-07T00:00:00.0000000Z"}]}')
+
+    $Cwd = $proj; $Step = 'S15'
+    $code = Invoke-ExtMain | Select-Object -Last 1
+    $during = $script:during | ConvertFrom-Json
+    $mine = @($during.running | Where-Object { $_.kind -eq 'build' })
+    $after = [IO.File]::ReadAllText($script:progPath) | ConvertFrom-Json
+    $kept = @($after.running)
+    Assert ($code -eq 0 -and @($during.running).Count -eq 2 -and $mine.Count -eq 1 -and $mine[0].title -eq 'S15' -and $mine[0].engine -eq 'fw:glm-5p3-flash' -and $mine[0].since) 'run adds its build job while running (engine fw:glm-5p3-flash)' $script:during
+    Assert ($kept.Count -eq 1 -and $kept[0].title -eq 'Keep me' -and $after.updated -ne '2026-11-07T00:00:00.0000000Z' -and -not (Test-Path -Path "$($script:progPath).tmp-*")) 'run removes its job after (other jobs kept, updated set, no temp file left)' ([IO.File]::ReadAllText($script:progPath))
+
+    # S15: a missing progress file is left alone and never created
+    $bare = Join-Path $root 'bare'
+    New-Item -ItemType Directory -Path $bare | Out-Null
+    $script:progPath = Join-Path $bare '.claude\goal-progress.json'
+    $Cwd = $bare; $Step = 'S15b'
+    $code = Invoke-ExtMain | Select-Object -Last 1
+    Assert ($code -eq 0 -and -not (Test-Path -LiteralPath (Join-Path $bare '.claude')) -and -not (Test-Path -LiteralPath $script:progPath)) 'a missing progress file is not created' "code $code"
+
+    # S15: a worktree Cwd writes the main checkout's progress file
+    $mainco = Join-Path $root 'mainco'
+    $wtree = Join-Path $mainco '.claude\worktrees\w1'
+    New-Item -ItemType Directory -Path $wtree -Force | Out-Null
+    $script:progPath = Join-Path $mainco '.claude\goal-progress.json'
+    [IO.File]::WriteAllText($script:progPath, '{"goal":"g","status":"running","updated":"2026-11-07T00:00:00.0000000Z"}')
+    $Cwd = $wtree; $Step = 'S15w'
+    $code = Invoke-ExtMain | Select-Object -Last 1
+    $duringW = $script:during | ConvertFrom-Json
+    $afterW = [IO.File]::ReadAllText($script:progPath) | ConvertFrom-Json
+    Assert ($code -eq 0 -and @($duringW.running).Count -eq 1 -and @($duringW.running)[0].title -eq 'S15w' -and -not (Test-Path -LiteralPath (Join-Path $wtree '.claude'))) 'a worktree Cwd writes the main checkout progress file' $script:during
+    Assert (@($afterW.running).Count -eq 0) 'the worktree run removes its job from the main file' ([IO.File]::ReadAllText($script:progPath))
+
     $r = Run-Launcher @('-Config', $cfgOk, '-Check', 'bogus')
     Assert ($r.Code -eq 2 -and $r.Out -match "unknown key provider 'bogus'") 'unknown provider exit 2' "code $($r.Code): $($r.Out)"
 }
