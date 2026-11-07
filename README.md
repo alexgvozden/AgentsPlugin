@@ -199,6 +199,8 @@ claude plugin update ag@agents-plugin
 
 Auto-update is off until it is turned on in `/plugin` → Marketplaces.
 
+What changed in each version: [CHANGELOG.md](CHANGELOG.md).
+
 ## Keys
 
 Three providers need an API key:

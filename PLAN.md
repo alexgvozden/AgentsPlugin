@@ -314,7 +314,7 @@ The user, Nov 7, 2026, at the Phase 4 gate, after asking "is design step optonal
 - Acceptance: `claude plugin validate .` and `claude plugin test plugins/ag` pass; each skill's runner stays within 3,800 characters; no key is printed. Released like S16: push `main`, tag `v1.2.1`, install here.
 
 ### fix 23. A changelog in the repo
-Status: todo
+Status: done 2026-11-07
 The user, Nov 7, 2026, while fix 22 was in review: "keep changelog file please in the repo".
 - `CHANGELOG.md` at the repo root, newest first: one section per `ag` version, 1.0.0 (fix 11, the one plugin) to 1.2.1 (fix 22), each with its date and what changed for the user in a few plain lines, naming the steps (from `git log` of `plugins/ag/.claude-plugin/plugin.json`, the tags `v1.1.2` and `v1.2.0`, and this plan); one short line before 1.0.0 for the earlier separate plugins. The README links it.
 - From now on a release adds its entry in the step that bumps the version (rule 7). End-user copy: Opus high. Lands before the 1.2.1 release.
