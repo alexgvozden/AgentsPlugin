@@ -76,11 +76,13 @@ const readFile = ($: EngineInterface) => readPath($, PLACES)
  * it (or a call that fails) reads as none, so the band draws what the file says.
  */
 async function readAgents($: EngineInterface): Promise<Agent[]> {
-  const api = ($ as unknown as { agent?: { list?: () => Promise<unknown> } }).agent
-  if (!api?.list) return []
-  const list = await api.list.call(api).catch(() => [] as unknown)
+  try {
+    const list = await $.agent.list().catch(() => [] as unknown)
 
-  return Array.isArray(list) ? (list as Agent[]) : []
+    return Array.isArray(list) ? (list as Agent[]) : []
+  } catch {
+    return []
+  }
 }
 
 /**

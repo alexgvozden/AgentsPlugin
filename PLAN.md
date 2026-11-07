@@ -357,7 +357,7 @@ Status: done 2026-11-07
 The S17-S18 review (Nov 7, 2026, Opus high): 1 medium and 4 low copy findings, all fixed in fix 27; and outside that diff, `claude plugin validate plugins/ag` fails since S14 (1.2.0): `register.tsx` `readAgents` binds `$.agent` to a variable, which the validator refuses ("$ is always spelled $.noun..."), so the plugin has no digest; `validate .` (the marketplace) did not catch it. Fixed in fix 26, before the 1.3.0 release.
 
 ### fix 26. The band calls `$.agent.list()` as the validator requires
-Status: todo
+Status: done 2026-11-07
 - `plugins/ag/hooks/register.tsx` `readAgents`: call `$.agent.list()` spelled out, never binding `$` or `$.agent` to a variable (a missing API or a failing call still reads as none); its tests keep passing. Rule 7 also runs `claude plugin validate plugins/ag` from now on.
 - Acceptance: `claude plugin validate plugins/ag` passes with a digest; `claude plugin test plugins/ag` passes.
 
