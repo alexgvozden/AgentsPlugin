@@ -260,6 +260,32 @@ Acceptance:
 - `claude plugin validate .` passes.
 - No key is printed.
 
+## Phase 4: the progress band follows the work by itself (gate: you see it move in a new session)
+Status: todo
+
+The user, Nov 7, 2026, in a NewsIntel session: "update tasks I dont see what is being worked on, fix @../AgentsPlugin/ to reflect tasks as it moves and I talk to agent in the claude code, need to refresh, maybe hook is needed or not?". Cause, found that day: the band polls `.claude/goal-progress.json` every second, but the file changes only when the main thread remembers to write it; in a chat outside `/goal` it was not written for a day, so the band showed last night's state. Answer to "hook or not" (docs checked Nov 7, 2026: https://code.claude.com/docs/en/plugins/mods/reference.md, https://code.claude.com/docs/en/plugins/mods/events.md, https://code.claude.com/docs/en/hooks.md): no separate settings hook; the mod itself reads the plan and the session's subagents (`$.agent.list()` with each subagent's status), and the launcher registers its own job. ag version 1.2.0.
+
+### S14. The band reads the plan and the session's subagents
+Status: todo
+- Step and phase marks come from the plan named by the progress file's `plan` (default `PLAN.md`), read again when its text changes: a tracker table whose last column is the status (`| <id> | <title> | ... | <status> |`, phase rows with a bold id) or `Status:` lines under `### <id>.` and `## Phase <n>` headings. `done <date>`, `shown <date>`, `blocked: <reason>`, `todo`, `doing` map to the band's statuses; a phase with some steps started and no mark of its own reads as `doing`. The plan's marks win over the file's; the file keeps titles, notes, tokens, engines, `running` and `log`; steps the plan has and the file does not are added with the plan's title.
+- "Running" shows, beside the file's `running`, the session's subagents that are `pending` or `running` from `$.agent.list()` (title: the agent's description or type; engine: its model where given), so a subagent appears when it starts and leaves when it ends, without the file being written. Verify the API in the `types/claude-code/index.d.ts` that Claude Code writes beside a mod loaded with `--plugin-dir`; if `$.agent.list()` is not there, use the `agent.spawn` and `turn.complete` events instead and say so in the step's commit.
+- Acceptance: `claude plugin test plugins/ag` passes, with new tests for the plan reader (table tracker, `Status:` lines, the plan winning over the file, a plan that is missing or half written keeping the last good state) and for merging live subagents into "running"; `claude plugin validate .` passes.
+
+### S15. The launcher registers its own job
+Status: todo
+- `ext-build.ps1` adds `{ kind: "build", title: "<step>", since, engine: "fw:<model short name>" }` to `running` in the project's `.claude/goal-progress.json` (the main checkout's when `-Cwd` is a worktree under `.claude/worktrees/`) when it starts, and removes it in a `finally` when it ends (ok, HANDOFF, failure or Ctrl+C), writing through a temporary file and a rename; a missing or unreadable progress file is left alone. `-DryRun` writes nothing.
+- Acceptance: `ext-build.test.ps1` passes, with one check that a run adds and then removes its job and one that a missing file is not created.
+
+### fix 18. Skills and README: the band follows the plan
+Status: todo
+- goal-prompt and goal-prompt-3rdparty: the progress file's tasks are no longer kept by hand (the band reads the plan); the main thread still writes `status`, `note`, `log` and jobs that are neither subagents nor launcher runs (a test suite, a deploy), in chat as in a `/goal` run.
+- README and `goal-progress.md`: what the band reads and when it moves. End-user copy at Opus high.
+- Acceptance: `claude plugin validate .` passes; the skills' runner text stays within its character limit.
+
+### S16. Release 1.2.0 and run it here
+Status: todo
+- Phase close as rule 7; then push `main` and tag `v1.2.0`, install it here (`claude plugin update`), and check in the NewsIntel project that the band shows its plan's marks and a running subagent.
+
 ## Open questions (with defaults)
 1. If the bare `/goal-prompt-3rdparty` does not work after install, use `/goal-prompt:goal-prompt-3rdparty` (default) and say so in the README. Checked again Nov 6, 2026 in fresh sessions: the bare `/goal-prompt` and `/goal-prompt-3rdparty` work; the long names work too (fix 7).
 2. How does a goal made by `goal-prompt-3rdparty` find the launcher after the user-level copy is gone? Default: the skill writes `${CLAUDE_PLUGIN_ROOT}/scripts/ext-build.ps1` into the goal and the runner, which the skill text shows as the full path of the installed version; after a plugin update, make the goal again (fix 3).
@@ -286,6 +312,7 @@ Acceptance:
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
+2026-11-07: Phase 4 planned (the band follows the plan and the session's subagents, the user's note from NewsIntel); S14 and S15 next.
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
 Phase 1 done (4e15b7b). Phase 2 done (fix 14 at 128d05e). Phase 3 done: the user, Nov 6, 2026: "working pleaes push and relase, all 3 keys are set" (sign-off, and leave to push fix 15-17 and release ag 1.1.2). Phase 3: S8 (c4e25d4), S9 (086cded), S10 (336b309), S11 (89dda9a), S12 (0ef3e4d), S13 (07874b1), fix 15 (1faa58f), fix 16 (e7e7506), fix 17 (7b838c1, `~/.claude/ag/ag-key.ps1`); suites passed; the review's 11 findings fixed, none deferred; macOS and Linux run only on mocks here (no `pwsh`).
 Released Nov 6, 2026: pushed 1f731e0 and tag `v1.1.2` (no GitHub release page: `gh` is not installed here); ag 1.1.2 installed here, second install run all `skip:`; from the home folder `ag-key.ps1 check` OK for fireworks and gemini (a real image), openai first rejected the stored key; after the user set it again, `check openai` OK (`gpt-image-2` returned an image).
