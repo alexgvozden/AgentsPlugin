@@ -282,6 +282,25 @@ Status: done 2026-11-07
 - README and `goal-progress.md`: what the band reads and when it moves. End-user copy at Opus high.
 - Acceptance: `claude plugin validate .` passes; the skills' runner text stays within its character limit.
 
+The Phase 4 review (S16, Nov 7, 2026, Opus high) found no key exposure; 2 medium and 6 low findings. Fixed in fix 19-21; deferred with a reason in "Later" (the hard-kill job leak, `updated` reset by the launcher).
+
+### fix 19. The band: the plan's `todo` does not hide started work
+Status: todo
+- `progress.ts` `mergePlan`: a plan `todo` on a phase counts as no mark of its own, so a phase with started steps reads `doing` (this repo's P4 and NewsIntel's P3A read `todo` today, as the plan keeps `Status: todo` on a phase until it closes); a plan `todo` on a step does not downgrade the file's `doing`, `waiting` or `blocked`.
+- The session's `waiting` subagents (a background subagent waiting on its own job) join "running" beside `pending` and `running`; `idle` ones do not.
+- `register.tsx` `readPlan`: when the project root is a worktree under `.claude/worktrees/<id>`, the main checkout's plan is `../../../<plan>` (today's fallback `../../<plan>` points into `.claude/`).
+- Acceptance: `claude plugin test plugins/ag` passes, with tests for a phase marked `todo` with done steps (reads `doing`), a step the file has as `doing` and the plan as `todo` (stays `doing`), and a `waiting` subagent shown.
+
+### fix 20. The launcher finds its own job by an id
+Status: todo
+- `ext-build.ps1`: the job it adds to `running` carries an `id` (a new guid) and is removed by that id, not by `since` (pwsh 7 reads ISO strings back as dates, so on macOS and Linux the job was never removed); the warning when the add fails goes to the warning stream instead of being lost in the handle.
+- Acceptance: `ext-build.test.ps1` passes, with the add and remove checks matching by `id`.
+
+### fix 21. Copy: no model on a subagent line
+Status: todo
+- `goal-progress.md` and README: drop the claim that a subagent's line shows its model (the mods API's agent list gives none). End-user copy at Opus high.
+- Acceptance: `claude plugin validate .` passes.
+
 ### S16. Release 1.2.0 and run it here
 Status: todo
 - Phase close as rule 7; then push `main` and tag `v1.2.0`, install it here (`claude plugin update`), and check in the NewsIntel project that the band shows its plan's marks and a running subagent.
@@ -298,6 +317,8 @@ Status: todo
 - `design-image.ps1` prints the API's error body as is; OpenAI's "invalid_api_key" message echoes its own masked fragment of the key (first and last 4 characters). Mask any `key_...`/`sk-...` fragment in error text (seen Nov 6, 2026 at the release check).
 - Ship the status line scripts (`~/.claude/hooks/statusline.js`, `subagent-statusline.js`) too.
 - A second machine: run `scripts/install.ps1` there, then `ext-build.ps1 -SetKey`.
+- The launcher's `running` job leaks when its process is killed outright (no `finally`), and launchers side by side can drop each other's jobs (unlocked read, change, write). Deferred from the Phase 4 review: it needs a design (record the pid and prune dead ones, or let the band hide old `build` jobs); rare today, and the main thread clears the line at landing.
+- The launcher's writes set `updated`, which hides the band's "may be behind" hint for a main thread that stopped writing. Deferred from the Phase 4 review: S15's test asserts `updated` is set, and the band now reads the plan and the subagents live, so the hint matters less.
 
 ## How this plan is run
 
@@ -312,7 +333,7 @@ Status: todo
 9. **Feedback during the run.** The main thread first writes the user's note on work in progress into this plan, in the user's words. A change to a step not yet landed goes into that step's acceptance; anything else becomes a fix step of the current phase (`fix <n>`, with its `Status:` line). Then it is routed like any step: to Fireworks, or to Opus medium if it belongs to S5. If a Fireworks builder of that step is still running, it finishes first. Feedback on a step that a Fireworks builder built but has not landed resumes that builder (`-Resume <session id>` from `logs/ext-runs.jsonl`) with a brief of the feedback lines. Once the step has landed, the feedback becomes a new fix step with a fresh builder. A note that changes scope or a decision is confirmed with the user before it is written.
 
 ## Where the run stands
-2026-11-07: Phase 4 (the band follows the plan and the session's subagents, the user's note from NewsIntel): S14 (25e8292, 19 tests pass), S15 (bd152fb) and fix 18 (485f4a9, runners 2,992 and 3,375 characters) landed on main, not pushed; S16 next (phase close, push, tag v1.2.0, install, check in NewsIntel).
+2026-11-07: Phase 4 (the band follows the plan and the session's subagents, the user's note from NewsIntel): S14 (25e8292, 19 tests pass), S15 (bd152fb) and fix 18 (485f4a9, runners 2,992 and 3,375 characters) landed on main, not pushed; S16 phase close: suites passed (validate, 19 tests, ext-build 47), review found 2 medium and 6 low, fix 19 (band) and fix 20 (launcher) on Fireworks one after another, fix 21 (copy) on Opus high; then push, tag v1.2.0, install, check in NewsIntel.
 2026-11-06: builders on Fireworks `accounts/fireworks/models/deepseek-v4p1-flash` (launcher `plugins/ag/scripts/ext-build.ps1`); S5 on Opus medium; copy on Opus (rule 8).
 Phase 1 done (4e15b7b). Phase 2 done (fix 14 at 128d05e). Phase 3 done: the user, Nov 6, 2026: "working pleaes push and relase, all 3 keys are set" (sign-off, and leave to push fix 15-17 and release ag 1.1.2). Phase 3: S8 (c4e25d4), S9 (086cded), S10 (336b309), S11 (89dda9a), S12 (0ef3e4d), S13 (07874b1), fix 15 (1faa58f), fix 16 (e7e7506), fix 17 (7b838c1, `~/.claude/ag/ag-key.ps1`); suites passed; the review's 11 findings fixed, none deferred; macOS and Linux run only on mocks here (no `pwsh`).
 Released Nov 6, 2026: pushed 1f731e0 and tag `v1.1.2` (no GitHub release page: `gh` is not installed here); ag 1.1.2 installed here, second install run all `skip:`; from the home folder `ag-key.ps1 check` OK for fireworks and gemini (a real image), openai first rejected the stored key; after the user set it again, `check openai` OK (`gpt-image-2` returned an image).
