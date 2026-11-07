@@ -285,7 +285,7 @@ Status: done 2026-11-07
 The Phase 4 review (S16, Nov 7, 2026, Opus high) found no key exposure; 2 medium and 6 low findings. Fixed in fix 19-21; deferred with a reason in "Later" (the hard-kill job leak, `updated` reset by the launcher).
 
 ### fix 19. The band: the plan's `todo` does not hide started work
-Status: todo
+Status: done 2026-11-07
 - `progress.ts` `mergePlan`: a plan `todo` on a phase counts as no mark of its own, so a phase with started steps reads `doing` (this repo's P4 and NewsIntel's P3A read `todo` today, as the plan keeps `Status: todo` on a phase until it closes); a plan `todo` on a step does not downgrade the file's `doing`, `waiting` or `blocked`.
 - The session's `waiting` subagents (a background subagent waiting on its own job) join "running" beside `pending` and `running`; `idle` ones do not.
 - `register.tsx` `readPlan`: when the project root is a worktree under `.claude/worktrees/<id>`, the main checkout's plan is `../../../<plan>` (today's fallback `../../<plan>` points into `.claude/`).

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import type { Agent } from './progress'
+import type { Agent, PlanMark } from './progress'
 import { agentJobs, bar, counts, current, isOpen, keepLastGood, keepLastMarks, mergeAgents, mergePlan, orderedSteps, parsePlanMarks, parseProgress, runningLines, shortTokens, statusLine, stepSummary } from './progress'
 
 const FILE_TEXT = JSON.stringify({
@@ -285,16 +285,59 @@ test("the plan's marks win, its new steps are added, and a phase with started st
     { id: '2.2', title: 'Design system', status: 'doing', phase: 'P2' },
     { id: '3.1', title: 'Live data', status: 'done', phase: 'P3' },
   ])
-  expect(merged.tasks.map(t => [t.id, t.status])).toEqual([['P1', 'done'], ['P2', 'todo'], ['P3', 'doing']])
+  // P2's plan `todo` is no mark of its own, so its started step (2.2) makes it read doing
+  expect(merged.tasks.map(t => [t.id, t.status])).toEqual([['P1', 'done'], ['P2', 'doing'], ['P3', 'doing']])
   expect(merged.tasks[0]!.title).toBe('Phase 1 (file)') // the file keeps the titles it has
   expect(merged.tasks[0]!.steps.map(s => [s.id, s.status])).toEqual([['1.1', 'done'], ['1.2', 'todo'], ['1.3', 'doing']])
   expect(merged.tasks[0]!.steps[0]).toEqual({ id: '1.1', title: 'Design (file)', status: 'done', note: 'in flight', engine: 'opus-high', tokens: 500 })
   expect(merged.tasks[0]!.steps[2]!.title).toBe('Validation kit') // an added step keeps the plan's title
-  expect(merged.tasks[1]!.steps.map(s => s.id)).toEqual(['2.1', '2.2']) // P2's own mark stands, its step was added
+  expect(merged.tasks[1]!.steps.map(s => s.id)).toEqual(['2.1', '2.2']) // P2 keeps its own step, the plan's was added
   expect(merged.running).toEqual(file.running)
   expect(merged.log).toEqual(file.log)
   expect(file.tasks[0]!.status).toBe('doing') // the file's own progress is not changed
   expect(mergePlan(file, []).tasks).toEqual(file.tasks) // no marks: nothing moves
+})
+
+test("a plan todo on a phase does not hide the steps that started", () => {
+  const file = (status: string) => parseProgress(JSON.stringify({
+    goal: 'g',
+    tasks: [{ id: 'P4', title: 'Phase 4 (file)', status, steps: [{ id: 'S14', title: 'The band', status: 'todo' }] }],
+  }))!
+  const marks: PlanMark[] = [
+    { id: 'P4', title: 'Phase 4: the band', status: 'todo' },
+    { id: 'S14', title: 'The band', status: 'done', phase: 'P4' },
+  ]
+  expect(mergePlan(file('doing'), marks).tasks[0]!.status).toBe('doing') // the file's own doing is not lost
+  expect(mergePlan(file('todo'), marks).tasks[0]!.status).toBe('doing') // and a done step makes it doing anyway
+  expect(mergePlan(file('todo'), [{ id: 'P4', title: 'Phase 4: the band', status: 'todo' }]).tasks[0]!.status).toBe('todo') // nothing started: todo stands
+})
+
+test("a plan todo on a step does not downgrade the file's doing, waiting or blocked", () => {
+  const file = parseProgress(JSON.stringify({
+    goal: 'g',
+    tasks: [{ id: 'P4', title: 'Phase 4', status: 'doing', steps: [
+      { id: 'S16', title: 'The next step', status: 'doing', note: 'in flight' },
+      { id: 'S17', title: 'Waiting on the key', status: 'waiting' },
+      { id: 'S18', title: 'Blocked one', status: 'blocked' },
+    ] }],
+  }))!
+  const merged = mergePlan(file, [
+    { id: 'S16', title: 'The next step', status: 'todo', phase: 'P4' },
+    { id: 'S17', title: 'Waiting on the key', status: 'todo', phase: 'P4' },
+    { id: 'S18', title: 'Blocked one', status: 'todo', phase: 'P4' },
+  ])
+  expect(merged.tasks[0]!.steps.map(s => [s.id, s.status])).toEqual([['S16', 'doing'], ['S17', 'waiting'], ['S18', 'blocked']])
+  expect(merged.tasks[0]!.steps[0]!.note).toBe('in flight')
+})
+
+test("a waiting subagent joins the running lines, an idle one does not", () => {
+  const p = parseProgress(JSON.stringify({ goal: 'g', tasks: [], running: [] }))!
+  const agents = [
+    { id: 'a1', description: 'Waiting on its job', type: 'builder', status: 'waiting' },
+    { id: 'a2', description: 'Idle one', type: 'builder', status: 'idle' },
+  ] as unknown as Agent[]
+  expect(agentJobs(agents)).toEqual([{ kind: 'agent', title: 'Waiting on its job' }])
+  expect(mergeAgents(p, agents).running.map(j => j.title)).toEqual(['Waiting on its job'])
 })
 
 test('an empty or half-written plan keeps the last good marks', () => {

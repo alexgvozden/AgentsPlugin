@@ -62,8 +62,12 @@ async function readPath($: EngineInterface, places: string[]): Promise<string> {
   return ''
 }
 
-/** The plan named by the progress file, read from the same places the file lives in. */
-const readPlan = ($: EngineInterface, name: string) => readPath($, [name, `../../${name}`])
+/**
+ * The plan named by the progress file, read from the same places the file lives in.
+ * The plan lives in the checkout root, so inside a worktree
+ * (`.claude/worktrees/<id>`) the main checkout's plan is three levels up.
+ */
+const readPlan = ($: EngineInterface, name: string) => readPath($, [name, `../../${name}`, `../../../${name}`])
 
 const readFile = ($: EngineInterface) => readPath($, PLACES)
 
@@ -81,7 +85,7 @@ async function readAgents($: EngineInterface): Promise<Agent[]> {
 
 /**
  * Reads the progress file and the plan it names, and merges: the plan's marks over
- * the file, then the session's subagents that are pending or running into the
+ * the file, then the session's subagents that are pending, running or waiting into the
  * running lines. The plan is read again only when its text changed; an empty or
  * half-written plan keeps the last good marks. True when what is drawn changed.
  */

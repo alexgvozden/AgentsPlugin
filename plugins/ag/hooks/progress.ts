@@ -222,16 +222,23 @@ export function keepLastMarks(text: string, last: PlanMark[]): PlanMark[] {
   return marks.length > 0 ? marks : last
 }
 
+/** The statuses a plan `todo` on a step does not downgrade: work the file has in flight. */
+const IN_FLIGHT: TaskStatus[] = ['doing', 'waiting', 'blocked']
+
 /**
  * The file's progress with the plan's marks on top: the plan's statuses win, steps
  * the plan has and the file does not are added under their phase (the plan's title,
  * or the one `titles` gives), and a phase whose steps have started and which has no
- * mark of its own reads "doing". The file keeps titles, notes, tokens, engines,
+ * mark of its own reads "doing". A plan `todo` on a phase is no mark of its own —
+ * the plan keeps `Status: todo` on a phase until it closes, so a phase with started
+ * steps reads "doing" — while a plan `todo` on a step does not downgrade the file's
+ * `doing`, `waiting` or `blocked`. The file keeps titles, notes, tokens, engines,
  * `running` and `log`.
  */
 export function mergePlan(p: GoalProgress, marks: PlanMark[], titles: Record<string, string> = {}): GoalProgress {
   const tasks: GoalTask[] = p.tasks.map(t => ({ ...t, steps: t.steps.map(s => ({ ...s })) }))
-  const marked = new Set(marks.map(m => m.id))
+  const ownMark = (m: PlanMark) => Boolean(m.phase) || m.status !== 'todo'
+  const marked = new Set(marks.filter(ownMark).map(m => m.id))
   const titleOf = (m: PlanMark) => m.title ?? titles[m.id] ?? m.id
   const taskOf = (id: string) => tasks.find(t => t.id === id)
   const phaseTitle = (id: string) => marks.find(m => m.id === id && !m.phase)?.title ?? titles[id] ?? id
@@ -249,13 +256,13 @@ export function mergePlan(p: GoalProgress, marks: PlanMark[], titles: Record<str
     if (!m.phase) {
       const task = taskOf(m.id)
       if (task) {
-        task.status = m.status
+        if (m.status !== 'todo') task.status = m.status // a plan `todo` on a phase is no mark of its own
         continue
       }
     }
     const step = stepOf(m)
     if (step) {
-      step.status = m.status
+      if (m.status !== 'todo' || !IN_FLIGHT.includes(step.status)) step.status = m.status
       continue
     }
     if (m.phase) {
@@ -275,11 +282,11 @@ export function mergePlan(p: GoalProgress, marks: PlanMark[], titles: Record<str
 /** A subagent of this session, as `$.agent.list()` reports it. */
 export type Agent = { id?: string; description?: string; type?: string; status?: string; name?: string; model?: string }
 
-/** The agent statuses that count as running. */
-const LIVE = ['pending', 'running']
+/** The agent statuses that count as running: `waiting` is a subagent waiting on its own job. */
+const LIVE = ['pending', 'running', 'waiting']
 
 /**
- * The session's subagents that are pending or running, as running jobs: the
+ * The session's subagents that are pending, running or waiting, as running jobs: the
  * description (or the type) as the title, the model as the engine where given.
  */
 export function agentJobs(agents: Agent[]): RunningJob[] {
