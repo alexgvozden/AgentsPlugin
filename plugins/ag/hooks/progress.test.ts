@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { bar, counts, current, isOpen, keepLastGood, orderedSteps, parseProgress, runningLines, shortTokens, statusLine, stepSummary } from './progress'
+import type { Agent } from './progress'
+import { agentJobs, bar, counts, current, isOpen, keepLastGood, keepLastMarks, mergeAgents, mergePlan, orderedSteps, parsePlanMarks, parseProgress, runningLines, shortTokens, statusLine, stepSummary } from './progress'
 
 const FILE_TEXT = JSON.stringify({
   goal: 'A1 track 1',
@@ -217,4 +218,126 @@ test('reads tokens, sums a task from its steps, drops bad values, and writes the
   expect(p.tasks.map(t => t.tokens)).toEqual([1_200_000, 12_000, undefined])
   expect(p.tasks[1]!.steps.map(s => s.tokens)).toEqual([9_500, 2_500, undefined, undefined])
   expect([850, 9_500, 12_000, 240_000, 1_200_000].map(shortTokens)).toEqual(['850', '9.5k', '12k', '240k', '1.2M'])
+})
+
+const TABLE_PLAN = [
+  '| ID | Step | Engine | After | Status |',
+  '|---|---|---|---|---|',
+  '| **P1** | **Phase 1: Design directions** | | | done 2026-11-07 |',
+  '| 1.1 | Design directions | Opus high | | done 2026-11-07 |',
+  '| 1.2 | Data coverage | Opus medium | 1.1 | doing |',
+  '| **P2** | **Phase 2: Screens** | | | todo |',
+  '| 2.1 | All screens | Opus high | P1 | todo |',
+].join('\n')
+
+test('reads the marks of a tracker table: a bold id is a phase, the last column is the status', () => {
+  expect(parsePlanMarks(TABLE_PLAN)).toEqual([
+    { id: 'P1', title: 'Phase 1: Design directions', status: 'done' },
+    { id: '1.1', title: 'Design directions', status: 'done', phase: 'P1' },
+    { id: '1.2', title: 'Data coverage', status: 'doing', phase: 'P1' },
+    { id: 'P2', title: 'Phase 2: Screens', status: 'todo' },
+    { id: '2.1', title: 'All screens', status: 'todo', phase: 'P2' },
+  ])
+})
+
+const LINE_PLAN = [
+  '## Phase 4: the progress band follows the work by itself',
+  'Status: todo',
+  '',
+  '### S14. The band reads the plan and the session\'s subagents',
+  'Status: done 2026-11-07',
+  '',
+  '### S15. The launcher registers its own job',
+  'Status: blocked: no API for it',
+  '',
+  '## How this plan is run',
+  '1. A step sets its own mark in its own commit.',
+].join('\n')
+
+test('reads the marks of Status: lines under phase and step headings', () => {
+  expect(parsePlanMarks(LINE_PLAN)).toEqual([
+    { id: 'P4', title: 'the progress band follows the work by itself', status: 'todo' },
+    { id: 'S14', title: "The band reads the plan and the session's subagents", status: 'done', phase: 'P4' },
+    { id: 'S15', title: 'The launcher registers its own job', status: 'blocked', phase: 'P4' },
+  ])
+})
+
+test("the plan's marks win, its new steps are added, and a phase with started steps reads doing", () => {
+  const file = parseProgress(JSON.stringify({
+    goal: 'g',
+    plan: 'PLAN.md',
+    tasks: [
+      { id: 'P1', title: 'Phase 1 (file)', status: 'doing', steps: [
+        { id: '1.1', title: 'Design (file)', status: 'doing', note: 'in flight', engine: 'opus-high', tokens: 500 },
+        { id: '1.2', title: 'Coverage', status: 'todo' },
+      ] },
+      { id: 'P2', title: 'Phase 2 (file)', status: 'todo', steps: [{ id: '2.1', title: 'Screens', status: 'todo' }] },
+      { id: 'P3', title: 'Phase 3 (file)', status: 'todo', steps: [{ id: '3.1', title: 'Live data', status: 'todo' }] },
+    ],
+    running: [{ kind: 'build', title: 'Wire search' }],
+    log: ['Release 0.9.6 is deploying'],
+  }))!
+  const merged = mergePlan(file, [
+    { id: 'P1', title: 'Phase 1: Design directions', status: 'done' },
+    { id: '1.1', title: 'Design directions', status: 'done', phase: 'P1' },
+    { id: '1.3', title: 'Validation kit', status: 'doing', phase: 'P1' },
+    { id: 'P2', title: 'Phase 2: Screens', status: 'todo' },
+    { id: '2.2', title: 'Design system', status: 'doing', phase: 'P2' },
+    { id: '3.1', title: 'Live data', status: 'done', phase: 'P3' },
+  ])
+  expect(merged.tasks.map(t => [t.id, t.status])).toEqual([['P1', 'done'], ['P2', 'todo'], ['P3', 'doing']])
+  expect(merged.tasks[0]!.title).toBe('Phase 1 (file)') // the file keeps the titles it has
+  expect(merged.tasks[0]!.steps.map(s => [s.id, s.status])).toEqual([['1.1', 'done'], ['1.2', 'todo'], ['1.3', 'doing']])
+  expect(merged.tasks[0]!.steps[0]).toEqual({ id: '1.1', title: 'Design (file)', status: 'done', note: 'in flight', engine: 'opus-high', tokens: 500 })
+  expect(merged.tasks[0]!.steps[2]!.title).toBe('Validation kit') // an added step keeps the plan's title
+  expect(merged.tasks[1]!.steps.map(s => s.id)).toEqual(['2.1', '2.2']) // P2's own mark stands, its step was added
+  expect(merged.running).toEqual(file.running)
+  expect(merged.log).toEqual(file.log)
+  expect(file.tasks[0]!.status).toBe('doing') // the file's own progress is not changed
+  expect(mergePlan(file, []).tasks).toEqual(file.tasks) // no marks: nothing moves
+})
+
+test('an empty or half-written plan keeps the last good marks', () => {
+  const good = parsePlanMarks(LINE_PLAN)
+  expect(good.length).toBe(3)
+  expect(keepLastMarks(LINE_PLAN, [])).toEqual(good)
+  expect(keepLastMarks('', good)).toEqual(good) // an empty read keeps them
+  expect(keepLastMarks('# Notes\n\nno marks in here at all\n', good)).toEqual(good)
+  expect(keepLastMarks('| ID | Step | Engine | After | Status |\n|---|---|---|---|---|\n', good)).toEqual(good) // header only
+  expect(keepLastMarks('', [])).toEqual([])
+  expect(keepLastMarks('### S16. The next step\nStatus: todo', good)).toEqual([{ id: 'S16', title: 'The next step', status: 'todo' }])
+})
+
+test("the session's pending and running subagents join the running lines", () => {
+  const p = parseProgress(JSON.stringify({
+    goal: 'g',
+    tasks: [{ id: 'S14', title: 'The band', status: 'doing' }],
+    running: [{ kind: 'tests', title: 'Suite', since: '2026-11-07T09:00:00Z' }],
+  }))!
+  const agents = [
+    { id: 'a1', description: 'S14 progress plan reader', type: 'builder', status: 'running', model: 'fw:deepseek-v4p1-flash' },
+    { id: 'a2', description: 'S15 launcher', type: 'builder', status: 'pending' },
+    { id: 'a3', description: 'Done one', type: 'builder', status: 'completed' },
+    { id: 'a4', description: '  ', type: 'reviewer', status: 'running' },
+    { id: 'a5', type: 'builder', status: 'RUNNING' },
+    { id: 'a6', description: 'No status' },
+    'not an agent',
+  ] as unknown as Agent[]
+  expect(agentJobs(agents)).toEqual([
+    { kind: 'agent', title: 'S14 progress plan reader', engine: 'fw:deepseek-v4p1-flash' },
+    { kind: 'agent', title: 'S15 launcher' },
+    { kind: 'agent', title: 'reviewer' },
+    { kind: 'agent', title: 'builder' },
+  ])
+  const merged = mergeAgents(p, agents)
+  expect(merged.running.length).toBe(5)
+  expect(runningLines(merged, Date.parse('2026-11-07T09:04:10Z')).map(j => j.text)).toEqual([
+    'Suite',
+    'S14 progress plan reader [fw:deepseek-v4p1-flash]',
+    'S15 launcher',
+    'reviewer',
+    'builder',
+  ])
+  expect(merged.running[0]).toEqual(p.running[0]) // the file's own jobs come first
+  expect(mergeAgents(p, [])).toBe(p) // nothing live: the progress is left as it is
 })

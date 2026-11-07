@@ -2,7 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { GoalProgress, GoalStep, TaskStatus } from '../types'
-import { FILE, ago, bar, counts, current, engineLabel, fit, isOpen, keepLastGood, onFireworks, orderedSteps, parseProgress, runningLines, shortTokens, STATUS_LABEL } from './progress'
+import type { Agent, PlanMark } from './progress'
+import { agentJobs, FILE, ago, bar, counts, current, engineLabel, fit, isOpen, keepLastGood, keepLastMarks, mergeAgents, mergePlan, onFireworks, orderedSteps, parseProgress, runningLines, shortTokens, STATUS_LABEL } from './progress'
 
 const progress = atom({ plugin: 'ag', key: 'progress' } as const, null)
 const isHidden = atom({ plugin: 'ag', key: 'isHidden' } as const, false)
@@ -25,8 +26,19 @@ const PANE_TITLE = 'Goal tasks'
 
 let last = ''
 let lastTick = 0
+/** The plan named by the progress file, its text, and its marks as last read. */
+let lastPlanName = ''
+let lastPlanText = ''
+let marks: PlanMark[] = []
+/** The live subagents last drawn, as a signature, so an unchanged list redraws nothing. */
+let agentsSig = ''
+/** The file's own progress, before the plan and the session's subagents are merged in. */
+let raw: GoalProgress | null = null
 /** The terminal's columns, as the last drawing saw them; 0 before any. */
 let termCols = 0
+
+/** The plan read when the progress file names none. */
+const PLAN = 'PLAN.md'
 
 /**
  * Where the progress file may be: the project's own, then the main checkout's
@@ -35,12 +47,13 @@ let termCols = 0
 const PLACES = [FILE, `../../${FILE.replace(/^\.claude\//, '')}`]
 
 /**
- * Reads the progress file from the session's project root, so a shell `cd` in
- * the session (which moves the working directory, not the root) cannot lose it.
+ * Reads a project-relative file from the session's project root, so a shell `cd`
+ * in the session (which moves the working directory, not the root) cannot lose
+ * it. Each place is tried in turn; the first text found wins.
  */
-async function readFile($: EngineInterface): Promise<string> {
+async function readPath($: EngineInterface, places: string[]): Promise<string> {
   const root = await $.session.root().catch(() => '')
-  for (const place of PLACES) {
+  for (const place of places) {
     const path = root ? `${root}/${place}` : place
     const text = (await $.fs.exists(path).catch(() => false)) ? await $.fs.read(path).catch(() => '') : ''
     if (text) return text
@@ -49,14 +62,66 @@ async function readFile($: EngineInterface): Promise<string> {
   return ''
 }
 
+/** The plan named by the progress file, read from the same places the file lives in. */
+const readPlan = ($: EngineInterface, name: string) => readPath($, [name, `../../${name}`])
+
+const readFile = ($: EngineInterface) => readPath($, PLACES)
+
 /**
- * Reads the progress file; redraws when its text changed, and every TICK_MS so
- * times and "updated ... ago" move. A read that comes back empty or is not a
- * progress file (a half-written file, or one read while it is rewritten) keeps
- * the last good state, which is read again at the next poll.
+ * The session's own subagents, from `$.agent.list()`; an API that does not have
+ * it (or a call that fails) reads as none, so the band draws what the file says.
+ */
+async function readAgents($: EngineInterface): Promise<Agent[]> {
+  const api = ($ as unknown as { agent?: { list?: () => Promise<unknown> } }).agent
+  if (!api?.list) return []
+  const list = await api.list.call(api).catch(() => [] as unknown)
+
+  return Array.isArray(list) ? (list as Agent[]) : []
+}
+
+/**
+ * Reads the progress file and the plan it names, and merges: the plan's marks over
+ * the file, then the session's subagents that are pending or running into the
+ * running lines. The plan is read again only when its text changed; an empty or
+ * half-written plan keeps the last good marks. True when what is drawn changed.
+ */
+async function sync($: EngineInterface): Promise<boolean> {
+  let changed = false
+  const text = keepLastGood(await readFile($), last)
+  if (text !== last) {
+    last = text
+    raw = text ? parseProgress(text) : null
+    changed = true
+  }
+  const name = raw?.plan ?? PLAN
+  if (raw) {
+    const planText = await readPlan($, name)
+    if (name !== lastPlanName || planText !== lastPlanText) {
+      lastPlanName = name
+      lastPlanText = planText
+      marks = keepLastMarks(planText, marks)
+      changed = true
+    }
+  }
+  const agents = await readAgents($)
+  const sig = JSON.stringify(agentJobs(agents))
+  if (sig !== agentsSig) {
+    agentsSig = sig
+    changed = true
+  }
+  if (changed) await update($, progress, () => (raw ? mergeAgents(mergePlan(raw, marks), agents) : null))
+
+  return changed
+}
+
+/**
+ * Reads the progress file, the plan it names and the session's subagents; redraws
+ * when any of them changed, and every TICK_MS so times and "updated ... ago" move.
+ * A read that comes back empty or is not a progress file (a half-written file, or
+ * one read while it is rewritten) keeps the last good state, which is read again
+ * at the next poll.
  */
 async function refresh($: EngineInterface): Promise<void> {
-  const text = keepLastGood(await readFile($), last)
   const now = await $.clock.now()
   let changed = false
   if (now - lastTick >= TICK_MS) {
@@ -64,12 +129,7 @@ async function refresh($: EngineInterface): Promise<void> {
     await update($, tick, n => n + 1)
     changed = true
   }
-  const p = text === last ? undefined : text ? parseProgress(text) : null
-  if (p !== undefined) {
-    last = text
-    await update($, progress, () => p)
-    changed = true
-  }
+  if (await sync($)) changed = true
   // Writing the atom should redraw the sites that read it; ask for the redraw
   // as well, so the band and an open pane never wait for the next input.
   if (changed) $.ui.invalidate('ui.render')
@@ -78,11 +138,14 @@ async function refresh($: EngineInterface): Promise<void> {
 /** Reads the file again from scratch and redraws, whatever was read before. */
 async function reload($: EngineInterface): Promise<void> {
   last = ''
+  lastPlanName = ''
+  lastPlanText = ''
+  agentsSig = ''
   await refresh($)
   $.ui.invalidate('ui.render')
 }
 
-const KIND_COLOR: Record<string, string> = { deploy: 'magenta', tests: 'blue', build: 'cyan', review: 'white' }
+const KIND_COLOR: Record<string, string> = { deploy: 'magenta', tests: 'blue', build: 'cyan', review: 'white', agent: 'green' }
 
 const kindColor = (kind: string) => KIND_COLOR[kind] ?? 'gray'
 

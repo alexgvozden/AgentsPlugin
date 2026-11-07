@@ -130,6 +130,175 @@ export function keepLastGood(text: string, last: string): string {
   return last && parseProgress(last) ? last : ''
 }
 
+/** A mark a plan gives an id: its status, its title when the plan names one, and — for a step — its phase. */
+export type PlanMark = { id: string; status: TaskStatus; title?: string; phase?: string }
+
+/** The status a plan's mark cell or `Status:` line reads: "done 2026-11-07", "shown ...", "blocked: no key", "todo", "doing". */
+const markStatus = (v: string): TaskStatus | undefined => {
+  const word = v.replace(/\*/g, '').trim().split(/[\s:]/)[0]?.toLowerCase()
+
+  return STATUSES.includes(word as TaskStatus) ? (word as TaskStatus) : undefined
+}
+
+/** Plan text without its markup: no bold, code or emphasis markers. */
+const plain = (v: string) => v.replace(/[*`_]/g, '').trim()
+
+/** A table row's cells, trimmed, without the outer bars. */
+const rowCells = (line: string) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim())
+
+/** The marks of a tracker table: `| ID | Step | ... | Status |`, phase rows with a bold id. */
+function tableMarks(lines: string[], out: PlanMark[]): void {
+  let cols: { id: number; title: number; status: number } | undefined
+  let phase: string | undefined
+  for (const line of lines) {
+    if (!line.trim().startsWith('|')) {
+      cols = undefined
+      continue
+    }
+    const cells = rowCells(line)
+    if (!cols) {
+      const head = cells.map(c => c.toLowerCase())
+      const id = head.indexOf('id')
+      const status = head.indexOf('status')
+      if (id >= 0 && status >= 0) cols = { id, title: id + 1, status }
+      continue
+    }
+    const status = markStatus(cells[cols.status] ?? '')
+    const id = plain(cells[cols.id] ?? '')
+    const title = plain(cells[cols.title] ?? '')
+    if (!status || !id) continue
+    if (/^\*\*.+\*\*$/.test((cells[cols.id] ?? '').trim())) {
+      phase = id
+      out.push({ id, status, ...(title ? { title } : {}) })
+    } else {
+      out.push({ id, status, ...(title ? { title } : {}), ...(phase ? { phase } : {}) })
+    }
+  }
+}
+
+/** The marks of `Status:` lines under `### <id>.` and `## Phase <n>` headings. */
+function statusMarks(lines: string[], out: PlanMark[]): void {
+  let phase: string | undefined
+  let head: { id: string; title?: string; phase?: string } | undefined
+  for (const line of lines) {
+    const t = line.trim()
+    const ph = /^##\s+Phase\s+([\w.]+)\s*[:.]\s*(.*)$/.exec(t)
+    if (ph) {
+      phase = `P${ph[1]}`
+      head = { id: phase, ...(plain(ph[2]) ? { title: plain(ph[2]) } : {}) }
+      continue
+    }
+    const h = /^#{2,4}\s+((?:[A-Za-z]+\s+)?[\w.]+)\.\s*(.*)$/.exec(t)
+    if (h) {
+      head = { id: h[1].trim(), ...(plain(h[2]) ? { title: plain(h[2]) } : {}), ...(phase ? { phase } : {}) }
+      continue
+    }
+    const s = /^\**Status\**\s*:\s*(.+)$/i.exec(t)
+    if (!s || !head) continue
+    const status = markStatus(s[1])
+    if (status) out.push({ ...head, status })
+    head = undefined
+  }
+}
+
+/** The marks a plan gives its phases and steps, in plan order, by id (both plan styles). */
+export function parsePlanMarks(text: string): PlanMark[] {
+  const out: PlanMark[] = []
+  const lines = text.split(/\r?\n/)
+  tableMarks(lines, out)
+  statusMarks(lines, out)
+
+  return out
+}
+
+/**
+ * The marks to show after a read of the plan: the read's own when it has any, else
+ * the last good ones, so an empty or half-written plan (read while it is rewritten)
+ * keeps what was shown.
+ */
+export function keepLastMarks(text: string, last: PlanMark[]): PlanMark[] {
+  const marks = parsePlanMarks(text)
+
+  return marks.length > 0 ? marks : last
+}
+
+/**
+ * The file's progress with the plan's marks on top: the plan's statuses win, steps
+ * the plan has and the file does not are added under their phase (the plan's title,
+ * or the one `titles` gives), and a phase whose steps have started and which has no
+ * mark of its own reads "doing". The file keeps titles, notes, tokens, engines,
+ * `running` and `log`.
+ */
+export function mergePlan(p: GoalProgress, marks: PlanMark[], titles: Record<string, string> = {}): GoalProgress {
+  const tasks: GoalTask[] = p.tasks.map(t => ({ ...t, steps: t.steps.map(s => ({ ...s })) }))
+  const marked = new Set(marks.map(m => m.id))
+  const titleOf = (m: PlanMark) => m.title ?? titles[m.id] ?? m.id
+  const taskOf = (id: string) => tasks.find(t => t.id === id)
+  const phaseTitle = (id: string) => marks.find(m => m.id === id && !m.phase)?.title ?? titles[id] ?? id
+  const stepOf = (m: PlanMark) =>
+    (m.phase ? taskOf(m.phase)?.steps.find(s => s.id === m.id) : undefined) ?? tasks.flatMap(t => t.steps).find(s => s.id === m.id)
+  const ensure = (id: string, title: string) => {
+    const found = taskOf(id)
+    if (found) return found
+    const made: GoalTask = { id, title, status: 'todo', steps: [] }
+    tasks.push(made)
+
+    return made
+  }
+  for (const m of marks) {
+    if (!m.phase) {
+      const task = taskOf(m.id)
+      if (task) {
+        task.status = m.status
+        continue
+      }
+    }
+    const step = stepOf(m)
+    if (step) {
+      step.status = m.status
+      continue
+    }
+    if (m.phase) {
+      ensure(m.phase, phaseTitle(m.phase)).steps.push({ id: m.id, title: titleOf(m), status: m.status })
+    } else {
+      tasks.push({ id: m.id, title: titleOf(m), status: m.status, steps: [] })
+    }
+  }
+  const started = (s: GoalStep) => s.status !== 'todo' && s.status !== 'skipped'
+  for (const t of tasks) {
+    if (t.status === 'todo' && !marked.has(t.id) && t.steps.some(started)) t.status = 'doing'
+  }
+
+  return { ...p, tasks }
+}
+
+/** A subagent of this session, as `$.agent.list()` reports it. */
+export type Agent = { id?: string; description?: string; type?: string; status?: string; name?: string; model?: string }
+
+/** The agent statuses that count as running. */
+const LIVE = ['pending', 'running']
+
+/**
+ * The session's subagents that are pending or running, as running jobs: the
+ * description (or the type) as the title, the model as the engine where given.
+ */
+export function agentJobs(agents: Agent[]): RunningJob[] {
+  return agents
+    .filter(a => isObject(a) && LIVE.includes(String((a as Raw).status ?? '').toLowerCase()))
+    .map(a => ({
+      kind: 'agent',
+      title: noteOf(a.description) ?? noteOf(a.type) ?? noteOf(a.name) ?? 'agent',
+      engine: engineOf(a.model),
+    }))
+}
+
+/** The progress with the session's live subagents beside the file's own running jobs. */
+export function mergeAgents(p: GoalProgress, agents: Agent[]): GoalProgress {
+  const jobs = agentJobs(agents)
+
+  return jobs.length > 0 ? { ...p, running: [...p.running, ...jobs] } : p
+}
+
 /** How long since `iso`, short: "40s", "12m", "1h 05m"; undefined when it is not a time. */
 export function elapsed(iso: string | undefined, now: number): string | undefined {
   if (!iso) return undefined
