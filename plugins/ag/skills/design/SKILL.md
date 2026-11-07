@@ -12,7 +12,7 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
 
 ## Rules
 
-1. **Never ask for or accept a key in chat.** If the user pastes one, do not use, repeat or store it; tell them to set it with `design-image.ps1 -SetKey <provider>` in their own terminal. Never print or log a key.
+1. **Never ask for or accept a key in chat.** If the user pastes one, do not use, repeat or store it; tell them to set it in their own terminal with `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set <provider>` (macOS and Linux: `pwsh -File ~/.claude/ag/ag-key.ps1 set <provider>`). Never print or log a key.
 2. **The design plan is made at Opus high.** If this session is not on Opus at high effort, hand step 3 to a subagent with `model: "opus"`, `effort: "high"`, giving it the folder path and `brief.md`; it writes `design-plan.md` and the prompt files and reports in at most 10 lines.
 3. **Design only what the input asks for.** No extra pages or features. Compact, the user's way of working first: typeahead and inline controls over long lists, no row per item where a field will do.
 4. **Images are drafts for review**, not final assets. A failed image call (exit 1) is reported, not retried in a loop.
@@ -32,7 +32,7 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
    ```
    powershell -NoProfile -ExecutionPolicy Bypass -File ${CLAUDE_PLUGIN_ROOT}/scripts/design-image.ps1 -Where [<provider>]
    ```
-   Without a provider it checks the default one. If the last line reads `<provider> key: not set`, tell the user (shown for Gemini; name the missing one):
+   Without a provider it checks the default one. If the last line ends with `<provider> key: not set`, tell the user (shown for Gemini; name the missing one):
 
    > The Gemini key for the design images is not set. To set it, run this in your own terminal, not in this chat:
    > `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set gemini`
@@ -47,7 +47,7 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
    On macOS and Linux use `pwsh -File` in place of `powershell -NoProfile -ExecutionPolicy Bypass -File`. Add `-Provider` and `-Count` only when given in the input. Each prompt gets its own `images/<page>-<state>/` folder, because the script names images after the start of the prompt text and prompts of one page would overwrite each other.
    - With `dry-run`, or when the user chose to go on without images, run each command with `-DryRun` instead.
    - If a real run exits 2 (key missing or setup error), stop the real runs and run every command with `-DryRun`.
-   - Under **Image commands** in `design-plan.md`, record each command line exactly as run (with `-DryRun` if used) and its exit code. After a dry run, also record: no images were made; set the key with `powershell -NoProfile -ExecutionPolicy Bypass -File ${CLAUDE_PLUGIN_ROOT}/scripts/design-image.ps1 -SetKey <provider>` (macOS and Linux: `pwsh -File ...`) in your own terminal, then run the commands without `-DryRun`.
+   - Under **Image commands** in `design-plan.md`, record each command line exactly as run (with `-DryRun` if used) and its exit code. After a dry run, also record: no images were made; set the key with `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set <provider>` (macOS and Linux: `pwsh -File ~/.claude/ag/ag-key.ps1 set <provider>`) in your own terminal, then run the commands without `-DryRun`.
 5. **`review.md`.** A short checklist for the user's notes, one line each with space to write:
    - [ ] Pages: all needed, none extra
    - [ ] States: empty, loading, error, full look right
@@ -55,4 +55,4 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
    - [ ] Copy: wording, tone, spelling
    - [ ] Images match the plan (or: images still to make, after a dry run)
    - Notes:
-6. **End** by printing the folder path and its files (one per line, `images/` included), and, after a dry run or exit 2, the `-SetKey` line for the user's terminal. Do not commit unless the user or the calling goal asks; the folder is meant to be committed for review.
+6. **End** by printing the folder path and its files (one per line, `images/` included), and, after a dry run or exit 2, the `ag-key.ps1 set <provider>` line (step 4) for the user's terminal. Do not commit unless the user or the calling goal asks; the folder is meant to be committed for review.

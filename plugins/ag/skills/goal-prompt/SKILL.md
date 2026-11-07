@@ -48,7 +48,7 @@ Checked Oct 11, 2026 (code.claude.com docs: env-vars, context-window, sub-agents
 5. **Handoff.** At about <100 on 1M, 35 on 200k> tool calls a builder stops at a safe point (committed, nothing half written) and returns "HANDOFF" with a note of at most 15 lines in its report: done (commits), left, what fails (command and first error lines), files with line ranges, next action. The next builder starts from the note and the branch's log and makes its first change within about 10 tool calls. A failed step's report is the same note, and a fresh Opus high subagent continues the step (never restarted, no other step in its place).
 6. **Landing:** rebase on the latest main, lint, typecheck, the step's own test files, merge, push if the rules say so; nothing else, in under 10 minutes. After a fix only the failed check runs again. Never commit on main while a landing runs.
 7. **Phase close:** every step of the phase marked; the whole suite once<, plus end-to-end on <devices> if chosen>; one review of the phase's diff at Opus high (findings fixed or deferred with a reason); <the release>; the phase marked `shown` (gate) or `done`; `git status` clean.
-8. **Model and effort:** planning, design (a new page or screen first gets `/ag:design <this file> <the step's line range>`, whose `design/<yyyymmdd>-<slug>/` folder the UI part works from; a minor change to an existing screen skips it), the UI part of a screen step and larger reviews at Opus high; building function at Opus medium; a failed step at Opus high; browser checks and mechanical work at Sonnet. A subagent report is at most 20 lines; longer output goes to `<run folder>/logs/`.
+8. **Model and effort:** planning, design (a new page or screen first gets `/ag:design <this file> <the step's line range>< provider=<p> or dry-run, as chosen for the key>`, whose `design/<yyyymmdd>-<slug>/` folder the UI part works from; a minor change to an existing screen skips it< (or, if chosen: "new pages get no design step")>), the UI part of a screen step and larger reviews at Opus high; building function at Opus medium; a failed step at Opus high; browser checks and mechanical work at Sonnet. A subagent report is at most 20 lines; longer output goes to `<run folder>/logs/`.
 ```
 
 ## Steps
@@ -79,13 +79,13 @@ AskUserQuestion, or plain text with lettered options, only what the rules have n
 powershell -NoProfile -ExecutionPolicy Bypass -File ${CLAUDE_PLUGIN_ROOT}/scripts/design-image.ps1 -Where [<provider the plan names>]
 ```
 
-On macOS and Linux use `pwsh -File` in place of `powershell -NoProfile -ExecutionPolicy Bypass -File`. Without a provider it checks the default one (Gemini unless `~/.claude/design.json` says otherwise). The last line reads `<provider> key: set` or `<provider> key: not set`. If it is not set, check the other provider the same way, then tell the user (shown for Gemini; name the missing one):
+On macOS and Linux use `pwsh -File` in place of `powershell -NoProfile -ExecutionPolicy Bypass -File`. Without a provider it checks the default one (Gemini unless `~/.claude/design.json` says otherwise). The last line ends with `<provider> key: set` or `<provider> key: not set`. If it is not set, check the other provider the same way, then tell the user (shown for Gemini; name the missing one):
 
 > The Gemini key for the design images is not set. To set it, run this in your own terminal, not in this chat:
 > `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set gemini`
 > (macOS and Linux: `pwsh -File ~/.claude/ag/ag-key.ps1 set gemini`)
 
-and ask: "I've set it; check again" / "Use OpenAI; its key is set" (only if it is) / "Design plan without images" / "No design step". After "check again", run `-Where` again; if the key is still not set, ask again. The choice goes into the runner's design clause (step 6): `provider=<the other one>`, `dry-run`, or no design step; the run does not ask again. Write no goal (setup commit or runner) until the user has chosen. Never ask for a key in chat; if the user pastes one, do not use, repeat or store it, and give them the set line.
+and ask: "I've set it; check again" / "Use <the other provider>; its key is set" (only if it is) / "Design plan without images" / "No design step". After "check again", run `-Where` again; if the key is still not set, ask again. The choice goes into the runner's design clause (step 6): `provider=<the other one>`, `dry-run`, or no design step; the run does not ask again. Write no goal (setup commit or runner) until the user has chosen. Never ask for a key in chat; if the user pastes one, do not use, repeat or store it, and give them the set line.
 
 ### 4. Write into the plan (one setup commit, if the project commits plans)
 

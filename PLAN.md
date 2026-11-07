@@ -321,7 +321,7 @@ The user, Nov 7, 2026, while fix 22 was in review: "keep changelog file please i
 - Acceptance: `claude plugin validate .` passes; every version in `git log` of `plugin.json` has an entry.
 
 ### fix 24. fix 22 review: one choice, one set line
-Status: todo
+Status: done 2026-11-07
 The review of fix 22 (Nov 7, 2026, Opus high): key safety holds; 2 medium and 3 low copy findings, all fixed here (ships in 1.2.1, no new version).
 - Both goal-prompt runners, rule 8 of their "How this plan is run" template: `/ag:design` carries the user's key choice (`provider=<p>`, `dry-run`, or no design step), as the Work line does.
 - `design/SKILL.md` rule 1, the dry-run note and the closing message: the `ag-key.ps1 set <provider>` line (the README's), not `${CLAUDE_PLUGIN_ROOT}/.../design-image.ps1 -SetKey`, which does not expand in the user's terminal.

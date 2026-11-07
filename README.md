@@ -53,9 +53,9 @@ the project, `design/<yyyymmdd>-<slug>/`, meant to be committed so you can revie
 - `images/` — the mockups, one folder per prompt;
 - `review.md` — a short checklist for your notes.
 
-Images come from `plugins/ag/scripts/design-image.ps1`. With `dry-run`, or with no
-image key set, it writes the plan and records the commands instead of making
-images. You can run `/ag:design` any time. A goal runs it first for a step that
+Images come from `plugins/ag/scripts/design-image.ps1`. With `dry-run`, or if you
+choose to go on without a key, it writes the plan and records the commands instead
+of making images. You can run `/ag:design` any time. A goal runs it first for a step that
 adds a new page or screen, and skips it for a minor change to an existing one.
 
 **Missing keys are told to you.** Before it makes images, `/ag:design` checks the
@@ -137,8 +137,9 @@ Fireworks model for this plan.
 The skill plans the pages and states of step S4, writes one image prompt per page
 or state, and makes the images with OpenAI. It prints the folder, for example
 `design/20261106-billing-settings-page/`, and its files. Open `images/` and fill
-in `review.md`. Without an OpenAI key it makes no images; it records the
-commands and prints the `-SetKey` line to run in your own terminal. A short
+in `review.md`. Without an OpenAI key it gives you the `ag-key.ps1 set openai`
+line to run in your own terminal; if you go on without the key, it makes no
+images and records the commands. A short
 description works too: `/ag:design a settings page with a plan picker and invoices`.
 
 **The progress file.** The goal writes `.claude/goal-progress.json` when it starts

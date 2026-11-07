@@ -11,7 +11,9 @@ in [PLAN.md](PLAN.md).
   or choose to go on without it, and the goal carries that choice, so the run
   does not ask again. (fix 22)
 - `/ag:design`, run by you, does the same before it makes images: set the key,
-  or go on with the design plan and no images. (fix 22)
+  or go on with the design plan and no images. After a dry run it gives the
+  same `ag-key.ps1 set` line, and the plan's own rules carry your choice too.
+  (fix 22, fix 24)
 
 ## 1.2.0 - 2026-11-07
 
