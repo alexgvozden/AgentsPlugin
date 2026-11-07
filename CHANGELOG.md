@@ -3,6 +3,17 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.4.0 - 2026-11-08
+
+- New skill `/ag:goal-prompt-sonnet`: the same goal as `/ag:goal-prompt-haiku`,
+  with Sonnet in Haiku's place. Well-described, clear coding steps are built by
+  Sonnet subagents on Claude. Planning, design, UI parts, copy, reviews and failed
+  steps stay on Opus. It needs no extra key and no launcher. A Sonnet builder that
+  hands off is followed by a fresh one; one that fails is followed by Opus high.
+  The band shows a running Sonnet builder with its model. The README lists the
+  skill, adds its row to "Which model does what", and says when to pick which of
+  the four goal skills. (fix 28)
+
 ## 1.3.0 - 2026-11-07
 
 - New skill `/ag:goal-prompt-haiku`: the same goal as `/ag:goal-prompt`, but

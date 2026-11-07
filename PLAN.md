@@ -383,7 +383,7 @@ Status: todo
 - The user, Nov 8, 2026, while the three runs were going: "ok I want you to add one more thing, goal-prompt-sonnet that uses sonnet 5.5 instead of haiku or fireworks". So S20 measures four runs: a fourth branch `nyc/goal-prompt-sonnet` in its own worktree, from the same `main` commit, with the same answers and context settings, started after fix 29 installs the skill; the report, `RESULTS.md` and the review cover all four. "Three" above reads "four" for the acceptance.
 
 ### fix 28. The goal-prompt-sonnet skill, README, changelog, version 1.4.0
-Status: todo
+Status: done 2026-11-08
 - `plugins/ag/skills/goal-prompt-sonnet/{SKILL.md,test-matrix.md}`, `/ag:goal-prompt-sonnet`: goal-prompt-haiku with Sonnet 5.5 in Haiku's place (the user's note under S20): the same test for a well-described, clear coding step; its builders are Claude subagents with `model: "sonnet"` (Sonnet 5.5), no launcher, no key; everything else as goal-prompt has it (copy never on Sonnet builders); a Sonnet HANDOFF goes to a fresh Sonnet builder with the note, a Sonnet failure to Opus high, never another Sonnet try; its engine label on the band is `sonnet`. Its description triggers only on goal-prompt-sonnet, a Sonnet goal or Sonnet builders.
 - README: `/ag:goal-prompt-sonnet` beside goal-prompt-haiku in "What you get", "Which model does what" and "How a goal works", without a cost ranking until S20 measures it; `CHANGELOG.md` 1.4.0; `plugin.json` 1.4.0. Skill text and README are end-user copy: Opus high.
 - Acceptance: `claude plugin validate .` and `claude plugin validate plugins/ag` pass; `claude plugin test plugins/ag` passes; the runner is at most 3,800 characters.
