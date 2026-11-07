@@ -350,7 +350,7 @@ Status: done 2026-11-07
 - Skill text is end-user copy: Opus high. Acceptance: `claude plugin validate .` and `claude plugin test plugins/ag` pass; the runner is at most 3,800 characters.
 
 ### S18. README, changelog, version 1.3.0
-Status: todo
+Status: done 2026-11-07
 - README: `/ag:goal-prompt-haiku` in "What you get", "Which model does what" and "How a goal works" (when to pick which of the three skills); `CHANGELOG.md` 1.3.0; `plugin.json` 1.3.0. End-user copy: Opus high.
 - Acceptance: `claude plugin validate .` passes.
 

@@ -21,10 +21,12 @@ I built this for four reasons:
 A private Claude Code plugin marketplace that packages the goal tooling so every
 machine and project gets the same skills, launcher, progress bar and global rules.
 
-Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with four
+Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with five
 commands:
 
 - `/ag:goal-prompt` — turns a plan into one `/goal`.
+- `/ag:goal-prompt-haiku` — the same, with the clear coding steps built by Haiku
+  on Claude.
 - `/ag:goal-prompt-3rdparty` — the same, with the function builders on a
   Fireworks model. The plugin also holds the `ext-build` launcher and its
   default `ext-build.json`.
@@ -33,11 +35,13 @@ commands:
 
 ## What you get
 
-**Two skills.** `/ag:goal-prompt` turns a plan file into one ready-to-paste
+**Three goal skills.** `/ag:goal-prompt` turns a plan file into one ready-to-paste
 `/goal` that carries out that plan, with light checks and printed evidence. It
 pauses only at sign-offs the plan asks for; re-run the same goal to continue.
-`/ag:goal-prompt-3rdparty` does the same, but the function builders run on
-a Fireworks model through `ext-build.ps1`. Both take `[plan file or step range]`.
+`/ag:goal-prompt-haiku` does the same, but well-described, clear coding steps are
+built by Haiku subagents. `/ag:goal-prompt-3rdparty` does the same, but the
+function builders run on a Fireworks model through `ext-build.ps1`. All three take
+`[plan file or step range]`. [Which one to pick](#which-goal-skill-to-pick).
 A Claude Code session opened before the install needs a restart to see them; type
 `/ag:` to find them.
 
@@ -91,14 +95,15 @@ change it.
 
 ## Which model does what
 
-The global rules apply in every project. Both skills follow them and add the rows
-marked with the skill's name. Opus and Sonnet mean Opus 5.5 and Sonnet 5.5.
+The global rules apply in every project. The goal skills follow them and add the
+rows marked with the skill's name. Opus and Sonnet mean Opus 5.5 and Sonnet 5.5.
 
 | Who or what | Model and effort | When |
 | --- | --- | --- |
 | Main thread: planning, architecture, product and design decisions, safety and money rules, briefs | Opus, high | Always (global rules) |
-| Development: a subagent that writes code by an agreed plan | Opus, medium | Global rules; `goal-prompt` function parts |
-| UI part of a screen step: design, components, layout, screenshots | Opus, high | Both skills. The UI is built first; the function is wired in after, without changing the design |
+| Development: a subagent that writes code by an agreed plan | Opus, medium | Global rules; `goal-prompt` function parts; `goal-prompt-haiku` steps not on Haiku |
+| Haiku builders (`goal-prompt-haiku`) | Haiku 5.5 | Well-described, clear coding steps: the plan names the files, the functions or behaviour and the checks; no open design question, UI design, security, money, personal data or shared-database migration. A handoff goes to a fresh Haiku builder; a failure goes to Opus high, never another Haiku try. Never copy |
+| UI part of a screen step: design, components, layout, screenshots | Opus, high | All three goal skills. The UI is built first; the function is wired in after, without changing the design |
 | Design plan (`/ag:design`): pages, states, components, copy, image prompts | Opus, high | Every `/ag:design` run, and a goal's design step for a new page |
 | Design images (`/ag:design`) | Gemini `gemini-3.1-flash-image` (default) or OpenAI `gpt-image-2` | Through `design-image.ps1`. Change either model in `~/.claude/design.json` |
 | Function builders (`goal-prompt-3rdparty`) | Fireworks, default `accounts/fireworks/models/deepseek-v4p1-flash` | Each function step, through `ext-build.ps1` as a background job. `model=<id>` or `defaultModel` in `~/.claude/ext-build.json` picks another model |
@@ -117,16 +122,32 @@ keeps to them after the chat is gone.
 
 ## How a goal works
 
+### Which goal skill to pick
+
+The three skills make the same kind of goal from the same plan. They differ only
+in who builds the code:
+
+- **`/ag:goal-prompt`** — everything on Claude; the builders run at Opus medium.
+- **`/ag:goal-prompt-haiku`** — cheaper builders on Claude: Haiku builds the clear,
+  well-described coding steps, Opus the rest. No extra key and no launcher.
+- **`/ag:goal-prompt-3rdparty`** — the cheapest builders, on Fireworks. Needs the
+  Fireworks key and the `ext-build` launcher.
+
+Planning, design, UI parts, copy, reviews and failed steps stay on Opus in all
+three.
+
 ### The goal, made and run
 
-**Made from a plan.** `/ag:goal-prompt PLAN.md` (or `/ag:goal-prompt-3rdparty`)
-reads the plan and asks you one round of questions: how much to test during the
-build (light by default: lint, typecheck, each step's own tests, screenshots),
-which screens to screenshot, which outward actions it may take (paid APIs,
-production deploys, shared-database migrations; the ones you leave out become
-"stop and tell me"), and git, if the project rules don't say. If the plan has
-steps that touch security, money, personal data or a shared-database migration,
-the 3rdparty skill also asks whether they stay on Claude. In the same round it checks the keys
+**Made from a plan.** `/ag:goal-prompt PLAN.md` (or `/ag:goal-prompt-haiku`, or
+`/ag:goal-prompt-3rdparty`) reads the plan and asks you one round of questions:
+how much to test during the build (light by default: lint, typecheck, each step's
+own tests, screenshots), which screens to screenshot, which outward actions it may
+take (paid APIs, production deploys, shared-database migrations; the ones you
+leave out become "stop and tell me"), and git, if the project rules don't say. The
+haiku skill shows which steps go to Haiku, and you can move any of them. If the
+plan has steps that touch security, money, personal data or a shared-database
+migration, the 3rdparty skill also asks whether they stay on Claude. In the same
+round it checks the keys
 the goal will use, as described under "Missing keys are told to you" above. Then
 it writes into the plan, in one setup commit: a `Status:` line on each step (or
 the plan's own tracker column), a mark on each phase, an empty "Where the run
@@ -189,6 +210,11 @@ The effort comes from written rules, in three layers:
   there, also after a compaction.
 - The main thread starts each subagent with the model and effort the rule gives
   its kind of work. The table above is the result.
+
+In `/ag:goal-prompt-haiku` the clear coding steps that would go to Opus medium go
+to Haiku subagents instead; the main thread starts them like any subagent, with
+`model: "haiku"`. A Haiku builder that hands off is followed by a fresh Haiku
+builder; one that fails is followed by Opus high, never by another Haiku try.
 
 In `/ag:goal-prompt-3rdparty` the function work that would go to Opus medium goes
 to Fireworks instead, except the steps kept on Claude and all copy. A Fireworks
