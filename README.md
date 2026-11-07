@@ -128,9 +128,9 @@ The three skills make the same kind of goal from the same plan. They differ only
 in who builds the code:
 
 - **`/ag:goal-prompt`** — everything on Claude; the builders run at Opus medium.
-- **`/ag:goal-prompt-haiku`** — cheaper builders on Claude: Haiku builds the clear,
+- **`/ag:goal-prompt-haiku`** — Haiku builders: Haiku builds the clear,
   well-described coding steps, Opus the rest. No extra key and no launcher.
-- **`/ag:goal-prompt-3rdparty`** — the cheapest builders, on Fireworks. Needs the
+- **`/ag:goal-prompt-3rdparty`** — builders on Fireworks. Needs the
   Fireworks key and the `ext-build` launcher.
 
 Planning, design, UI parts, copy, reviews and failed steps stay on Opus in all

@@ -9,8 +9,8 @@ in [PLAN.md](PLAN.md).
   well-described, clear coding steps are built by Haiku subagents on Claude.
   Planning, design, UI parts, copy, reviews and failed steps stay on Opus. It
   needs no extra key and no launcher. A Haiku builder that hands off is followed
-  by a fresh one; one that fails is followed by Opus high. The band labels its
-  steps `haiku`. (S17)
+  by a fresh one; one that fails is followed by Opus high. The band shows a running
+  Haiku builder with its model. (S17)
 - The README lists the new skill, adds its row to "Which model does what", and
   says when to pick which of the three goal skills. (S18)
 

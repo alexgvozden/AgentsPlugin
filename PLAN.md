@@ -362,7 +362,7 @@ Status: todo
 - Acceptance: `claude plugin validate plugins/ag` passes with a digest; `claude plugin test plugins/ag` passes.
 
 ### fix 27. S17-S18 review: copy as goal-prompt has it, neutral names
-Status: todo
+Status: done 2026-11-07
 - goal-prompt-haiku: copy is built as goal-prompt builds it, never on Haiku (no end-user/technical copy split, which is goal-prompt-3rdparty's; the user asked for "same as goal prompt"); a Haiku step "may carry" `engine: "haiku"`; the CHANGELOG says the band shows a running Haiku builder with its model, not that steps are labelled `haiku`.
 - README: the three skills described without a cost ranking until S20 measures it ("Haiku builders", "builders on Fireworks"); goal-prompt-3rdparty's description triggers on "cheaper builders on Fireworks", so a plain "cheaper builders" does not match both. End-user copy: Opus high.
 - Acceptance: `claude plugin validate .` passes; each runner stays within 3,800 characters.
