@@ -109,8 +109,10 @@ function Add-ExtProgressJob([string]$CwdPath, [string]$Step, [string]$ModelId, [
         $path = Get-ExtProgressPath $CwdPath
         $prog = Read-ExtProgress $path
         if ($null -eq $prog) { return $null }
+        $id = [guid]::NewGuid().ToString()
         $job = [pscustomobject][ordered]@{
             kind   = 'build'
+            id     = $id
             title  = $Step
             since  = $Since
             engine = 'fw:' + (Get-ExtModelShort $ModelId)
@@ -121,15 +123,15 @@ function Add-ExtProgressJob([string]$CwdPath, [string]$Step, [string]$ModelId, [
         Set-ExtProp $prog 'running' @($running + $job)
         Set-ExtProp $prog 'updated' (Get-Date).ToString('o')
         Save-ExtProgress $prog $path
-        return [pscustomobject]@{ Path = $path; Kind = 'build'; Title = $Step; Since = $Since }
+        return [pscustomobject]@{ Path = $path; Kind = 'build'; Id = $id; Title = $Step; Since = $Since }
     }
     catch {
-        Write-Output "ext-build: warning: could not add the job to the progress file: $($_.Exception.Message)"
+        Write-Warning "ext-build: could not add the job to the progress file: $($_.Exception.Message)"
         return $null
     }
 }
 
-# Removes the job the handle points at (kind, title and since must all match); a warning, never a failure.
+# Removes the job the handle points at, by its id; a warning, never a failure.
 function Remove-ExtProgressJob($Handle) {
     if ($null -eq $Handle) { return }
     try {
@@ -138,9 +140,7 @@ function Remove-ExtProgressJob($Handle) {
         $keep = @()
         foreach ($j in @(Get-ExtProp $prog 'running')) {
             if ($null -eq $j) { continue }
-            $same = ([string](Get-ExtProp $j 'kind' '') -eq $Handle.Kind) -and
-                    ([string](Get-ExtProp $j 'title' '') -eq $Handle.Title) -and
-                    ([string](Get-ExtProp $j 'since' '') -eq $Handle.Since)
+            $same = ([string](Get-ExtProp $j 'id' '') -eq [string]$Handle.Id)
             if (-not $same) { $keep += $j }
         }
         Set-ExtProp $prog 'running' @($keep)

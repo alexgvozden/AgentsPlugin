@@ -292,7 +292,7 @@ Status: done 2026-11-07
 - Acceptance: `claude plugin test plugins/ag` passes, with tests for a phase marked `todo` with done steps (reads `doing`), a step the file has as `doing` and the plan as `todo` (stays `doing`), and a `waiting` subagent shown.
 
 ### fix 20. The launcher finds its own job by an id
-Status: todo
+Status: done 2026-11-07
 - `ext-build.ps1`: the job it adds to `running` carries an `id` (a new guid) and is removed by that id, not by `since` (pwsh 7 reads ISO strings back as dates, so on macOS and Linux the job was never removed); the warning when the add fails goes to the warning stream instead of being lost in the handle.
 - Acceptance: `ext-build.test.ps1` passes, with the add and remove checks matching by `id`.
 

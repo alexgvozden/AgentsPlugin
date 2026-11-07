@@ -246,8 +246,19 @@ try {
     function Resolve-ExtClaude($Cfg, [string]$Os) { return 'claude-mock' }
     $script:progPath = ''
     $script:during = ''
+    $script:decoy = $false
     function Invoke-ExtClaude([string]$Exe, [string[]]$ArgList, $EnvMap, [string]$WorkDir, [string]$StdinText) {
         $script:during = if (Test-Path -LiteralPath $script:progPath) { [IO.File]::ReadAllText($script:progPath) } else { '' }
+        # A decoy with the same kind, title and since as the launcher's own job, so removal by `since` would take it too.
+        if ($script:decoy -and $script:during) {
+            $p = $script:during | ConvertFrom-Json
+            $own = @(@($p.running) | Where-Object { $null -ne $_ -and $_.kind -eq 'build' })[0]
+            if ($null -ne $own) {
+                $decoy = [pscustomobject][ordered]@{ kind = 'build'; id = 'decoy'; title = $own.title; since = $own.since; engine = 'other' }
+                $p | Add-Member -NotePropertyName running -NotePropertyValue @(@($p.running) + $decoy) -Force
+                [IO.File]::WriteAllText($script:progPath, ($p | ConvertTo-Json -Depth 10))
+            }
+        }
         return [pscustomobject]@{ ExitCode = 0; Stdout = $script:okJson; Stderr = '' }
     }
     # The launcher's own parameters, as its entry point sets them: a real run of the dot-sourced Invoke-ExtMain.
@@ -261,20 +272,22 @@ try {
     $script:progPath = Join-Path $proj '.claude\goal-progress.json'
     [IO.File]::WriteAllText($script:progPath, '{"goal":"g","status":"running","updated":"2026-11-07T00:00:00.0000000Z","running":[{"kind":"deploy","title":"Keep me","since":"2026-11-07T00:00:00.0000000Z"}]}')
 
-    $Cwd = $proj; $Step = 'S15'
+    $Cwd = $proj; $Step = 'S15'; $script:decoy = $true
     $code = Invoke-ExtMain | Select-Object -Last 1
     $during = $script:during | ConvertFrom-Json
     $mine = @($during.running | Where-Object { $_.kind -eq 'build' })
     $after = [IO.File]::ReadAllText($script:progPath) | ConvertFrom-Json
     $kept = @($after.running)
-    Assert ($code -eq 0 -and @($during.running).Count -eq 2 -and $mine.Count -eq 1 -and $mine[0].title -eq 'S15' -and $mine[0].engine -eq 'fw:glm-5p3-flash' -and $mine[0].since) 'run adds its build job while running (engine fw:glm-5p3-flash)' $script:during
-    Assert ($kept.Count -eq 1 -and $kept[0].title -eq 'Keep me' -and $after.updated -ne '2026-11-07T00:00:00.0000000Z' -and -not (Test-Path -Path "$($script:progPath).tmp-*")) 'run removes its job after (other jobs kept, updated set, no temp file left)' ([IO.File]::ReadAllText($script:progPath))
+    Assert ($code -eq 0 -and @($during.running).Count -eq 2 -and $mine.Count -eq 1 -and $mine[0].title -eq 'S15' -and $mine[0].engine -eq 'fw:glm-5p3-flash' -and $mine[0].since -and $mine[0].id) 'run adds its build job with an id while running (engine fw:glm-5p3-flash)' $script:during
+    $decoyKept = @($kept | Where-Object { (Get-ExtProp $_ 'id' '') -eq 'decoy' })
+    $keptTitles = @($kept | ForEach-Object { (Get-ExtProp $_ 'title' '') })
+    Assert ($kept.Count -eq 2 -and $keptTitles -contains 'Keep me' -and $decoyKept.Count -eq 1 -and $decoyKept[0].title -eq 'S15' -and $after.updated -ne '2026-11-07T00:00:00.0000000Z' -and -not (Test-Path -Path "$($script:progPath).tmp-*")) 'run removes its own job by id after (the same-title same-since job and the others kept, updated set, no temp file left)' ([IO.File]::ReadAllText($script:progPath))
 
     # S15: a missing progress file is left alone and never created
     $bare = Join-Path $root 'bare'
     New-Item -ItemType Directory -Path $bare | Out-Null
     $script:progPath = Join-Path $bare '.claude\goal-progress.json'
-    $Cwd = $bare; $Step = 'S15b'
+    $Cwd = $bare; $Step = 'S15b'; $script:decoy = $false
     $code = Invoke-ExtMain | Select-Object -Last 1
     Assert ($code -eq 0 -and -not (Test-Path -LiteralPath (Join-Path $bare '.claude')) -and -not (Test-Path -LiteralPath $script:progPath)) 'a missing progress file is not created' "code $code"
 
@@ -290,6 +303,14 @@ try {
     $afterW = [IO.File]::ReadAllText($script:progPath) | ConvertFrom-Json
     Assert ($code -eq 0 -and @($duringW.running).Count -eq 1 -and @($duringW.running)[0].title -eq 'S15w' -and -not (Test-Path -LiteralPath (Join-Path $wtree '.claude'))) 'a worktree Cwd writes the main checkout progress file' $script:during
     Assert (@($afterW.running).Count -eq 0) 'the worktree run removes its job from the main file' ([IO.File]::ReadAllText($script:progPath))
+
+    # S15: a null handle (the add failed) removes nothing
+    $nullPath = Join-Path $root 'nullhandle\goal-progress.json'
+    New-Item -ItemType Directory -Path (Split-Path $nullPath) -Force | Out-Null
+    $nullText = '{"goal":"g","status":"running","running":[{"kind":"deploy","title":"Keep me"}]}'
+    [IO.File]::WriteAllText($nullPath, $nullText)
+    Remove-ExtProgressJob $null
+    Assert (([IO.File]::ReadAllText($nullPath)) -eq $nullText) 'a null handle removes nothing' ([IO.File]::ReadAllText($nullPath))
 
     $r = Run-Launcher @('-Config', $cfgOk, '-Check', 'bogus')
     Assert ($r.Code -eq 2 -and $r.Out -match "unknown key provider 'bogus'") 'unknown provider exit 2' "code $($r.Code): $($r.Out)"
