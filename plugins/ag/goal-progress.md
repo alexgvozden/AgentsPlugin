@@ -1,6 +1,6 @@
 # goal-progress
 
-Shows the progress of a `/goal` (yellow "waiting" at a gate for your sign-off) above the prompt, read from `.claude/goal-progress.json` in the project, with one line for each job running right now:
+Shows the progress of a `/goal` (yellow "waiting" at a gate for your sign-off) above the prompt, with one line for each job running right now:
 
     A1 track 1 ██████████░░░░░░░░░░ 2/4 (50%) running   [ Tasks ▸ ] [ Hide ]
     Now: A1.3 Offer review v2 · e2e on iPhone 15 · updated 40s ago
@@ -8,7 +8,14 @@ Shows the progress of a `/goal` (yellow "waiting" at a gate for your sign-off) a
     ▸ tests  Integration suite for 0.9.3 · 22m
     ▸ build  E2.10 Your site, part two · 41m
 
-The file is read every 3 seconds; the times and "updated ... ago" move every 30 seconds. A half-written file keeps the last good state. From inside a git worktree at .claude/worktrees/<id>, the main checkout's file is read. "updated ... ago" turns yellow ("may be behind") when the goal runs and the file is 15 minutes old or more.
+The band reads four things:
+
+- **The plan** named by the file's `plan` (`PLAN.md` when it names none): every phase and step, with its title and its mark (a `Status:` line under its heading, or the last column of a tracker table). `done <date>`, `shown <date>`, `blocked: <reason>`, `todo` and `doing` become the statuses below, and the plan's marks win over the file's.
+- **The session's subagents** that are starting or running, each as a running line with its model.
+- **The launcher's job**: each `ext-build.ps1` run adds its own `build` line to the file when it starts and removes it when it ends.
+- **`.claude/goal-progress.json`** in the project, for the goal's status, note and log, and for any other job (a deploy, a test suite). Without this file the band shows nothing.
+
+It looks every second, so it moves when the plan's text changes (a step's commit sets its mark), when a subagent starts or ends, when a launcher run starts or ends, and when the file is written. The times and "updated ... ago" move every 30 seconds. A half-written file or plan keeps the last good state. From inside a git worktree at .claude/worktrees/<id>, the main checkout's file and plan are read. "updated ... ago" turns yellow ("may be behind") when the goal runs and the file is 15 minutes old or more.
 
 `[ Tasks ▸ ]` (or `/goal-progress open`) opens the "Goal tasks" pane: the goal, chips with the count of each status, a "Running now" card, and a timeline with one node per task (done, shown and waiting for your Approve, in progress, blocked, waiting, skipped, to do). The current task shows a bar of its steps and a card with the last done step, the steps in progress, the waiting ones and the next ones. Esc at an empty prompt closes it.
 
@@ -16,7 +23,7 @@ An open task lists every step with a status column (deployed, done, shown, in pr
 
 `/goal-progress` lists every task with its steps indented under it, and what is running; `/goal-progress hide` and `/goal-progress show` toggle the band.
 
-File format (written by the goal; see the goal-prompt skill):
+File format (written by the goal, in a plain chat as in a `/goal` run; see the goal-prompt skill):
 
     { "goal": "...", "plan": "path", "status": "running|waiting|blocked|done", "note": "short status",
       "updated": "ISO time",
@@ -27,7 +34,7 @@ File format (written by the goal; see the goal-prompt skill):
 
 `engine` (optional, on a running job or a step) names the model doing it, e.g. `opus-high`, `opus-medium`, `sonnet` or `fw:glm-5p3-flash`; it shows as a label beside the title (`build  S3 Wire search API [fw:glm-5p3-flash] · 4m`), dim blue for Fireworks (`fw:`) and dim grey for Claude.
 
-A task or step status is one of `todo` (not started), `doing` (in progress), `done` (built and on main, not released), `deployed` (its release is live), `shown` (built and shown, waiting for your sign-off; it and `deployed` count as done), `waiting`, `blocked`, `skipped` (left out of the total). An unknown status reads as `todo`. `note`, `tokens`, `steps` and `running` are optional. `tokens` is the tokens a task or step used, a number of zero or more (anything else is dropped); a task with none of its own shows the sum of its steps' tokens. `running` holds what is going on now outside the steps' marks: a deploy, a test suite, each builder; the goal adds a job when it starts and removes it when it ends. A job with no title is dropped; one with no kind reads as `other`. `log` holds the updates the goal also gives in chat, oldest first, each a string or `{ at, text }`.
+A task or step status is one of `todo` (not started), `doing` (in progress), `done` (built and on main, not released), `deployed` (its release is live), `shown` (built and shown, waiting for your sign-off; it and `deployed` count as done), `waiting`, `blocked`, `skipped` (left out of the total). An unknown status reads as `todo`. `tasks` may be `[]`: the band fills in phases and steps from the plan, so a task is written only to add a note, tokens or an engine. `note`, `tokens`, `steps` and `running` are optional. `tokens` is the tokens a task or step used, a number of zero or more (anything else is dropped); a task with none of its own shows the sum of its steps' tokens. `running` holds what is going on now outside the steps' marks and is not a subagent or a launcher run (the band finds those itself): a deploy, a test suite; the goal adds a job when it starts and removes it when it ends. A job with no title is dropped; one with no kind reads as `other`. `log` holds the updates the goal also gives in chat, oldest first, each a string or `{ at, text }`.
 
 Install (user scope, all projects):
 

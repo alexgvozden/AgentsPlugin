@@ -277,7 +277,7 @@ Status: done 2026-11-07
 - Acceptance: `ext-build.test.ps1` passes, with one check that a run adds and then removes its job and one that a missing file is not created.
 
 ### fix 18. Skills and README: the band follows the plan
-Status: todo
+Status: done 2026-11-07
 - goal-prompt and goal-prompt-3rdparty: the progress file's tasks are no longer kept by hand (the band reads the plan); the main thread still writes `status`, `note`, `log` and jobs that are neither subagents nor launcher runs (a test suite, a deploy), in chat as in a `/goal` run.
 - README and `goal-progress.md`: what the band reads and when it moves. End-user copy at Opus high.
 - Acceptance: `claude plugin validate .` passes; the skills' runner text stays within its character limit.

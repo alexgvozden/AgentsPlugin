@@ -66,10 +66,14 @@ reads the user config `~/.claude/ext-build.json` first, then the plugin's
 2 setup error.
 
 **The progress band and the tasks pane.** The goal-progress mod shows one line per
-running job above the prompt — a bar, the current step, and the jobs running now —
-read from `.claude/goal-progress.json` in the project. `/goal-progress open` (or the
-`[ Tasks ▸ ]` button) opens the Goal tasks pane: the goal, status chips, a "Running
-now" card, and a timeline of every task and its steps.
+running job above the prompt — a bar, the current step, and the jobs running now.
+It reads the marks in the plan, the session's subagents, the launcher's own job,
+and `.claude/goal-progress.json` in the project for the goal's status, notes, log
+and other jobs (a deploy, a test suite). It moves within a second when the plan's
+text changes, a subagent or a launcher run starts or ends, or the file is written.
+`/goal-progress open` (or the `[ Tasks ▸ ]` button) opens the Goal tasks pane: the
+goal, status chips, a "Running now" card, and a timeline of every task and its
+steps.
 
 **Global rules.** `rules/CLAUDE.global.md` holds the shared rules;
 `~/.claude/CLAUDE.md` imports it from this checkout, so a plugin update cannot
@@ -127,9 +131,11 @@ in `review.md`. Without an OpenAI key it makes no images; it records the
 commands and prints the `-SetKey` line to run in your own terminal. A short
 description works too: `/ag:design a settings page with a plan picker and invoices`.
 
-**The progress file.** The goal keeps `.claude/goal-progress.json` up to date as
-it works. [`docs/examples/goal-progress.json`](docs/examples/goal-progress.json)
-is a made-up run: two phases, steps with `engine` labels, a build and a test job
+**The progress file.** The goal writes `.claude/goal-progress.json` when it starts
+and keeps its status, notes and log up to date, in chat as in a `/goal` run. The
+steps and their marks come from the plan, so nobody keeps them by hand.
+[`docs/examples/goal-progress.json`](docs/examples/goal-progress.json) is a
+made-up run: two phases, steps with `engine` labels, a build and a test job
 running, and a short log. Copy it to `.claude/goal-progress.json` in any project
 to see the band and the pane.
 
