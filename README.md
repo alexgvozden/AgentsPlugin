@@ -110,7 +110,7 @@ rows marked with the skill's name. Opus and Sonnet mean Opus 5.5 and Sonnet 5.5.
 | UI part of a screen step: design, components, layout, screenshots | Opus, high | All four goal skills. The UI is built first; the function is wired in after, without changing the design |
 | Design plan (`/ag:design`): pages, states, components, copy, image prompts | Opus, high | Every `/ag:design` run, and a goal's design step for a new page |
 | Design images (`/ag:design`) | Gemini `gemini-3.1-flash-image` (default) or OpenAI `gpt-image-2` | Through `design-image.ps1`. Change either model in `~/.claude/design.json` |
-| Function builders (`goal-prompt-3rdparty`) | Fireworks, default `accounts/fireworks/models/deepseek-v4p1-flash` | Each function step, through `ext-build.ps1` as a background job. `model=<id>` or `defaultModel` in `~/.claude/ext-build.json` picks another model |
+| Function builders (`goal-prompt-3rdparty`) | Fireworks, default `accounts/fireworks/models/deepseek-v4p1-flash-1017` | Each function step, through `ext-build.ps1` as a background job. `model=<id>` or `defaultModel` in `~/.claude/ext-build.json` picks another model |
 | Steps kept on Claude (`goal-prompt-3rdparty`) | Opus, medium | Steps that touch security, money, personal data or a shared-database migration, unless you move them |
 | End-user copy (`goal-prompt-3rdparty`): UI text, emails, marketing pages, README and help | Opus, high | Never on Fireworks |
 | Technical copy (`goal-prompt-3rdparty`): developer docs, code comments, API docs, plan and brief text | Opus, medium | Never on Fireworks |
@@ -246,8 +246,8 @@ main thread (Opus)
 claude -p   in the worktree, brief on stdin
   │  env of this process only:
   │    ANTHROPIC_BASE_URL = https://api.fireworks.ai/inference
-  │    every model alias  = accounts/fireworks/models/deepseek-v4p1-flash
-  │  builds, tests, commits ("Built-by: fireworks/deepseek-v4p1-flash")
+  │    every model alias  = accounts/fireworks/models/deepseek-v4p1-flash-1017
+  │  builds, tests, commits ("Built-by: fireworks/deepseek-v4p1-flash-1017")
   ▼
 summary line, report (at most 20 lines), log path
 logs/S3-<yyyyMMdd-HHmmss>.json, one line in logs/ext-runs.jsonl
@@ -265,7 +265,7 @@ token and the Bedrock, Vertex and Foundry switches.
 
 **Another model.** Add `model=<id>` to the skill (the goal passes it as `-Model`),
 or set `defaultModel` in `~/.claude/ext-build.json`. The default is
-`deepseek-v4p1-flash` (DeepSeek V4.1 Flash). A bare name gets
+`deepseek-v4p1-flash-1017` (DeepSeek V4.1 Flash 1017). A bare name gets
 `accounts/fireworks/models/` in front (`modelPrefix`); a name with a `/` is used
 as is. The user file replaces the plugin's default file rather than adding to
 it, so copy `ext-build.default.json` and change `defaultModel`; it needs
@@ -346,7 +346,7 @@ to see the band and the pane.
 its report (at most 20 lines) and the path of its full log:
 
 ```text
-ext-build: S1 · accounts/fireworks/models/deepseek-v4p1-flash · 15 turns · 412.3k in (380.1k cached) / 9.8k out · 6m10s · ok
+ext-build: S1 · accounts/fireworks/models/deepseek-v4p1-flash-1017 · 15 turns · 412.3k in (380.1k cached) / 9.8k out · 6m10s · ok
 ```
 
 ## Screenshots

@@ -3,6 +3,13 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.4.1 - 2026-11-08
+
+- Fireworks builders now default to `deepseek-v4p1-flash-1017` (DeepSeek V4.1
+  Flash 1017, Fireworks' 17 October 2026 update of V4.1 Flash, same price) in
+  `ext-build.default.json` and the README. `model=deepseek-v4p1-flash` still
+  picks the earlier model. (fix 30)
+
 ## 1.4.0 - 2026-11-08
 
 - New skill `/ag:goal-prompt-sonnet`: the same goal as `/ag:goal-prompt-haiku`,
