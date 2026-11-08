@@ -124,6 +124,25 @@ rows marked with the skill's name. Opus and Sonnet mean Opus 5.5 and Sonnet 5.5.
 The skill writes these rules into each plan's "How this plan is run", so a run
 keeps to them after the chat is gone.
 
+## Benchmark
+
+One real `/ag:goal-prompt-3rdparty` run on a web app in active development:
+118 tasks, $319 so far. DeepSeek V4.1 Flash on Fireworks did a quarter of the
+tasks for about 2% of the bill.
+
+![26 finished coding tasks: DeepSeek's bill vs. Claude's](docs/benchmark/builder-cost.png)
+
+DeepSeek's 26 coding tasks cost $5.10. The same tasks on Opus 5.5 medium would
+have cost about $64.56, 13x more. Two DeepSeek steps then failed hand checks
+and Opus redid them for $40.40, so the saving with fixes is about 30%.
+
+![Who did the work, and who got paid](docs/benchmark/share.png)
+
+Each bar is 100%: tasks, model calls, tokens and cost, split by who did them.
+
+The full page has the token ratios, the real cost per million tokens, where the
+money went, and the caveats: [docs/benchmark.md](docs/benchmark.md).
+
 ## How a goal works
 
 ### Which goal skill to pick

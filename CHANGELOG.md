@@ -3,6 +3,14 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## Unreleased
+
+- Docs only, the plugin is unchanged. New page
+  [docs/benchmark.md](docs/benchmark.md): one real `/ag:goal-prompt-3rdparty`
+  run, with charts of who did which tasks, tokens, cost per model, DeepSeek vs.
+  Opus ratios and the Opus fixes. The README has a short Benchmark section with
+  two of the charts and a link. (fix 31)
+
 ## 1.4.1 - 2026-11-08
 
 - Fireworks builders now default to `deepseek-v4p1-flash-1017` (DeepSeek V4.1
