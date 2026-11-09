@@ -11,6 +11,21 @@ in [PLAN.md](PLAN.md).
   Opus ratios and the Opus fixes. The README has a short Benchmark section with
   two of the charts and a link. (fix 31)
 
+## 1.5.0 - 2026-11-09
+
+- New skill `/ag:reddit-product-ideas`, moved here from findajobandrelocate.com
+  so it works in every project. It finds what a site's audience asks on Reddit
+  (RSS and the public JSON, Claude in Chrome as the fallback) and elsewhere,
+  compares it with what the site already says, and proposes strategic, UX/UI and
+  content changes with counted evidence and real links, in an interactive HTML
+  report. Each project keeps its own config in `.claude/product-ideas/`:
+  `sources.json` (subreddits, searches, filters), `codebook.json` (themes and
+  their labels, fields, job ads, kind rules, gate labels) and `project.md` (site,
+  audience, files to read, where the run goes, rules every proposal keeps). With
+  no config the skill drafts the three files from `templates/` and waits for
+  approval. The scripts hold no project words; with the findajobandrelocate.com
+  config they plan and write the same output as before.
+
 ## 1.4.1 - 2026-11-08
 
 - Fireworks builders now default to `deepseek-v4p1-flash-1017` (DeepSeek V4.1

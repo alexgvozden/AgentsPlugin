@@ -1,0 +1,79 @@
+{
+  "generatedAt": "2026-11-09T10:00:00.000Z",
+  "example": true,
+  "totals": {
+    "postsInFile": 412,
+    "tagged": 412,
+    "untagged": 0,
+    "untaggedIds": [],
+    "unknownTagIds": [],
+    "onTopic": 310,
+    "offTopic": 102,
+    "otherSources": 6,
+    "bySub": [["DubaiJobs", 168], ["dubai", 121], ["UAE", 64], ["developersIndia", 41], ["abudhabi", 18]],
+    "byKind": { "question": 231, "seeking": 44, "hiring": 22, "other": 115 },
+    "dateSpan": { "from": "2025-11-10", "to": "2026-11-08" },
+    "recentFrom": "2026-08-09",
+    "recentMonths": 3,
+    "earlierMonths": 9
+  },
+  "themes": [
+    { "theme": "salary-benchmark", "count": 41, "share": 13.2, "recent": 14, "recentPerMonth": 4.7, "earlier": 27, "earlierPerMonth": 3, "other": 2, "bySub": [["DubaiJobs", 19], ["dubai", 12], ["developersIndia", 7]], "byKind": { "question": 39, "other": 2 },
+      "examples": [
+        { "id": "ex01", "title": "Is AED 22k a month fair for a senior backend developer?", "date": "2026-10-28", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex01/example_salary_senior_backend/", "kind": "question" },
+        { "id": "ex02", "title": "Offer of AED 15k for a data analyst with 4 years: low?", "date": "2026-09-14", "url": "https://www.reddit.com/r/dubai/comments/ex02/example_data_analyst_offer/", "kind": "question" }
+      ] },
+    { "theme": "visa-sponsorship", "count": 23, "share": 7.4, "recent": 9, "recentPerMonth": 3, "earlier": 14, "earlierPerMonth": 1.6, "other": 1, "bySub": [["DubaiJobs", 11], ["developersIndia", 6], ["UAE", 4]], "byKind": { "question": 23 },
+      "examples": [
+        { "id": "ex03", "title": "Do employers here sponsor the visa for a first job abroad?", "date": "2026-10-19", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex03/example_visa_first_job/", "kind": "question" },
+        { "id": "ex04", "title": "Moving from Bengaluru: who pays for the employment visa?", "date": "2026-08-30", "url": "https://www.reddit.com/r/developersIndia/comments/ex04/example_who_pays_visa/", "kind": "question" }
+      ] },
+    { "theme": "cost-of-living", "count": 21, "share": 6.8, "recent": 5, "recentPerMonth": 1.7, "earlier": 16, "earlierPerMonth": 1.8, "other": 0, "bySub": [["dubai", 12], ["UAE", 6], ["DubaiJobs", 3]], "byKind": { "question": 21 },
+      "examples": [
+        { "id": "ex05", "title": "Monthly costs for a couple renting a one-bedroom flat?", "date": "2026-07-22", "url": "https://www.reddit.com/r/dubai/comments/ex05/example_couple_costs/", "kind": "question" }
+      ] },
+    { "theme": "job-search-how", "count": 19, "share": 6.1, "recent": 4, "recentPerMonth": 1.3, "earlier": 15, "earlierPerMonth": 1.7, "other": 1, "bySub": [["DubaiJobs", 13], ["developersIndia", 4], ["dubai", 2]], "byKind": { "question": 19 },
+      "examples": [
+        { "id": "ex06", "title": "Best way to find developer jobs from abroad?", "date": "2026-06-11", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex06/example_find_jobs_abroad/", "kind": "question" }
+      ] },
+    { "theme": "no-replies", "count": 15, "share": 4.8, "recent": 7, "recentPerMonth": 2.3, "earlier": 8, "earlierPerMonth": 0.9, "other": 0, "bySub": [["DubaiJobs", 10], ["dubai", 5]], "byKind": { "question": 12, "other": 3 },
+      "examples": [
+        { "id": "ex07", "title": "Applied to 80 jobs from the UK, not one reply. What am I doing wrong?", "date": "2026-10-05", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex07/example_no_replies_uk/", "kind": "question" }
+      ] },
+    { "theme": "offer-evaluation", "count": 12, "share": 3.9, "recent": 3, "recentPerMonth": 1, "earlier": 9, "earlierPerMonth": 1, "other": 1, "bySub": [["DubaiJobs", 6], ["dubai", 4], ["UAE", 2]], "byKind": { "question": 12 },
+      "examples": [
+        { "id": "ex08", "title": "Offer with housing included or a higher basic: which is better?", "date": "2026-09-02", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex08/example_housing_or_basic/", "kind": "question" }
+      ] },
+    { "theme": "contract-law", "count": 9, "share": 2.9, "recent": 2, "recentPerMonth": 0.7, "earlier": 7, "earlierPerMonth": 0.8, "other": 0, "bySub": [["UAE", 5], ["dubai", 4]], "byKind": { "question": 9 }, "examples": [] },
+    { "theme": "cv-ats", "count": 8, "share": 2.6, "recent": 4, "recentPerMonth": 1.3, "earlier": 4, "earlierPerMonth": 0.4, "other": 1, "bySub": [["DubaiJobs", 6], ["developersIndia", 2]], "byKind": { "question": 8 }, "examples": [] },
+    { "theme": "family-schools", "count": 6, "share": 1.9, "recent": 1, "recentPerMonth": 0.3, "earlier": 5, "earlierPerMonth": 0.6, "other": 0, "bySub": [["dubai", 6]], "byKind": { "question": 6 },
+      "examples": [
+        { "id": "ex09", "title": "School fees for two children on a developer salary?", "date": "2026-05-17", "url": "https://www.reddit.com/r/dubai/comments/ex09/example_school_fees/", "kind": "question" }
+      ] },
+    { "theme": "money-home", "count": 5, "share": 1.6, "recent": 2, "recentPerMonth": 0.7, "earlier": 3, "earlierPerMonth": 0.3, "other": 0, "bySub": [["developersIndia", 3], ["DubaiJobs", 2]], "byKind": { "question": 5 },
+      "examples": [
+        { "id": "ex10", "title": "Sending money home to India: which way costs least?", "date": "2026-10-12", "url": "https://www.reddit.com/r/developersIndia/comments/ex10/example_send_money_home/", "kind": "question" }
+      ] },
+    { "theme": "remote-work", "count": 4, "share": 1.3, "recent": 1, "recentPerMonth": 0.3, "earlier": 3, "earlierPerMonth": 0.3, "other": 0, "bySub": [["dubai", 4]], "byKind": { "question": 4 }, "examples": [] },
+    { "theme": "new-ai-layoffs", "count": 3, "share": 1, "recent": 3, "recentPerMonth": 1, "earlier": 0, "earlierPerMonth": 0, "other": 0, "bySub": [["DubaiJobs", 3]], "byKind": { "question": 3 }, "examples": [] },
+    { "theme": "employer-demand", "count": 22, "share": 7.1, "recent": 8, "recentPerMonth": 2.7, "earlier": 14, "earlierPerMonth": 1.6, "other": 0, "bySub": [["DubaiJobs", 22]], "byKind": { "hiring": 22 }, "examples": [] }
+  ],
+  "roles": [
+    { "value": "software engineer", "count": 74, "share": 23.9, "recent": 21, "recentPerMonth": 7, "earlier": 53, "earlierPerMonth": 5.9, "other": 2 },
+    { "value": "data", "count": 31, "share": 10, "recent": 9, "recentPerMonth": 3, "earlier": 22, "earlierPerMonth": 2.4, "other": 1 },
+    { "value": "devops / cloud", "count": 22, "share": 7.1, "recent": 6, "recentPerMonth": 2, "earlier": 16, "earlierPerMonth": 1.8, "other": 0 },
+    { "value": "product", "count": 11, "share": 3.5, "recent": 3, "recentPerMonth": 1, "earlier": 8, "earlierPerMonth": 0.9, "other": 0 },
+    { "value": "QA", "count": 7, "share": 2.3, "recent": 2, "recentPerMonth": 0.7, "earlier": 5, "earlierPerMonth": 0.6, "other": 0 }
+  ],
+  "cities": [
+    { "value": "Dubai", "count": 251, "share": 81, "recent": 66, "recentPerMonth": 22, "earlier": 185, "earlierPerMonth": 20.6, "other": 5 },
+    { "value": "Abu Dhabi", "count": 38, "share": 12.3, "recent": 10, "recentPerMonth": 3.3, "earlier": 28, "earlierPerMonth": 3.1, "other": 1 },
+    { "value": "Sharjah", "count": 12, "share": 3.9, "recent": 3, "recentPerMonth": 1, "earlier": 9, "earlierPerMonth": 1, "other": 0 }
+  ],
+  "origins": [
+    { "value": "India", "count": 96, "share": 31, "recent": 27, "recentPerMonth": 9, "earlier": 69, "earlierPerMonth": 7.7, "other": 2 },
+    { "value": "UK", "count": 29, "share": 9.4, "recent": 9, "recentPerMonth": 3, "earlier": 20, "earlierPerMonth": 2.2, "other": 1 },
+    { "value": "Pakistan", "count": 14, "share": 4.5, "recent": 4, "recentPerMonth": 1.3, "earlier": 10, "earlierPerMonth": 1.1, "other": 0 },
+    { "value": "Europe", "count": 9, "share": 2.9, "recent": 2, "recentPerMonth": 0.7, "earlier": 7, "earlierPerMonth": 0.8, "other": 0 }
+  ]
+}

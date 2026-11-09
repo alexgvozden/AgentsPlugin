@@ -1,0 +1,32 @@
+{
+  "about": "The codebook for reddit-product-ideas: the themes a tagger may give a post (slug, the label the report shows, what counts), the extra fields it fills in, and the kind rules the scripts use as a hint. Replace the example themes with the project's own; keep offTopic and the jobAds theme if the subject has job ads.",
+  "themes": [
+    { "slug": "how-to-start", "label": "Getting started", "counts": "where and how to begin, first steps, what to read first" },
+    { "slug": "cost", "label": "What it costs", "counts": "prices, budgets, \"is X worth it\", \"can I afford\"" },
+    { "slug": "compare-options", "label": "Comparing options", "counts": "A against B, alternatives, \"which one should I pick\"" },
+    { "slug": "trust-scams", "label": "Trust and scams", "counts": "is this legit, fake offers, fees, who to trust" },
+    { "slug": "rules-paperwork", "label": "Rules and paperwork", "counts": "laws, permits, documents, deadlines" },
+    { "slug": "decision", "label": "Should I do it?", "counts": "\"is it worth it\", quality of life, regrets, the decision itself" },
+    { "slug": "employer-demand", "label": "Job ads (employers)", "counts": "hiring posts only" },
+    { "slug": "off-topic", "label": "Off-topic", "counts": "not the subject, spam, unrelated" }
+  ],
+  "offTopic": "off-topic",
+  "jobAds": { "theme": "employer-demand", "kind": "hiring" },
+  "fields": {
+    "origin": "a country code (IN, GB, US, …) the poster comes from, or \"unknown\"",
+    "role": "a short normal form of the poster's job or role, if the subject has one",
+    "city": "the city or region the post names"
+  },
+  "kinds": [
+    { "kind": "hiring", "in": "all", "pattern": "\\[hiring\\]|\\bwe(?:'re| are) hiring\\b|\\bhiring\\s*:|\\bis hiring\\b|\\bvacanc(?:y|ies)\\b" },
+    { "kind": "seeking", "in": "all", "pattern": "\\[for hire\\]|\\blooking for (?:[\\w&/-]+ ){0,3}?(?:jobs?\\b|opportunit|roles?\\b)|\\bopen to work\\b|\\bseeking (?:[\\w&/-]+ ){0,3}?(?:jobs?|roles?|opportunit)|\\bmy (?:cv|resume)\\b" },
+    { "kind": "question", "in": "title", "pattern": "\\?|^\\s*(how|what|which|is|are|should|can|does|do|any|anyone|need advice)\\b" }
+  ],
+  "defaultKind": "other",
+  "groupBlurbs": {
+    "S": "New features, content areas and audiences.",
+    "U": "Things people need that the site has but hides or orders badly.",
+    "C": "Answers, FAQ, missing facts and wording; no change of flow."
+  },
+  "gateLabels": { "account": "Account gate", "pass": "Paid gate" }
+}

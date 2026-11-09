@@ -1,0 +1,183 @@
+{
+  "example": true,
+  "title": "What IT people ask before moving to Dubai",
+  "date": "2026-11-09",
+  "window": { "from": "2025-11-10", "to": "2026-11-08", "months": 12 },
+  "focus": ["Dubai", "India", "UK"],
+  "summary": {
+    "lines": [
+      "Example data: the posts, links and counts below are made up to show the layout of the report."
+    ],
+    "findings": [
+      "**Salary checks** lead by far: people want to know whether one offer is fair for their role and years.",
+      "Questions about **who sponsors the visa** almost doubled in the last three months.",
+      "Applicants from the UK and India say they get **no replies**, and do not know why."
+    ],
+    "first": ["U1", "S1"]
+  },
+  "ask": {
+    "top": 10,
+    "notes": {
+      "salary-benchmark": "Mostly one offer and one question: is this enough? Few ask about ranges in general.",
+      "no-replies": "Rising; often after dozens of applications from abroad."
+    },
+    "examples": {
+      "salary-benchmark": { "title": "Is AED 22k a month fair for a senior backend developer?", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex01/example_salary_senior_backend/", "date": "2026-10-28", "source": "r/DubaiJobs" },
+      "visa-sponsorship": { "title": "Do employers here sponsor the visa for a first job abroad?", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex03/example_visa_first_job/", "date": "2026-10-19", "source": "r/DubaiJobs" }
+    }
+  },
+  "themeLabels": {
+    "new-ai-layoffs": "AI and layoffs"
+  },
+  "clickTest": [
+    { "question": "Is AED 22k a fair salary for a senior developer?", "clicks": 2, "reached": true, "gate": null, "stuck": null, "path": ["Home", "Salaries", "Software engineer"], "shot": null },
+    { "question": "Who pays for my employment visa?", "clicks": 4, "reached": true, "gate": "account", "stuck": "The answer sits under **Visa** in the menu, behind the account gate.", "path": ["Home", "Menu", "Visa", "Employment visa"], "shot": null },
+    { "question": "Why do my applications get no replies?", "clicks": 6, "reached": false, "gate": null, "stuck": "No page answers it; the job board does not say how to apply from abroad.", "path": ["Home", "Jobs", "Job page", "Menu", "Guides", "Guides list"], "shot": null }
+  ],
+  "groups": {
+    "S": [
+      {
+        "id": "S1",
+        "title": "A visa sponsorship guide for each origin",
+        "level": "strong",
+        "evidence": {
+          "themes": ["visa-sponsorship"],
+          "count": 23, "onTopic": 310, "share": 7.4, "recentPerMonth": 3, "earlierPerMonth": 1.6,
+          "places": ["r/DubaiJobs", "r/developersIndia"],
+          "search": [{ "phrase": "dubai employment visa sponsorship", "volume": 1900, "source": "DataForSEO, October 2026" }],
+          "note": null
+        },
+        "examples": [
+          { "title": "Do employers here sponsor the visa for a first job abroad?", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex03/example_visa_first_job/", "date": "2026-10-19", "source": "r/DubaiJobs" },
+          { "title": "Moving from Bengaluru: who pays for the employment visa?", "url": "https://www.reddit.com/r/developersIndia/comments/ex04/example_who_pays_visa/", "date": "2026-08-30", "source": "r/developersIndia" }
+        ],
+        "today": "The visa page explains the types, but not who pays or what an employer must cover.",
+        "fits": "The site's goal is the decision to move; who pays for the visa changes the sums.",
+        "proposal": "Add a short section per origin (India, UK) on what the employer pays by law and what people pay in practice.",
+        "where": ["/dubai/visa", "src/app/(site)/dubai/visa/page.tsx"],
+        "effort": "M",
+        "planned": null
+      },
+      {
+        "id": "S2",
+        "title": "School costs in the family budget",
+        "level": "medium",
+        "evidence": {
+          "themes": ["family-schools"],
+          "count": 6, "onTopic": 310, "share": 1.9, "recentPerMonth": 0.3, "earlierPerMonth": 0.6,
+          "places": ["r/dubai"],
+          "search": [],
+          "note": null
+        },
+        "examples": [
+          { "title": "School fees for two children on a developer salary?", "url": "https://www.reddit.com/r/dubai/comments/ex09/example_school_fees/", "date": "2026-05-17", "source": "r/dubai" }
+        ],
+        "today": "The budget tool has rent and transport, but no school fees.",
+        "fits": "Families decide on the move by the total cost; fees are the largest line after rent.",
+        "proposal": "Add an optional school line to the budget, from a dated fee source.",
+        "where": ["/app/budget"],
+        "effort": "L",
+        "planned": "Mentioned in `.planning/BUILD-PLAN.md` as a later idea."
+      }
+    ],
+    "U": [
+      {
+        "id": "U1",
+        "title": "Put the salary check on the home page",
+        "level": "strong",
+        "evidence": {
+          "themes": ["salary-benchmark"],
+          "count": 41, "onTopic": 310, "share": 13.2, "recentPerMonth": 4.7, "earlierPerMonth": 3,
+          "places": ["r/DubaiJobs", "r/dubai"],
+          "search": [],
+          "note": "The click test reached it in 2 clicks, but only through the menu."
+        },
+        "examples": [
+          { "title": "Is AED 22k a month fair for a senior backend developer?", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex01/example_salary_senior_backend/", "date": "2026-10-28", "source": "r/DubaiJobs" },
+          { "title": "Offer of AED 15k for a data analyst with 4 years: low?", "url": "https://www.reddit.com/r/dubai/comments/ex02/example_data_analyst_offer/", "date": "2026-09-14", "source": "r/dubai" }
+        ],
+        "today": "The salary pages exist, but the home page leads with the check.",
+        "proposal": "Add a \"Is my offer fair?\" entry next to the check on the home page, opening the salary page for the role.",
+        "where": ["/", "src/app/(site)/page.tsx"],
+        "effort": "S",
+        "planned": null
+      },
+      {
+        "id": "U2",
+        "title": "Show how to apply from abroad on every job",
+        "level": "strong",
+        "evidence": {
+          "themes": ["no-replies"],
+          "count": 15, "onTopic": 310, "share": 4.8, "recentPerMonth": 2.3, "earlierPerMonth": 0.9,
+          "places": ["r/DubaiJobs", "expat.com"],
+          "search": [],
+          "note": null
+        },
+        "examples": [
+          { "title": "Applied to 80 jobs from the UK, not one reply. What am I doing wrong?", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex07/example_no_replies_uk/", "date": "2026-10-05", "source": "r/DubaiJobs" }
+        ],
+        "today": "Job pages link to the employer; the advice on applying from abroad is in a guide few find.",
+        "proposal": "Add a short, linked note on each job page: what employers expect from someone abroad.",
+        "where": ["/dubai/jobs/[slug]"],
+        "effort": "S",
+        "planned": null
+      }
+    ],
+    "C": [
+      {
+        "id": "C1",
+        "title": "Answer \"housing allowance or higher basic?\"",
+        "level": "medium",
+        "evidence": {
+          "themes": ["offer-evaluation"],
+          "count": 12, "onTopic": 310, "share": 3.9, "recentPerMonth": 1, "earlierPerMonth": 1,
+          "places": ["r/DubaiJobs", "r/dubai", "r/UAE"],
+          "search": [],
+          "note": null
+        },
+        "examples": [
+          { "title": "Offer with housing included or a higher basic: which is better?", "url": "https://www.reddit.com/r/DubaiJobs/comments/ex08/example_housing_or_basic/", "date": "2026-09-02", "source": "r/DubaiJobs" }
+        ],
+        "today": "The offer guide lists allowances but does not say why the basic matters for gratuity.",
+        "proposal": "Add a FAQ entry: the end-of-service gratuity follows the basic, so a higher basic is worth more over years.",
+        "where": ["/dubai/offer"],
+        "effort": "S",
+        "planned": null
+      },
+      {
+        "id": "C2",
+        "title": "A short answer on sending money home",
+        "level": "weak",
+        "evidence": {
+          "themes": ["money-home"],
+          "count": 5, "onTopic": 310, "share": 1.6, "recentPerMonth": 0.7, "earlierPerMonth": 0.3,
+          "places": ["r/developersIndia", "r/DubaiJobs"],
+          "search": [],
+          "note": null
+        },
+        "examples": [
+          { "title": "Sending money home to India: which way costs least?", "url": "https://www.reddit.com/r/developersIndia/comments/ex10/example_send_money_home/", "date": "2026-10-12", "source": "r/developersIndia" }
+        ],
+        "today": "Not covered.",
+        "proposal": "Add one FAQ entry to the money guide on the ways to send money home, without naming providers.",
+        "where": ["/dubai/money"],
+        "effort": "S",
+        "planned": null
+      }
+    ]
+  },
+  "covered": [
+    { "theme": "cost-of-living", "pages": ["/dubai/cost-of-living", "/app/budget"], "note": "The click test found it in 2 clicks; answers match what people ask." },
+    { "theme": "job-search-how", "pages": ["/dubai/jobs"], "note": null }
+  ],
+  "weak": [
+    { "text": "AI and layoffs: 3 posts, all recent; worth watching next time.", "links": [] },
+    { "text": "Remote work for a foreign employer while living in Dubai: 4 posts, off the site's goal.", "links": [] }
+  ],
+  "method": [
+    "Reddit through RSS and the public JSON, 12 months; expat forums through the web (example).",
+    "Every post tagged with the project's codebook (.claude/product-ideas/codebook.json); job ads kept apart from questions.",
+    "Counts from `tally.mjs`; levels: strong 15+ posts from 2+ places, medium 6–14, weak 3–5."
+  ],
+  "rerun": null
+}

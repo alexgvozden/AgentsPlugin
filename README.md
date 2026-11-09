@@ -21,7 +21,7 @@ I built this for four reasons:
 A private Claude Code plugin marketplace that packages the goal tooling so every
 machine and project gets the same skills, launcher, progress bar and global rules.
 
-Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with six
+Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with seven
 commands:
 
 - `/ag:goal-prompt` — turns a plan into one `/goal`.
@@ -33,6 +33,9 @@ commands:
   Fireworks model. The plugin also holds the `ext-build` launcher and its
   default `ext-build.json`.
 - `/ag:design` — plans a UI design and makes its images with Gemini or OpenAI.
+- `/ag:reddit-product-ideas` — finds what a site's audience asks on Reddit and
+  elsewhere and proposes improvements in an HTML report; config in the
+  project's `.claude/product-ideas/`.
 - `/goal-progress` — the goal progress bar and the tasks pane.
 
 ## What you get
@@ -64,6 +67,13 @@ Images come from `plugins/ag/scripts/design-image.ps1`. With `dry-run`, or if yo
 choose to go on without a key, it writes the plan and records the commands instead
 of making images. You can run `/ag:design` any time. A goal runs it first for a step that
 adds a new page or screen, and skips it for a minor change to an existing one.
+
+**The product-ideas skill.** `/ag:reddit-product-ideas` reads the project's
+`.claude/product-ideas/` (`sources.json`, `codebook.json`, `project.md`; with none,
+it drafts them from its templates and waits for your approval), fetches the posts
+politely, tags them with the codebook, counts them, runs a click test on the site,
+and writes `report.json` and `report.html` with a pick button on every proposal.
+It proposes only; it changes nothing on the site.
 
 **Missing keys are told to you.** Before it makes images, `/ag:design` checks the
 image key (no API call; the key is never shown). If it is not set, you get the

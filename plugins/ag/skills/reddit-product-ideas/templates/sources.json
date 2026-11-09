@@ -1,0 +1,27 @@
+{
+  "about": "Where reddit-product-ideas looks for this project. Filters are regular expressions matched on word boundaries against title + text, case-insensitive unless the entry starts with 'cs:'. Every filter gives each post a field '<name>Hits'. A subreddit's 'require' lists the filters a post must match to be kept; sitewide searches must match 'search_require' (default: every filter). Edit freely; the skill may add a subreddit for one run with --only or a copy of this file.",
+  "site": "https://example.com",
+  "window_months": 12,
+  "filters": {
+    "topic": [
+      "replace", "with", "the words", "that mark a post as on your subject", "cs:CaseSensitive"
+    ],
+    "place": [
+      "replace", "with", "the places", "your audience means"
+    ]
+  },
+  "search_require": ["topic", "place"],
+  "subreddits": [
+    { "name": "MainSubreddit", "require": ["topic"], "feeds": ["new", "top"], "queries": ["first query", "second query", "a OR b"] },
+    { "name": "PlaceSubreddit", "require": ["topic"], "feeds": ["top"], "queries": ["a query"] },
+    { "name": "TopicSubreddit", "require": ["place"], "feeds": [], "queries": ["a place name"] }
+  ],
+  "searches": [
+    "a sitewide search in the words people use",
+    "another sitewide search"
+  ],
+  "other_sites": [
+    "a forum or Q&A site where the same people ask (searched with WebSearch site:…)",
+    "out of scope: anything you never want read"
+  ]
+}
