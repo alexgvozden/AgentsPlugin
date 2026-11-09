@@ -12,6 +12,11 @@
 // shares. Other sources are counted in a column of their own, never merged with the Reddit counts.
 // "Recent" means the last --recent-months before the newest post in posts.jsonl (so a rerun on
 // the same data gives the same numbers); each period's per-month rate is shown so trends are fair.
+// Copies (the same post cross-posted to several subreddits, or posted again) are counted once:
+// same title when the title has 6 or more words, else same title and the same start of the text.
+// The oldest copy counts and keeps its tags; totals.duplicates says how many copies were left out.
+// Job ads (the codebook's jobAds theme) are kept apart from people's posts: they are not in
+// onTopic, the shares or the field counts; totals.jobAds and the "jobAds" block count them.
 // Writes <out>/tally.md and <out>/tally.json.
 
 import { parseArgs } from 'node:util';
@@ -82,16 +87,37 @@ if (unknown.length) console.warn(`warn: ${unknown.length} tag ids not in posts: 
 
 const cleanThemes = (themes) => [...new Set((Array.isArray(themes) ? themes : []).map((s) => String(s).trim()).filter((s) => s && s !== codebook.offTopic))];
 
+// Copies: one key per post; posts with the same key are one post.
+const norm = (s) => String(s ?? '').toLowerCase().replace(/https?:\S+/g, ' ').replace(/&#x200b;|x200b/g, ' ')
+  .replace(/submitted by .*$/s, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const copyKey = (p) => {
+  const t = norm(p.title);
+  return t.split(' ').length >= 6 ? `t:${t}` : `t:${t}|${norm(p.text).slice(0, 80)}`;
+};
+
 // Rows: one per tagged Reddit post.
-const rows = [];
+const allRows = [];
 for (const [id, t] of tags) {
   const p = postById.get(id);
-  rows.push({
+  allRows.push({
     id, sub: p.sub, url: p.url, title: p.title, date: (p.published ?? '').slice(0, 10), time: Date.parse(p.published),
-    kind: t.kind ?? p.kind, themes: cleanThemes(t.themes), ...Object.fromEntries(fieldNames.map((f) => [f, t[f]])),
+    kind: t.kind ?? p.kind, themes: cleanThemes(t.themes), key: copyKey(p),
+    ...Object.fromEntries(fieldNames.map((f) => [f, t[f]])),
   });
 }
-const onTopic = rows.filter((r) => r.themes.length);
+const groups = new Map();
+for (const r of allRows) (groups.get(r.key) ?? groups.set(r.key, []).get(r.key)).push(r);
+const rows = [];
+let duplicateGroups = 0;
+for (const g of groups.values()) {
+  g.sort((a, b) => (a.time || 0) - (b.time || 0) || (a.id < b.id ? -1 : 1));
+  if (g.length > 1) duplicateGroups++;
+  rows.push({ ...g[0], copies: g.length - 1 });
+}
+const adTheme = codebook.jobAds?.theme ?? null;
+const isAd = (r) => adTheme != null && r.themes.includes(adTheme);
+const adRows = rows.filter(isAd);
+const onTopic = rows.filter((r) => r.themes.length && !isAd(r));
 const otherRows = others.map((o) => ({ ...o, themes: cleanThemes(o.themes) }));
 
 // Periods: from the oldest post in the file to the newest; "recent" = the last N months of it.
@@ -139,9 +165,18 @@ const themes = [...themeNames].map((name) => {
     examples,
   };
 }).sort((a, b) => b.count - a.count || b.other - a.other || (a.theme < b.theme ? -1 : 1));
+// The job-ad theme stays in the list for the report, counted over the ads, with no share of people's posts.
+if (adTheme && adRows.length) {
+  themes.push({
+    theme: adTheme, ...stats(adRows, 0), share: null,
+    bySub: countBy(adRows, (r) => r.sub).slice(0, 3), byKind: countBy(adRows, (r) => r.kind),
+    examples: [...adRows].sort((a, b) => b.time - a.time || (a.id < b.id ? -1 : 1)).slice(0, 5)
+      .map((r) => ({ id: r.id, title: r.title, date: r.date, url: r.url, kind: r.kind })),
+  });
+}
 
 // Each field (role, city, origin, …): grouped case-insensitively, shown with the most common spelling.
-function dimension(field) {
+function dimension(field, list = onTopic, withOther = true) {
   const groups = new Map();
   const add = (val, isOther, row) => {
     if (val == null || String(val).trim() === '') return;
@@ -152,25 +187,34 @@ function dimension(field) {
     g.spellings.set(v, (g.spellings.get(v) ?? 0) + 1);
     if (isOther) g.other++; else g.rows.push(row);
   };
-  for (const r of onTopic) add(r[field], false, r);
-  for (const o of otherRows) if (o.themes.length) add(o[field], true, o);
+  for (const r of list) add(r[field], false, r);
+  if (withOther) for (const o of otherRows) if (o.themes.length && !(adTheme && o.themes.includes(adTheme))) add(o[field], true, o);
   return [...groups.values()].map((g) => ({
     value: [...g.spellings.entries()].sort(byName)[0][0],
-    ...stats(g.rows, g.other),
+    ...stats(g.rows, g.other), ...(list === onTopic ? {} : { share: pct(g.rows.length, list.length) }),
   })).sort((a, b) => b.count - a.count || b.other - a.other || (a.value < b.value ? -1 : 1));
 }
 const dims = fieldNames.map((f) => ({ field: f, title: title(f), values: dimension(f) }));
+const adDims = fieldNames.filter((f) => f !== 'origin').map((f) => ({ field: f, title: title(f), values: dimension(f, adRows, false) }));
+const jobAds = {
+  theme: adTheme, count: adRows.length,
+  ...Object.fromEntries(adDims.map((d) => [plural(d.field), d.values.map(({ value, count, share }) => ({ value, count, share }))])),
+};
 
 const untagged = posts.filter((p) => !tags.has(p.id)).map((p) => p.id);
 const dates = rows.map((r) => r.date).filter(Boolean).sort();
 const totals = {
   postsInFile: posts.length,
-  tagged: rows.length,
+  tagged: allRows.length,
+  duplicates: allRows.length - rows.length,
+  duplicateGroups,
+  counted: rows.length,
   untagged: untagged.length,
   untaggedIds: untagged.slice(0, 20),
   unknownTagIds: unknown,
   onTopic: onTopic.length,
-  offTopic: rows.length - onTopic.length,
+  jobAds: adRows.length,
+  offTopic: rows.length - onTopic.length - adRows.length,
   otherSources: otherRows.length,
   bySub: countBy(onTopic, (r) => r.sub),
   byKind: countBy(onTopic, (r) => r.kind),
@@ -182,7 +226,7 @@ const totals = {
 
 fs.mkdirSync(path.resolve(opt.out), { recursive: true });
 fs.writeFileSync(path.join(opt.out, 'tally.json'), `${JSON.stringify({
-  generatedAt: new Date().toISOString(), totals, themes,
+  generatedAt: new Date().toISOString(), totals, themes, jobAds,
   ...Object.fromEntries(dims.map((d) => [plural(d.field), d.values])),
   fields: dims.map((d) => ({ field: d.field, key: plural(d.field), title: d.title })),
 }, null, 2)}\n`);
@@ -196,7 +240,8 @@ const r1 = (x) => (x == null ? '–' : String(x));
 const md = [
   '# Tally',
   '',
-  `Posts in file: ${totals.postsInFile}; tagged: ${totals.tagged}; untagged: ${totals.untagged}${untagged.length ? ` (${totals.untaggedIds.join(', ')}${untagged.length > 20 ? ' …' : ''})` : ''}; on-topic: ${totals.onTopic}; off-topic: ${totals.offTopic}.`,
+  `Posts in file: ${totals.postsInFile}; tagged: ${totals.tagged}; untagged: ${totals.untagged}${untagged.length ? ` (${totals.untaggedIds.join(', ')}${untagged.length > 20 ? ' …' : ''})` : ''}; copies left out: ${totals.duplicates} (in ${totals.duplicateGroups} groups); counted: ${totals.counted}; on-topic: ${totals.onTopic}; job ads: ${totals.jobAds}; off-topic: ${totals.offTopic}.`,
+  "Shares are of on-topic posts (people's posts, job ads left out). A copy is the same post again or cross-posted; the oldest counts.",
   unknown.length ? `Tag ids not in posts (ignored): ${unknown.length}.` : '',
   `Other sources (separate column, not in the Reddit counts): ${totals.otherSources}.`,
   `On-topic by sub: ${pairs(totals.bySub) || '–'}`,
@@ -222,6 +267,10 @@ for (const { title: heading, values: list } of dims) {
   if (!list.length) { md.push('None tagged.', ''); continue; }
   md.push('| value | posts | share % | recent | /month | earlier | /month | other sources |', '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
   md.push(...list.map((d) => `| ${cell(d.value)} | ${d.count} | ${d.share} | ${d.recent} | ${r1(d.recentPerMonth)} | ${d.earlier} | ${r1(d.earlierPerMonth)} | ${d.other} |`), '');
+}
+if (adRows.length) {
+  md.push(`## Job ads (${adRows.length}, kept apart)`, '');
+  for (const d of adDims) md.push(`${d.title}: ${d.values.slice(0, 15).map((v) => `${v.value} ${v.count}`).join(', ') || '–'}`, '');
 }
 md.push('A "/month" of – means the period is shorter than half a month, too short for a rate.');
 fs.writeFileSync(path.join(opt.out, 'tally.md'), `${md.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n')}\n`);

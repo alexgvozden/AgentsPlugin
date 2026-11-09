@@ -151,6 +151,10 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/skills/reddit-product-ideas/scripts/tally.mjs" 
 
 If the list of untagged posts is not empty, tag them and run it again.
 
+The tally counts a post once, even when it was cross-posted or posted again: the same title (6 words or more), or the same short title and the same start of the text. The oldest copy counts, and `totals.duplicates` says how many copies were left out. Job ads (the codebook's `jobAds` theme) are not in `onTopic`, the shares or the field counts. They have their own block in `tally.json` (`jobAds`: count, roles, cities). Say both things once in the report's method note.
+
+"Recent" trends lean on the `new` feeds, which return the latest posts only, so recent months are sampled more densely than earlier ones. Read a rise in the per-month rate as a hint, not as growth, unless the `top` and search feeds show it too.
+
 ### 6. Coverage map (main thread)
 
 Write `RUN/coverage.md`. It has one row per theme and per field value (for example role, city) with 3 or more posts, in this order: theme, posts (tally), the page or pages that answer it (paths from `site.json`), then **coverage** and **prominence**.

@@ -336,7 +336,8 @@ const add = (id, tab, title, html, cls = '') => slides.push({ id, tab, title, ht
       <ol class="bars" aria-label="Themes by number of posts">${rows}</ol>
       <div class="theme-panels" aria-live="polite">${panels}</div>
     </div>
-    ${jobAds ? `<p class="muted">Job ads are kept apart from questions: ${plural(jobAds.count, 'post', 'posts')} tagged as ${esc(String(codebook.jobAds.theme).replace(/-/g, ' '))}.</p>` : ''}
+    ${jobAds ? `<p class="muted">Job ads are kept apart from questions: ${plural(jobAds.count, 'post', 'posts')} tagged as ${esc(String(codebook.jobAds.theme).replace(/-/g, ' '))}${(tally.jobAds?.roles ?? []).length ? `; most for ${tally.jobAds.roles.slice(0, 5).map((d) => `${esc(d.value)} (${num(d.count)})`).join(', ')}` : ''}.</p>` : ''}
+    ${totals.duplicates ? `<p class="muted small">${plural(totals.duplicates, 'copy', 'copies')} of the same post (cross-posts and reposts) are counted once.</p>` : ''}
     <div class="dims">${dimList.map((d) => dim(esc(d.title), tally[d.key])).join('')}</div>
     <p class="muted small">Counts from tally.json; a grey “+n” is threads from other sites.</p>`);
 }
