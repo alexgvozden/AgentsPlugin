@@ -21,7 +21,7 @@ I built this for four reasons:
 A private Claude Code plugin marketplace that packages the goal tooling so every
 machine and project gets the same skills, launcher, progress bar and global rules.
 
-Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with seven
+Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with eight
 commands:
 
 - `/ag:goal-prompt` — turns a plan into one `/goal`.
@@ -36,6 +36,8 @@ commands:
 - `/ag:reddit-product-ideas` — finds what a site's audience asks on Reddit and
   elsewhere and proposes improvements in an HTML report; config in the
   project's `.claude/product-ideas/`.
+- `/ag:fable-planning on|off` — per project, puts the planning in goal runs and
+  `/ag:design` on Fable 5.2 high instead of Opus 5.5 high. Off by default.
 - `/goal-progress` — the goal progress bar and the tasks pane.
 
 ## What you get
@@ -102,6 +104,16 @@ text changes, a subagent or a launcher run starts or ends, or the file is writte
 goal, status chips, a "Running now" card, and a timeline of every task and its
 steps.
 
+**Fable planning.** `/ag:fable-planning on` writes `"fablePlanning": true` into
+the project's `.claude/ag.json` (personal, not committed). Only the goal skills and
+`/ag:design` read it: a goal made while it is on sends its planning work (design
+plans, splitting or re-planning a large step, a builder's design question, each
+phase's plan) to Fable 5.2 high subagents. Ordinary chats, the goal's coordinating
+session, building, UI parts, reviews and failed steps stay as they are. `off`
+removes the key; `status` shows the state. A goal made before the change keeps what
+its plan says; make the goal again to switch it. To run the coordinating session on
+Fable too, type `/model claude-fable-5-2` before pasting the goal.
+
 **Global rules.** `rules/CLAUDE.global.md` holds the shared rules;
 `~/.claude/CLAUDE.md` imports it from this checkout, so a plugin update cannot
 change it.
@@ -114,6 +126,7 @@ rows marked with the skill's name. Opus and Sonnet mean Opus 5.5 and Sonnet 5.5.
 | Who or what | Model and effort | When |
 | --- | --- | --- |
 | Main thread: planning, architecture, product and design decisions, safety and money rules, briefs | Opus, high | Always (global rules) |
+| Planning in a goal run or `/ag:design` (design plans, splitting or re-planning a large step, a builder's design question, each phase's plan), with `/ag:fable-planning on` in the project | Fable 5.2, high | Only goals made in that project while it is on; ordinary chats and everything else in this table stay as they are |
 | Development: a subagent that writes code by an agreed plan | Opus, medium | Global rules; `goal-prompt` function parts; `goal-prompt-haiku` steps not on Haiku; `goal-prompt-sonnet` steps not on Sonnet |
 | Haiku builders (`goal-prompt-haiku`) | Haiku 5.5 | Well-described, clear coding steps: the plan names the files, the functions or behaviour and the checks; no open design question, UI design, security, money, personal data or shared-database migration. A handoff goes to a fresh Haiku builder; a failure goes to Opus high, never another Haiku try. Never copy |
 | Sonnet builders (`goal-prompt-sonnet`) | Sonnet 5.5 | The same clear coding steps as the Haiku builders. A handoff goes to a fresh Sonnet builder; a failure goes to Opus high, never another Sonnet try. Never copy |

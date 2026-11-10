@@ -3,9 +3,18 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
-## Unreleased
+## 1.6.0 - 2026-11-10
 
-- Docs only, the plugin is unchanged. New page
+- New command `/ag:fable-planning on|off|status`, per project, default off. It
+  writes `"fablePlanning": true` into the project's `.claude/ag.json`; `off`
+  removes the key. Only goal runs and `/ag:design` read it: with it on, the four
+  goal skills write into the plan's rule 8 and the runner that planning work
+  (splitting or re-planning a large step, a builder's design question, each
+  phase's plan) goes to a fresh Fable 5.2 high subagent, and `/ag:design` makes
+  its design plan on Fable 5.2 high. Ordinary chats, the coordinating session,
+  building, UI parts, reviews and failed steps are unchanged. Script
+  `scripts/fable-planning.ps1` with its self-test `fable-planning.test.ps1`.
+- Docs: new page
   [docs/benchmark.md](docs/benchmark.md): one real `/ag:goal-prompt-3rdparty`
   run, with charts of who did which tasks, tokens, cost per model, DeepSeek vs.
   Opus ratios and the Opus fixes. The README has a short Benchmark section with

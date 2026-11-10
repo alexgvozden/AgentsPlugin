@@ -13,7 +13,7 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
 ## Rules
 
 1. **Never ask for or accept a key in chat.** If the user pastes one, do not use, repeat or store it; tell them to set it in their own terminal with `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set <provider>` (macOS and Linux: `pwsh -File ~/.claude/ag/ag-key.ps1 set <provider>`). Never print or log a key.
-2. **The design plan is made at Opus high.** If this session is not on Opus at high effort, hand step 3 to a subagent with `model: "opus"`, `effort: "high"`, giving it the folder path and `brief.md`; it writes `design-plan.md` and the prompt files and reports in at most 10 lines.
+2. **The design plan is made at Opus high**, or at Fable 5.2 high when fable planning is on: the project's `.claude/ag.json` has `"fablePlanning": true` (set with `/ag:fable-planning on`; a missing file or key means off). If this session is not on that model at high effort, hand step 3 to a subagent with `model: "opus"` (or `"fable"` when fable planning is on), `effort: "high"`, giving it the folder path and `brief.md`; it writes `design-plan.md` and the prompt files and reports in at most 10 lines.
 3. **Design only what the input asks for.** No extra pages or features. Compact, the user's way of working first: typeahead and inline controls over long lists, no row per item where a field will do.
 4. **Images are drafts for review**, not final assets. A failed image call (exit 1) is reported, not retried in a loop.
 
@@ -21,7 +21,7 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
 
 1. **Folder.** `<yyyymmdd>` is today's date; `<slug>` is 2-5 lowercase words from the input joined by `-`. Make `design/<yyyymmdd>-<slug>/` with `prompts/` and `images/` in the project root (the git root if there is one, else the current folder). If it exists, add `-2`, `-3`.
 2. **`brief.md`.** The input exactly as given. If it came from a plan: the plan path and the line range (or step) used, and those lines quoted. Also the options (`provider`, `count`, `dry-run`).
-3. **`design-plan.md`** (at Opus high, rule 2), with these sections:
+3. **`design-plan.md`** (at Opus high, or Fable high with fable planning on; rule 2), with these sections:
    - **Pages**: each page or screen, its purpose and who uses it.
    - **States**: for each page, empty, loading, error and full; what the user sees and can do in each.
    - **Components**: shared parts (forms, lists, dialogs, nav) and where each is used.
