@@ -3,6 +3,17 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.7.0 - 2026-11-10
+
+- New command `/ag:plan`: makes a new plan or updates an existing one. The
+  planning runs on Fable 5.2 high when fable planning is on for the project
+  (`.claude/ag.json`), else Opus 5.5 high, in a subagent if the session is on
+  another model. An update keeps the plan's format and tracking place and never
+  changes finished steps; in a plan set up by a goal skill, new steps get `todo`
+  marks and the builder that skill's rule 4 gives them (Opus, Haiku, Sonnet or
+  Fireworks), and rule 8 follows the current fable planning setting. It runs
+  only when called as `/ag:plan`.
+
 ## 1.6.0 - 2026-11-10
 
 - New command `/ag:fable-planning on|off|status`, per project, default off. It
