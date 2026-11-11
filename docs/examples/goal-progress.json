@@ -27,8 +27,14 @@
       "id": "P2", "title": "Phase 2: search", "status": "doing",
       "steps": [
         { "id": "B1", "title": "Search screen", "status": "done", "engine": "opus-high", "tokens": 88000 },
-        { "id": "B2", "title": "Search API", "status": "doing", "engine": "fw:deepseek-v4p1-flash", "tokens": 64000 },
+        { "id": "B2", "title": "Search API", "status": "doing", "engine": "fw:deepseek-v4p1-flash", "tokens": 64000,
+          "steps": [
+            { "id": "B2a", "title": "Index recipes", "status": "done" },
+            { "id": "B2b", "title": "Query endpoint", "status": "doing" }
+          ]
+        },
         { "id": "B3", "title": "Filters by tag", "status": "todo" },
+        { "id": "B5", "title": "Search service key", "status": "needs-you", "note": "add SEARCH_KEY to .env" },
         { "id": "B4", "title": "Help page for search", "status": "todo", "engine": "opus-high" }
       ]
     }

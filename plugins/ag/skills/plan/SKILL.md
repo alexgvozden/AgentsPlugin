@@ -13,9 +13,9 @@ This skill writes one file: the plan. No code, no run folder, no goal.
 
 ## Rules
 
-1. **The planning model.** Read `.claude/ag.json` in the project root (the git root if there is one). If it has `"fablePlanning": true`, the planning runs on **Fable 5.2 high**; if the file or the key is missing, or it is `false`, on **Opus 5.5 high**. If this session is not on that model at high effort, hand step 2 to a fresh subagent with `model: "fable"` (or `"opus"`), `effort: "high"`, giving it this file's path (`${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md`), the plan path and the input; it reads the plan and the code by range, writes the plan file and reports in at most 10 lines (steps added or changed, open questions, research facts written). The main thread then does steps 3 and 4.
+1. **The planning model.** Read `.claude/ag.json` in the project root (the git root if there is one). If it has `"fablePlanning": true`, the planning runs on **Fable 5.2 high**; if the file or the key is missing, or it is `false`, on **Opus 5.5 high**. If this session is not on that model at high effort, hand step 2 to a fresh `ag:fable-planner` subagent (or `ag:opus-planner`), called with that `subagent_type` and no `model` parameter, so it runs pinned on Fable 5.2 (`claude-fable-5-2`) or Opus 5.5 (`claude-opus-5-5`) at high effort, giving it this file's path (`${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md`), the plan path and the input; it reads the plan and the code by range, writes the plan file and reports in at most 10 lines (steps added or changed, open questions, research facts written). The main thread then does steps 3 and 4.
 2. **Plan only what was asked.** No extra features, hardening, refactors, tooling or tests beyond what the input needs. A real gap is an open question with a default; ideas go to a "Later" section.
-3. **The plan is the only list.** Status lives in the plan: each step carries `todo`, `done <date>` or `blocked: <reason>`; each phase or gate `todo`, `shown <date>` or `done <date>`. No other task list, notes file or copy.
+3. **The plan is the only list.** Status lives in the plan: each step carries `todo`, `done <date>`, `waiting for you: <what>` (only the user can move it) or `blocked: <reason>`; each phase or gate `todo`, `shown <date>` or `done <date>`. No other task list, notes file or copy.
 4. **Done work stays as it is.** Never change a step marked `done` or a phase marked `shown` or `done`; a change to finished work is a new step. Steps already started (a branch or commits for them) change only if the user asks.
 5. **The plan holds the research.** Facts the steps need (API facts with URL and date, exact commands, the code to extend with `path:lines`, the inputs to keep) go into the plan, not into chat.
 
@@ -36,7 +36,7 @@ This skill writes one file: the plan. No code, no run folder, no goal.
 - **Goal:** one short paragraph, in the user's words where possible.
 - **Context:** the research facts (rule 5).
 - **Phases** in order, each with a `Status: todo` line; a phase that needs the user's sign-off before the next starts is a **gate** (say so in its title).
-- **Steps** in each phase: an id (`1.1`, `1.2`, ...), a title, the files and modules it touches, its acceptance (checks a builder can run: commands, tests by name, a screenshot of a named screen), size S, M or L, and `Status: todo`. A screen step names its UI part and its function part; a new page or screen says it gets a design first.
+- **Steps** in each phase, as headings one level below the phase: an id (`1.1`, `1.2`, ...), a title, the files and modules it touches, its acceptance (checks a builder can run: commands, tests by name, a screenshot of a named screen), size S, M or L, and `Status: todo`. A step with separate parts lists them as sub-steps one heading level deeper, ids `<id>a`, `<id>b` (or `<id>-ui`, `<id>-fn`), each with its own `Status: todo`; a step the user must do (their setup, a key, a decision) says so and is marked `waiting for you: <what>` once it is reached. A screen step names its UI part and its function part; a new page or screen says it gets a design first.
 - **Open questions** (each with a default) and **Later**.
 - An empty **Where the run stands** paragraph.
 - No "How this plan is run": a goal-prompt skill writes that when the plan is run.
@@ -53,7 +53,7 @@ This skill writes one file: the plan. No code, no run folder, no goal.
   - goal-prompt-haiku / -sonnet: a new step goes on that skill's list in rule 4 when it passes the test in the skill's principle 7 (the plan names its files, its functions or behaviour and its checks; no open design question, no UI design; no security, money, personal data or shared-database migration). Copy, UI parts, design and reviews never go on Haiku or Sonnet.
   - goal-prompt-3rdparty: a new step's function part goes to the Fireworks builder, except steps touching security, money, personal data or a shared-database migration, which join the steps kept on Claude (Opus medium), unless the section says all function work runs on Fireworks; UI parts at Opus high and copy on Claude, as rule 4 says.
   - A new page or screen gets a design step first (`/ag:design`, rule 8), unless the section says new pages get no design step.
-- **Rule 8** matches `.claude/ag.json` now: with fable planning on it has the Fable clause (planning work to a fresh subagent with `model: "fable"`, `effort: "high"`; copy the wording from rule 8 in `${CLAUDE_PLUGIN_ROOT}/skills/<that goal skill>/SKILL.md`); with it off, it has no Fable clause.
+- **Rule 8** matches `.claude/ag.json` now: with fable planning on it has the Fable clause (planning work to a fresh `ag:fable-planner` subagent, Fable 5.2 high; copy the wording from rule 8 in `${CLAUDE_PLUGIN_ROOT}/skills/<that goal skill>/SKILL.md`); with it off, it has no Fable clause.
 - Nothing else in the section changes.
 
 ### 3. Check

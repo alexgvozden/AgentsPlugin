@@ -1,14 +1,38 @@
 /**
  * `done`: built and on main, not released yet. `deployed`: its release is live.
  * `shown`: built and shown, waiting for the person's sign-off. All three count as done.
+ * `needs-you`: waiting for the person (their setup, a key, a decision); it does not count as done.
  */
-export type TaskStatus = 'todo' | 'doing' | 'done' | 'deployed' | 'shown' | 'waiting' | 'blocked' | 'skipped'
+export type TaskStatus = 'todo' | 'doing' | 'done' | 'deployed' | 'shown' | 'needs-you' | 'waiting' | 'blocked' | 'skipped'
 
-/** `tokens`: the tokens the step used, a whole number. `engine`: the model running it ("sonnet", "fw:glm-5p3-flash"). */
-export type GoalStep = { id: string; title: string; status: TaskStatus; note?: string; tokens?: number; engine?: string }
+/**
+ * A story (a step of an epic), or a subtask of a story in `steps`.
+ * `tokens`: the tokens it used, a whole number; with none of its own, the sum of its subtasks'.
+ * `engine`: the model running it ("sonnet", "fw:glm-5p3-flash").
+ * `statusText`: the status as written, when it was not one of the canonical words ("running").
+ */
+export type GoalStep = {
+  id: string
+  title: string
+  status: TaskStatus
+  note?: string
+  tokens?: number
+  engine?: string
+  statusText?: string
+  steps?: GoalStep[]
+}
 
-/** `tokens`: the task's own count, else the sum of its steps' counts when any step has one. */
-export type GoalTask = { id: string; title: string; status: TaskStatus; note?: string; tokens?: number; steps: GoalStep[] }
+/** An epic (a phase): its stories in `steps`. `tokens`: its own count, else the sum of its stories'. */
+export type GoalTask = {
+  id: string
+  title: string
+  status: TaskStatus
+  note?: string
+  tokens?: number
+  engine?: string
+  statusText?: string
+  steps: GoalStep[]
+}
 
 /**
  * Work going on right now, outside the steps: a deploy, a test suite, the builders.

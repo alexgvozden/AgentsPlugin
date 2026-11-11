@@ -11,7 +11,7 @@ Input: `$ARGUMENTS`: `on`, `off` or `status`. Empty means `status`. Anything els
 
 What it changes: one key, `"fablePlanning": true`, in the project's `.claude/ag.json` (personal, not committed), and nothing else. The project's model is not changed, so ordinary chats in the project are not affected.
 
-- **on**: the goal-prompt skills write into each new goal's plan that planning work goes to a fresh subagent with `model: "fable"`, `effort: "high"`, `/ag:design` makes its design plan and `/ag:plan` makes or updates a plan the same way.
+- **on**: the goal-prompt skills write into each new goal's plan that planning work goes to a fresh `ag:fable-planner` subagent, pinned to Fable 5.2 (`claude-fable-5-2`) at high effort, `/ag:design` makes its design plan and `/ag:plan` makes or updates a plan the same way.
 - **off** (the default): the key is removed (the file too, if nothing else is in it). Planning stays on Opus 5.5 high.
 
 ## Steps

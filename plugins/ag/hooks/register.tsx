@@ -1,9 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { GoalProgress, GoalStep, TaskStatus } from '../types'
+import type { GoalProgress, GoalStep, GoalTask, TaskStatus } from '../types'
 import type { Agent, PlanMark } from './progress'
-import { agentJobs, FILE, ago, bar, counts, current, engineLabel, fit, isOpen, keepLastGood, keepLastMarks, mergeAgents, mergePlan, onFireworks, orderedSteps, parseProgress, runningLines, shortTokens, STATUS_LABEL } from './progress'
+import { agentJobs, FILE, ago, bar, counts, current, currentStory, engineLabel, fit, isOpen, keepLastGood, keepLastMarks, layoutRow, mergeAgents, mergePlan, needsYouItems, onFireworks, orderedSteps, padCells, parseProgress, runningLines, shortTokens, STATUS_LABEL, storyTally, textWidth } from './progress'
 
 const progress = atom({ plugin: 'ag', key: 'progress' } as const, null)
 const isHidden = atom({ plugin: 'ag', key: 'isHidden' } as const, false)
@@ -167,8 +167,24 @@ const TRANSCRIPT_MIN = 40
 
 const tokensText = (n: number | undefined) => (n === undefined ? '' : shortTokens(n))
 
-/** The width of a task's tokens column: its widest step value; 0 when no step has tokens. */
-const tokensW = (steps: GoalStep[]) => Math.max(0, ...steps.map(s => cells(tokensText(s.tokens))))
+/** The width of a card's tokens column: its widest row value; 0 when no row has tokens. */
+const tokensW = (rows: CardRow[]) => Math.max(0, ...rows.map(r => cells(tokensText(r.s.tokens))))
+
+/** The indent before a subtask's id. */
+const SUB = '└ '
+
+/** One line of an epic's card: a story, or one of its subtasks (indented, dimmer). */
+type CardRow = { s: GoalStep; sub: boolean }
+
+/** An epic's card lines: each story in order, its subtasks right after it. */
+const cardRows = (t: GoalTask): CardRow[] =>
+  orderedSteps(t).flatMap(s => [{ s, sub: false }, ...(s.steps ?? []).map(c => ({ s: c, sub: true }))])
+
+/** A card's id column: its widest id, a subtask's with its indent, at most 12 cells. */
+const idWidth = (rows: CardRow[]) => Math.min(12, Math.max(0, ...rows.map(r => cells(r.sub ? SUB + r.s.id : r.s.id))))
+
+/** What a row writes after its title: its note, else a sign-off ask for a shown one. */
+const noteOf = (s: GoalStep) => s.note ?? (s.status === 'shown' ? 'needs your Approve' : '')
 
 /**
  * The body columns the pane asks for: wide enough for the step tables with their
@@ -179,9 +195,10 @@ function paneColumns(p: GoalProgress | null): number | undefined {
   const want = Math.max(
     0,
     ...p.tasks.map(t => {
-      const sidW = Math.min(10, Math.max(0, ...t.steps.map(s => cells(s.id))))
-      const noteW = Math.max(0, ...t.steps.map(s => cells(s.status === 'shown' ? 'needs your Approve' : (s.note ?? ''))))
-      const tokW = tokensW(t.steps)
+      const rows = cardRows(t)
+      const sidW = idWidth(rows)
+      const noteW = Math.max(0, ...rows.map(r => cells(noteOf(r.s))))
+      const tokW = tokensW(rows)
 
       return 6 + 2 + LABEL_W + 1 + sidW + 1 + TITLE_MIN + (noteW ? noteW + 2 : 0) + (tokW ? tokW + 2 : 0)
     }),
@@ -198,7 +215,7 @@ const openPane = async ($: EngineInterface) => {
   return $.ui.open({ id: PANE, title: PANE_TITLE, closeOnEscape: true, ...(columns ? { columns } : {}) })
 }
 
-const cells = (text: string) => Array.from(text).length
+const cells = textWidth
 
 type Look = { glyph: string; color?: string; dim?: boolean; bold?: boolean }
 
@@ -208,6 +225,7 @@ const LOOK: Record<TaskStatus, Look> = {
   shown: { glyph: '◆', color: 'yellow' },
   doing: { glyph: '●', color: 'cyan', bold: true },
   blocked: { glyph: '✕', color: 'red' },
+  'needs-you': { glyph: '!', color: 'yellow', bold: true },
   waiting: { glyph: '◷', color: 'yellow' },
   skipped: { glyph: '–', dim: true },
   todo: { glyph: '○', dim: true },
@@ -218,12 +236,18 @@ const MARK: Record<TaskStatus, string> = {
   deployed: '[D]',
   shown: '[s]',
   doing: '[>]',
+  'needs-you': '[?]',
   waiting: '[w]',
   blocked: '[!]',
   skipped: '[-]',
   todo: '[ ]',
 }
 
+
+/** The summary line's order. */
+const SUMMARY_ORDER: TaskStatus[] = ['done', 'deployed', 'doing', 'needs-you', 'shown', 'waiting', 'blocked', 'todo', 'skipped']
+/** Lines the "Needs you" card lists before "(+k more)". */
+const NEEDS_LINES = 5
 
 const tokensLine = (n: number | undefined) => (n === undefined ? '' : ` · ${shortTokens(n)} tokens`)
 
@@ -237,11 +261,15 @@ function listText(p: GoalProgress): string {
     ...(p.running.length > 0
       ? ['Running now:', ...p.running.map(j => `  ${j.kind}: ${j.title}${engineLabel(j.engine)}${j.note ? `, ${j.note}` : ''}`)]
       : []),
-    ...p.tasks.flatMap(t => [
-      `${MARK[t.status]} ${t.id} ${t.title}${t.note ? ` (${t.note})` : ''}${tokensLine(t.tokens)}`,
-      ...t.steps.map(s => `    ${MARK[s.status]} ${s.id} ${s.title}${engineLabel(s.engine)}${s.note ? ` (${s.note})` : ''}${tokensLine(s.tokens)}`),
-    ]),
+    ...p.tasks.flatMap(t => [listLine(t, 0), ...t.steps.flatMap(s => [listLine(s, 1), ...(s.steps ?? []).map(c => listLine(c, 2))])]),
   ].join('\n')
+}
+
+/** One line of the list: indent, mark, status label, id, title, engine, note and tokens. */
+function listLine(s: GoalStep, depth: number): string {
+  const title = `${s.id}${s.title ? ` ${s.title}` : ''}${engineLabel(s.engine)}`
+
+  return `${'    '.repeat(depth)}${MARK[s.status]} ${STATUS_LABEL[s.status]}: ${title}${s.note ? ` (${s.note})` : ''}${tokensLine(s.tokens)}`
 }
 
 type Seg = { text: string; color?: string; dim?: boolean }
@@ -249,7 +277,7 @@ type Seg = { text: string; color?: string; dim?: boolean }
 /** An engine label's tone: dim blue on Fireworks, dim grey on Claude. */
 const engineTone = (engine: string | undefined) => (onFireworks(engine) ? { color: 'blue', dimColor: true } : { dimColor: true })
 
-const width = (segs: Seg[]) => segs.reduce((n, s) => n + Array.from(s.text).length + 2, 0)
+const width = (segs: Seg[]) => segs.reduce((n, s) => n + textWidth(s.text) + 2, 0)
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -326,14 +354,17 @@ export const register: Register = on => {
     // One line: the bar and percentage, what runs right now, and the Tasks button.
     const jobs = runningLines(p, clock)
     const now = current(p)
+    const story = currentStory(p)
     const job = jobs[0]
     const what = job
       ? `${job.kind} ${job.text}${job.time ? ` · ${job.time}` : ''}${jobs.length > 1 ? ` (+${jobs.length - 1} more)` : ''}`
       : p.status === 'done'
         ? 'All tasks done'
-        : now
-          ? `${now.id} ${now.title}`
-          : p.status
+        : now && story
+          ? `${now.id} › ${story.id} ${story.title}`.trim()
+          : now
+            ? `${now.id} ${now.title}`.trim()
+            : p.status
     const head = `${bar(done, total, BAND_BAR)} ${pct}% `
     const warn = stale ? ` · updated ${ago(p.updated, clock)}` : ''
     const room = (termCols > 0 ? termCols : 100) - cells(head) - cells(warn) - BUTTON_W - 2
@@ -359,7 +390,7 @@ export const register: Register = on => {
 
     const now = current(p)
     const nowAt = now ? p.tasks.indexOf(now) : p.tasks.length
-    const idW = Math.min(12, Math.max(0, ...p.tasks.map(t => Array.from(t.id).length)))
+    const idW = Math.min(12, Math.max(0, ...p.tasks.map(t => textWidth(t.id))))
     const prefix = 2 + idW + 1
     const clock = await $.clock.now()
     const when = ago(p.updated, clock)
@@ -369,7 +400,7 @@ export const register: Register = on => {
       .join(' · ')
 
     const jobs = runningLines(p, clock)
-    const kindW = Math.min(8, Math.max(0, ...jobs.map(j => Array.from(j.kind).length)))
+    const kindW = Math.min(8, Math.max(0, ...jobs.map(j => textWidth(j.kind))))
     const jobInner = W - 4 - 2 - kindW - 1
     const running = jobs.length > 0 && (
       <Box flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={1} marginTop={1} width={W}>
@@ -379,13 +410,13 @@ export const register: Register = on => {
         {jobs.map((j, i) => {
           const time = j.time ?? ''
           const text = fit(j.text, Math.max(8, jobInner - (time ? time.length + 2 : 0)))
-          const pad = Math.max(0, jobInner - Array.from(text).length - time.length)
+          const pad = Math.max(0, jobInner - textWidth(text) - time.length)
           const lab = engineLabel(j.engine)
           const at = lab ? text.indexOf(lab) : -1
 
           return (
             <Box key={`job-${i}`}>
-              <Text color={kindColor(j.kind)}>▸ {fit(j.kind, kindW).padEnd(kindW)} </Text>
+              <Text color={kindColor(j.kind)}>▸ {padCells(fit(j.kind, kindW), kindW)} </Text>
               <Text>{at >= 0 ? text.slice(0, at) : text}</Text>
               {at >= 0 ? <Text {...engineTone(j.engine)}>{lab}</Text> : null}
               {at >= 0 ? <Text>{text.slice(at + lab.length)}</Text> : null}
@@ -406,44 +437,43 @@ export const register: Register = on => {
 
     /** Inside a step card: W - 2 for the rail, 2 for the border, 2 for the padding. */
     const inner = W - 6
-    const stepRow = (s: GoalStep, sidW: number, tokW: number, k: string) => {
+    const stepRow = (r: CardRow, sidW: number, tokW: number, k: string) => {
+      const s = r.s
       const look = LOOK[s.status]
-      const note = s.status === 'shown' ? 'needs your Approve' : (s.note ?? '')
-      const room = inner - 2 - labelW - 1 - sidW - 1 - (tokW ? tokW + 2 : 0)
-      const keep = note && room - cells(note) - 2 >= 10 ? note : ''
-      const lab = engineLabel(s.engine)
-      const title = fit(s.title, room - cells(lab) - (keep ? cells(keep) + 2 : 0))
-      const pad = Math.max(0, room - cells(title) - cells(lab) - (keep ? cells(keep) + 2 : 0))
-      const tone = s.status === 'doing' ? { color: 'cyan', bold: true } : look.dim ? { dimColor: true } : {}
-      const noteTone = s.status === 'shown' ? { color: 'yellow' } : s.status === 'doing' ? { color: 'cyan' } : s.status === 'blocked' ? { color: 'red' } : { dimColor: true }
+      const glyph = `${look.glyph} `
+      const label = `${STATUS_LABEL[s.status].padEnd(labelW)} `
+      const seg = layoutRow(
+        { lead: glyph + label, id: r.sub ? SUB + s.id : s.id, idW: sidW, title: s.title, engine: s.engine, note: noteOf(s), tokens: tokensText(s.tokens), tokW },
+        inner,
+      )
+      // A width too small for the columns puts the whole row in `lead`.
+      if (!seg.id && !seg.title && !seg.pad) {
+        return (
+          <Box key={k}>
+            <Text dimColor={r.sub || look.dim}>{seg.lead}</Text>
+          </Box>
+        )
+      }
+      const sub = r.sub ? { dimColor: true } : {}
+      const tone = s.status === 'doing' ? { color: 'cyan', bold: !r.sub } : look.dim || r.sub ? { dimColor: true } : {}
+      const noteTone = s.status === 'shown' || s.status === 'needs-you' ? { color: 'yellow' } : s.status === 'doing' ? { color: 'cyan' } : s.status === 'blocked' ? { color: 'red' } : { dimColor: true }
 
       return (
         <Box key={k}>
-          <Text color={look.color} dimColor={look.dim} bold={look.bold}>
-            {look.glyph}{' '}
+          <Text color={look.color} dimColor={look.dim || r.sub} bold={look.bold && !r.sub}>
+            {glyph}
           </Text>
-          <Text color={look.color ?? 'gray'} dimColor={look.dim}>
-            {STATUS_LABEL[s.status].padEnd(labelW)}{' '}
+          <Text color={look.color ?? 'gray'} dimColor={look.dim || r.sub}>
+            {label}
           </Text>
           <Text {...tone}>
-            {fit(s.id, sidW).padEnd(sidW)} {title}
+            {seg.id}
+            {seg.title}
           </Text>
-          {lab ? <Text {...engineTone(s.engine)}>{lab}</Text> : null}
-          {keep ? (
-            <Text {...noteTone}>
-              {' '.repeat(pad)}
-              {'  '}
-              {keep}
-            </Text>
-          ) : tokW ? (
-            <Text>{' '.repeat(pad)}</Text>
-          ) : null}
-          {tokW ? (
-            <Text dimColor>
-              {'  '}
-              {tokensText(s.tokens).padStart(tokW)}
-            </Text>
-          ) : null}
+          {seg.engine ? <Text {...engineTone(s.engine)}>{seg.engine}</Text> : null}
+          <Text>{seg.pad}</Text>
+          {seg.note ? <Text {...noteTone} {...sub}>{seg.note}</Text> : null}
+          {seg.tokens ? <Text dimColor>{seg.tokens}</Text> : null}
         </Box>
       )
     }
@@ -470,7 +500,7 @@ export const register: Register = on => {
           {look.glyph}{' '}
         </Text>,
         <Text {...tone}>
-          {fit(t.id, idW).padEnd(idW)} {title}
+          {padCells(fit(t.id, idW), idW)} {title}
         </Text>,
         <Text>{' '.repeat(pad)}</Text>,
         ...right.map(s => (
@@ -492,9 +522,10 @@ export const register: Register = on => {
         ),
       ]
       if (open) {
-        const sidW = Math.min(10, Math.max(0, ...t.steps.map(s => cells(s.id))))
-        const tokW = tokensW(t.steps)
-        const lines = orderedSteps(t).map((s, j) => stepRow(s, sidW, tokW, `step-${i}-${j}`))
+        const cr = cardRows(t)
+        const sidW = idWidth(cr)
+        const tokW = tokensW(cr)
+        const lines = cr.map((r, j) => stepRow(r, sidW, tokW, `step-${i}-${j}`))
         out.push(
           <Box key={`card-${i}`}>
             <Text dimColor>│ </Text>
@@ -520,6 +551,33 @@ export const register: Register = on => {
 
       return out
     })
+
+    // One line over the stories (an epic without stories counts as one), zeros left out.
+    const n = storyTally(p)
+    const summary = SUMMARY_ORDER.filter(s => n[s] > 0)
+      .map(s => `${LOOK[s].glyph} ${n[s]} ${STATUS_LABEL[s]}`)
+      .join(' · ')
+
+    // Everything that waits on the person, at any level.
+    const asks = needsYouItems(p)
+    const shownAsks = asks.slice(0, NEEDS_LINES)
+    const needsYou = asks.length > 0 && (
+      <Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1} marginTop={1} width={W}>
+        <Text bold color="yellow">
+          Needs you ({asks.length})
+        </Text>
+        {shownAsks.map((s, i) => {
+          const note = noteOf(s)
+
+          return (
+            <Text key={`ask-${i}`}>
+              {fit(`${LOOK[s.status].glyph} ${s.id}${s.title ? ` ${s.title}` : ''}${note ? ` — ${note}` : ''}`, W - 4)}
+            </Text>
+          )
+        })}
+        {asks.length > shownAsks.length ? <Text dimColor>{`(+${asks.length - shownAsks.length} more)`}</Text> : null}
+      </Box>
+    )
 
     const latest = p.log.slice(-LOG_LINES).reverse()
     const news = latest.length > 0 && (
@@ -561,6 +619,8 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Text bold>{fit(p.goal, W)}</Text>
+        {summary ? <Text dimColor>{fit(summary, W)}</Text> : null}
+        {needsYou}
         {running}
         {news}
         <Box flexDirection="column" marginTop={1}>

@@ -3,6 +3,37 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.8.0 - 2026-11-11
+
+- Planning is pinned to exact models. New plugin agents `ag:fable-planner`
+  (`claude-fable-5-2`, high effort) and `ag:opus-planner` (`claude-opus-5-5`,
+  high). With fable planning on, the goal skills, `/ag:design` and `/ag:plan`
+  hand planning to `ag:fable-planner` with no `model` parameter, so it runs on
+  Fable 5.2 and not whatever the `fable` alias points to.
+- The Goal tasks pane shows the plan in three levels, in plan order: phases
+  (epics), steps (stories or tasks) and a step's parts (subtasks: `4.1a`,
+  `4.1-ui`, or a heading one level deeper with its own `Status:` line). It reads
+  more plan formats: ids with a colon, a space or a dash after them (`UXB1:`,
+  `4.1 Title`, `fix 1 Title`), letter ids (`UXB`, `T5`), `- **Status:**` bullets,
+  and tracker cells with a part's status (`todo, 6.4a done`). A heading with no
+  `Status:` line no longer takes the last one's mark.
+- New status `needs-you` ("needs you"), from plan marks such as `waiting for you:
+  <what>`; `shown` now reads "to approve". A "Needs you" card lists both, and a
+  line of counts by status heads the pane. Status words such as `running`,
+  `built`, `released` or `on hold` read as in progress, done, deployed and
+  waiting instead of not started.
+- The plan's titles win over the progress file's, so a step never shows without
+  a title; step rows are laid out to the pane's width and no longer wrap.
+- A flat progress file from an older run (one task per step, `P4-review`,
+  `phase7`) is grouped under the plan's phases and steps.
+- New command `/ag:refresh-tasks [plan] [check]`, with the script
+  `scripts/refresh-tasks.ts` (Node 22.6+): shows the tree and what is out of
+  date, sets the plan's status marks from git, and rewrites the progress file in
+  the nested form (a `.bak` copy is kept).
+- The goal skills and `/ag:plan`: steps the user must do are marked `waiting for
+  you: <what>`, a step's parts are sub-steps with their own marks, and the
+  progress file never gets a task per plan step.
+
 ## 1.7.0 - 2026-11-10
 
 - New command `/ag:plan`: makes a new plan or updates an existing one. The

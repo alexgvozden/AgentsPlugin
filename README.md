@@ -40,6 +40,8 @@ commands:
   planning is on, else Opus 5.5 high; an update keeps the plan's goal setup.
 - `/ag:fable-planning on|off` — per project, puts the planning in goal runs,
   `/ag:design` and `/ag:plan` on Fable 5.2 high instead of Opus 5.5 high. Off by default.
+- `/ag:refresh-tasks` — brings the plan's status marks and the progress file up to
+  date when the tasks pane looks wrong, flat or behind.
 - `/goal-progress` — the goal progress bar and the tasks pane.
 
 ## What you get
@@ -103,14 +105,30 @@ and `.claude/goal-progress.json` in the project for the goal's status, notes, lo
 and other jobs (a deploy, a test suite). It moves within a second when the plan's
 text changes, a subagent or a launcher run starts or ends, or the file is written.
 `/goal-progress open` (or the `[ Tasks ▸ ]` button) opens the Goal tasks pane: the
-goal, status chips, a "Running now" card, and a timeline of every task and its
-steps.
+goal, a line of counts by status (done, deployed, in progress, needs you, to
+approve, waiting, not started), a "Needs you" card with what waits on you, a
+"Running now" card, and the plan in three levels in plan order: phases (epics),
+their steps (stories or tasks) and a step's parts (subtasks, `4.1a`, `4.1-ui`, or
+headings one level deeper with their own `Status:` line). It reads `Status:` lines
+in any common form (`Status: done`, `- **Status:** done`), ids such as `1.1`,
+`fix 1`, `UXB1` or `5A.3` with a dot, colon or space after them, and tracker
+tables; `running`, `built` or `released` read as in progress, done and deployed.
+
+**Refresh tasks.** `/ag:refresh-tasks` shows the tree and what is out of date
+(steps whose work is on main but still `todo`, phases finished but not closed,
+flat or unknown entries in the progress file, stale running jobs), sets the
+plan's status marks from git (status marks only, in one `plan: refresh status
+marks` commit), and rewrites `.claude/goal-progress.json` in the nested form,
+keeping a `.bak` copy. `/ag:refresh-tasks check` only reports.
 
 **Fable planning.** `/ag:fable-planning on` writes `"fablePlanning": true` into
 the project's `.claude/ag.json` (personal, not committed). Only the goal skills,
 `/ag:design` and `/ag:plan` read it: a goal made while it is on sends its planning work (design
 plans, splitting or re-planning a large step, a builder's design question, each
-phase's plan) to Fable 5.2 high subagents. Ordinary chats, the goal's coordinating
+phase's plan) to the plugin's `ag:fable-planner` agent, pinned to Fable 5.2
+(`claude-fable-5-2`) at high effort; with it off, `/ag:design` and `/ag:plan` use
+`ag:opus-planner` (`claude-opus-5-5`, high). Callers pass no `model` parameter, so
+the `fable` alias never picks another version. Ordinary chats, the goal's coordinating
 session, building, UI parts, reviews and failed steps stay as they are. `off`
 removes the key; `status` shows the state. A goal made before the change keeps what
 its plan says; make the goal again to switch it. To run the coordinating session on
@@ -391,7 +409,9 @@ description works too: `/ag:design a settings page with a plan picker and invoic
 
 **The progress file.** The goal writes `.claude/goal-progress.json` when it starts
 and keeps its status, notes and log up to date, in chat as in a `/goal` run. The
-steps and their marks come from the plan, so nobody keeps them by hand.
+steps and their marks come from the plan, so nobody keeps them by hand; the file
+holds only what the plan has no place for (a note, tokens, an engine), keyed by
+the plan's ids and nested as the plan nests them.
 [`docs/examples/goal-progress.json`](docs/examples/goal-progress.json) is a
 made-up run: two phases, steps with `engine` labels, a build and a test job
 running, and a short log. Copy it to `.claude/goal-progress.json` in any project
