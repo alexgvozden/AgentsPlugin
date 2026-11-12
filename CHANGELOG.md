@@ -3,6 +3,32 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.9.0 - 2026-11-12
+
+- Long jobs follow one checklist, `skills/plan/long-jobs.md`, used by
+  `/ag:plan` (new rule 6), the four goal skills (a new principle, rule 3 of "How
+  this plan is run", the progress file, and a check before handing over) and both
+  planner agents. It covers crawling, API fetches, imports, backfills and model
+  or LLM runs over many items:
+  - Fetching is kept apart from processing. Raw responses are kept untouched,
+    and processing reads only from them, so a new algorithm or a fix reruns
+    over the stored data without fetching again. Output records the version
+    that made it, and paid calls are cached by their input.
+  - A per-item work list with idempotent writes lets a rerun resume, and
+    `--only-failed` and `--reprocess` redo only what is needed.
+  - A sample batch of 20 to 50 items is checked against the step's acceptance
+    before the full run. Batches then take 5 to 15 minutes, each printing a
+    line of results. The full run goes to the background and shows as a `job`
+    in the tasks pane.
+  - Jobs retry with backoff and stop themselves when too many items fail.
+    Crawling follows robots.txt, rate limits and conditional requests.
+    Database backfills go by key range.
+  - No job runs over about 20 minutes without printed results. A plan step
+    with a long job lists its stages, sample batch, batch size, expected time,
+    error budget, and its resume, retry and reprocess commands.
+- `/ag:plan` proposes `/ag:goal-prompt-3rdparty` as the goal skill for a new
+  plan; `/ag:goal-prompt`, `-haiku` and `-sonnet` are listed as alternatives.
+
 ## 1.8.0 - 2026-11-11
 
 - Planning is pinned to exact models. New plugin agents `ag:fable-planner`

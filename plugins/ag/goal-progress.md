@@ -27,7 +27,7 @@ File format (written by the goal, in a plain chat as in a `/goal` run; see the g
 
     { "goal": "...", "plan": "path", "status": "running|waiting|blocked|done", "note": "short status",
       "updated": "ISO time",
-      "running": [{ "kind": "deploy|tests|build|review|...", "title": "Release 0.9.4", "since": "ISO time", "note": "optional" }],
+      "running": [{ "kind": "deploy|tests|build|review|job|...", "title": "Release 0.9.4", "since": "ISO time", "note": "optional" }],
       "log": [{ "at": "ISO time", "text": "Release 0.9.6 is deploying" }],
       "tasks": [{ "id": "S3", "title": "...", "status": "<status>", "note": "0.9.0 · Oct 19", "tokens": 240000,
                   "steps": [{ "id": "E9.15", "title": "...", "status": "<status>", "note": "0.9.0", "tokens": 12000,

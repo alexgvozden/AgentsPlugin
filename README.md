@@ -38,6 +38,7 @@ commands:
   project's `.claude/product-ideas/`.
 - `/ag:plan` — makes a new plan or updates one, on Fable 5.2 high when fable
   planning is on, else Opus 5.5 high; an update keeps the plan's goal setup.
+  Long jobs follow a batch and crawl checklist: raw data kept, resumable, early results.
 - `/ag:fable-planning on|off` — per project, puts the planning in goal runs,
   `/ag:design` and `/ag:plan` on Fable 5.2 high instead of Opus 5.5 high. Off by default.
 - `/ag:refresh-tasks` — brings the plan's status marks and the progress file up to
@@ -136,7 +137,16 @@ Fable too, type `/model claude-fable-5-2` before pasting the goal.
 
 **Plans.** `/ag:plan <what the plan is for>` writes a new plan (phases, gates,
 steps with files, acceptance and tests, each marked `todo`), ready for a goal
-skill. `/ag:plan <plan path> <what to add or change>` updates a plan in its own
+skill; it proposes `/ag:goal-prompt-3rdparty` first, with the other goal skills
+as alternatives. Long jobs (crawling, API fetches, imports, backfills, model or LLM runs over many
+items) follow one checklist, `plugins/ag/skills/plan/long-jobs.md`, used by
+`/ag:plan`, the goal skills and both planner agents: fetching apart from
+processing, with the raw data kept so a fix or a new algorithm reruns over it
+without fetching again; a per-item work list, so a rerun resumes and redoes only
+failed or outdated items; a 20 to 50 item sample checked before the full run,
+then batches of 5 to 15 minutes that each print a line of results; retries, an
+error budget that stops the job, polite rate-limited crawling, and the full run in
+the background. No job runs over about 20 minutes without printed results. `/ag:plan <plan path> <what to add or change>` updates a plan in its own
 format and tracking place, and never touches finished steps. In a plan set up by
 a goal skill it keeps that skill's way of running: new steps get `todo` marks
 where status already lives and the builder its rule 4 gives them (Opus, Haiku,
