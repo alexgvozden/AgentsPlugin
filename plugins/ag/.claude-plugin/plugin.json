@@ -1,6 +1,6 @@
 {
   "name": "ag",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "Goal tooling in one plugin: the goal-prompt skills, the Fireworks launcher, the goal-progress bar and tasks pane, /ag:refresh-tasks and the Reddit product-ideas research skill.",
   "author": {
     "name": "Aleksandar Gvozden"

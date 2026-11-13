@@ -48,8 +48,8 @@ commands:
 ## What you get
 
 **Four goal skills.** `/ag:goal-prompt` turns a plan file into one ready-to-paste
-`/goal` that carries out that plan, with light checks and printed evidence. It
-pauses only at sign-offs the plan asks for; re-run the same goal to continue.
+`/goal` that carries out that plan, with light checks and printed evidence. You paste it
+once: at a sign-off it asks you in the chat and goes on after your answer.
 `/ag:goal-prompt-haiku` does the same, but well-described, clear coding steps are
 built by Haiku subagents. `/ag:goal-prompt-sonnet` does the same with Sonnet
 subagents. `/ag:goal-prompt-3rdparty` does the same, but the function builders
@@ -276,8 +276,9 @@ step starts in its place. If the Opus high subagent fails too, the step is marke
 the whole test suite once (never as a gate), has the phase's diff reviewed at
 Opus high, fixes the findings or defers them with a reason, and makes the release
 if the plan has one. A phase without a sign-off is marked `done` and the run goes
-on. A phase with one is marked `shown`; the run asks you to sign off and stops.
-Paste the same `/goal` again to go on.
+on. A phase with one is marked `shown`; the run asks you to sign off in the chat,
+waits for your answer and goes on. It ends only when all is done, you answer
+"pause", or a step is blocked; then paste the same `/goal` again to go on.
 
 **The band follows it all.** The goal writes `.claude/goal-progress.json` with its
 status, note and log. The band reads the steps and their marks from the plan
@@ -399,8 +400,8 @@ path.
 ```
 
 The skill reads the plan, adds a `Status:` line to each step and prints one
-`/goal`. Paste that `/goal` to start the run. If it pauses at a
-sign-off, paste the same `/goal` again to go on. Add `model=<id>` to use another
+`/goal`. Paste that `/goal` to start the run. At a sign-off it asks
+you in the chat and goes on; after a pause, paste the same `/goal` again. Add `model=<id>` to use another
 Fireworks model for this plan.
 
 **Design a new page.** In Claude Code, in the project:

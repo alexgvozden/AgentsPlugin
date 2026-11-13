@@ -3,6 +3,19 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.9.2 - 2026-11-13
+
+- A goal is pasted once. The four goal skills no longer end the run at a
+  sign-off and tell the user to paste the same goal again. At a gate the run
+  sends a short summary and asks with AskUserQuestion (approved; approved with
+  notes or answers; changes; pause), waits for the answer inside the run, writes
+  it into the plan and goes on. A step only the user can move does not stop the
+  run either: the steps that do not wait on it go on, then it asks the same way.
+- The runner's "met when" now has three ends only: all done, paused by the
+  user's answer, or blocked. Pasting the same goal again resumes after a pause,
+  a block or in a new session. Rule 7 of "How this plan is run", the checks
+  before handing over, the output note and the README say the same.
+
 ## 1.9.1 - 2026-11-13
 
 Found on the marketing run: for 1.5 hours it planned phase PG and built PG1 in a
