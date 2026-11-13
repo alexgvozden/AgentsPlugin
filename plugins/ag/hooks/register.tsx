@@ -3,7 +3,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { GoalProgress, GoalStep, GoalTask, TaskStatus } from '../types'
 import type { Agent, PlanMark } from './progress'
-import { agentJobs, FILE, ago, bar, counts, current, currentStory, engineLabel, fit, isOpen, keepLastGood, keepLastMarks, layoutRow, mergeAgents, mergePlan, needsYouItems, onFireworks, orderedSteps, padCells, parseProgress, runningLines, shortTokens, STATUS_LABEL, storyTally, textWidth } from './progress'
+import { agentJobs, FILE, ago, bar, counts, current, currentStory, engineLabel, fit, isBehind, isOpen, keepLastGood, keepLastMarks, lastActivity, layoutRow, markRunning, mergeAgents, mergePlan, needsYouItems, onFireworks, orderedSteps, padCells, parseProgress, runningLines, shortTokens, STATUS_LABEL, storyTally, textWidth } from './progress'
 
 const progress = atom({ plugin: 'ag', key: 'progress' } as const, null)
 const isHidden = atom({ plugin: 'ag', key: 'isHidden' } as const, false)
@@ -14,7 +14,7 @@ const opened = atom({ plugin: 'ag', key: 'opened' } as const, {})
 /** The docs' own example for a value from outside the session polls once a second. */
 const POLL_MS = 1000
 const TICK_MS = 30_000
-/** "updated ... ago" turns yellow past this while the goal runs: the file may be behind. */
+/** "updated ... ago" turns yellow past this while the goal runs and nothing moved: the file may be behind. */
 const STALE_MS = 15 * 60_000
 /** The band's bar cells, and the room its Tasks button takes. */
 const BAND_BAR = 12
@@ -32,6 +32,14 @@ let lastPlanText = ''
 let marks: PlanMark[] = []
 /** The live subagents last drawn, as a signature, so an unchanged list redraws nothing. */
 let agentsSig = ''
+/**
+ * When this session last saw the progress file, the plan or its subagents change; 0 before
+ * any. The first read after a start or a reload is not a change, so a goal left for hours
+ * still reads as hours old.
+ */
+let seenAt = 0
+/** True while one of the session's subagents is pending, running or waiting. */
+let busy = false
 /** The file's own progress, before the plan and the session's subagents are merged in. */
 let raw: GoalProgress | null = null
 /** The terminal's columns, as the last drawing saw them; 0 before any. */
@@ -91,10 +99,11 @@ async function readAgents($: EngineInterface): Promise<Agent[]> {
  * running lines. The plan is read again only when its text changed; an empty or
  * half-written plan keeps the last good marks. True when what is drawn changed.
  */
-async function sync($: EngineInterface): Promise<boolean> {
+async function sync($: EngineInterface, now: number): Promise<boolean> {
   let changed = false
   const text = keepLastGood(await readFile($), last)
   if (text !== last) {
+    if (last) seenAt = now
     last = text
     raw = text ? parseProgress(text) : null
     changed = true
@@ -103,6 +112,7 @@ async function sync($: EngineInterface): Promise<boolean> {
   if (raw) {
     const planText = await readPlan($, name)
     if (name !== lastPlanName || planText !== lastPlanText) {
+      if (lastPlanText && name === lastPlanName) seenAt = now
       lastPlanName = name
       lastPlanText = planText
       marks = keepLastMarks(planText, marks)
@@ -110,12 +120,15 @@ async function sync($: EngineInterface): Promise<boolean> {
     }
   }
   const agents = await readAgents($)
-  const sig = JSON.stringify(agentJobs(agents))
+  const live = agentJobs(agents)
+  busy = live.length > 0
+  const sig = JSON.stringify(live)
   if (sig !== agentsSig) {
+    if (agentsSig) seenAt = now
     agentsSig = sig
     changed = true
   }
-  if (changed) await update($, progress, () => (raw ? mergeAgents(mergePlan(raw, marks), agents) : null))
+  if (changed) await update($, progress, () => (raw ? { ...markRunning(mergeAgents(mergePlan(raw, marks), agents)), updated: lastActivity(raw.updated, seenAt, raw) } : null))
 
   return changed
 }
@@ -135,7 +148,7 @@ async function refresh($: EngineInterface): Promise<void> {
     await update($, tick, n => n + 1)
     changed = true
   }
-  if (await sync($)) changed = true
+  if (await sync($, now)) changed = true
   // Writing the atom should redraw the sites that read it; ask for the redraw
   // as well, so the band and an open pane never wait for the next input.
   if (changed) $.ui.invalidate('ui.render')
@@ -155,8 +168,7 @@ const KIND_COLOR: Record<string, string> = { deploy: 'magenta', tests: 'blue', b
 
 const kindColor = (kind: string) => KIND_COLOR[kind] ?? 'gray'
 
-const isStale = (p: GoalProgress, now: number) =>
-  p.status === 'running' && !!p.updated && now - Date.parse(p.updated) >= STALE_MS
+const isStale = (p: GoalProgress, now: number) => isBehind(p, now, STALE_MS, busy)
 
 /** The status column: as wide as "not started". */
 const LABEL_W = 11

@@ -37,9 +37,10 @@ export type GoalTask = {
 /**
  * Work going on right now, outside the steps: a deploy, a test suite, the builders.
  * `kind` is free text; `deploy`, `tests`, `build` and `review` get their own color.
- * `since` (ISO time) shows how long it has been running.
+ * `since` (ISO time) shows how long it has been running. `step`: the plan step it works on,
+ * which then reads as in progress.
  */
-export type RunningJob = { kind: string; title: string; since?: string; note?: string; engine?: string }
+export type RunningJob = { kind: string; title: string; since?: string; note?: string; engine?: string; step?: string }
 
 /** One update the goal also gave in chat ("Release 0.9.6 is deploying"); `at` is an ISO time. */
 export type LogLine = { text: string; at?: string }

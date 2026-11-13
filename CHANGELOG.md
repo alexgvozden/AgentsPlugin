@@ -3,6 +3,28 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.9.1 - 2026-11-13
+
+Found on the marketing run: for 1.5 hours it planned phase PG and built PG1 in a
+worktree, in two parts, while the band said "updated 2h ago, may be behind" and
+the pane showed PG1 "not started".
+
+- "updated ... ago" and the pane's footer no longer read only the progress
+  file's `updated`. They show the last time anything moved: the file's
+  `updated`, its newest `log` time or `running` start, or later when the session
+  saw the file, the plan or its subagents change. "may be behind" shows only
+  when the goal runs, no subagent is running and nothing moved for 15 minutes.
+- A step a live subagent or a `running` job works on reads in progress (and its
+  phase too) while the plan still says `todo`: a step built in a worktree or in
+  parts marks itself only when it lands on main. The subagent's description
+  names the step ("PG1 UI part 2: screens and shots"), or the job's `step` does.
+- A `running` job written as `{step, what, started}` is read instead of dropped.
+- The four goal skills' "How this plan is run" rule 1 and progress-file notes:
+  `updated` and a `log` line when a step or part starts, a subagent ends and at
+  each commit; builder descriptions start with the step id; `running` jobs name
+  their `step`.
+- Six new tests.
+
 ## 1.9.0 - 2026-11-12
 
 - Long jobs follow one checklist, `skills/plan/long-jobs.md`, used by

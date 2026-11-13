@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Agent, PlanMark } from './progress'
-import { agentJobs, bar, counts, current, currentStory, fit, isOpen, keepLastGood, keepLastMarks, layoutRow, mergeAgents, mergePlan, needsYouItems, orderedSteps, padCells, parsePlanMarks, parseProgress, refreshProgress, runningLines, shortTokens, statusLine, statusWord, stepSummary, storyTally, textWidth } from './progress'
+import { agentJobs, bar, counts, current, currentStory, fit, isBehind, isOpen, keepLastGood, keepLastMarks, lastActivity, layoutRow, markRunning, mergeAgents, mergePlan, needsYouItems, orderedSteps, padCells, parsePlanMarks, parseProgress, refreshProgress, runningLines, shortTokens, statusLine, statusWord, stepSummary, storyTally, textWidth } from './progress'
 
 const FILE_TEXT = JSON.stringify({
   goal: 'A1 track 1',
@@ -704,4 +704,57 @@ test('fix ids match with or without a space: fix3 is fix 3', () => {
   expect(tree.map(t => t.id)).toEqual(['P4'])
   expect(tree[0]!.steps.map(s => s.status)).toEqual(['doing'])
   expect(findings.join('\n')).not.toContain('not in the plan')
+})
+
+test('"updated ... ago" follows the last change seen, not only the file time', () => {
+  const t0 = Date.parse('2026-11-13T08:00:00Z')
+  const hour = 3_600_000
+  expect(lastActivity('2026-11-13T08:00:00Z', 0)).toBe('2026-11-13T08:00:00Z')
+  expect(lastActivity('2026-11-13T08:00:00Z', t0 + 2 * hour)).toBe('2026-11-13T10:00:00.000Z')
+  expect(lastActivity('2026-11-13T08:00:00Z', t0 - hour)).toBe('2026-11-13T08:00:00Z')
+  expect(lastActivity(undefined, t0)).toBe('2026-11-13T08:00:00.000Z')
+  expect(lastActivity(undefined, 0)).toBeUndefined()
+})
+
+test('a running goal is behind only when nothing moved and no subagent runs', () => {
+  const p = parseProgress(JSON.stringify({ goal: 'g', status: 'running', updated: '2026-11-13T08:00:00Z', tasks: [] }))!
+  const now = Date.parse('2026-11-13T10:00:00Z')
+  const quarter = 15 * 60_000
+  expect(isBehind(p, now, quarter)).toBe(true)
+  expect(isBehind(p, now, quarter, true)).toBe(false)
+  expect(isBehind({ ...p, updated: lastActivity(p.updated, now - 60_000) }, now, quarter)).toBe(false)
+  expect(isBehind({ ...p, status: 'waiting' }, now, quarter)).toBe(false)
+  expect(isBehind({ ...p, updated: undefined }, now, quarter)).toBe(false)
+})
+
+const PG_PLAN = '### PG: One Calendar\nStatus: todo\n\n#### PG1: The screens\nStatus: todo\n\n#### PG2: Alex approves the screens\nStatus: todo\n'
+
+test('a running job written as step, what and started is read, not dropped', () => {
+  const p = parseProgress(JSON.stringify({ goal: 'g', status: 'running', tasks: [], running: [{ step: 'PG1', what: 'UI part 2', started: '2026-11-13T16:17:34Z' }] }))!
+  expect(p.running).toEqual([{ kind: 'other', title: 'UI part 2', since: '2026-11-13T16:17:34Z', step: 'PG1' }])
+})
+
+test('a step a live subagent works on reads in progress while the plan still says todo', () => {
+  const file = parseProgress(JSON.stringify({ goal: 'g', status: 'running', tasks: [] }))!
+  const merged = mergePlan(file, parsePlanMarks(PG_PLAN))
+  const agents: Agent[] = [{ description: 'PG1 UI part 2: screens and shots', status: 'running' }]
+  const p = markRunning(mergeAgents(merged, agents))
+  const pg = p.tasks.find(t => t.id === 'PG')!
+  expect(pg.status).toBe('doing')
+  expect(pg.steps.map(s => [s.id, s.status])).toEqual([['PG1', 'doing'], ['PG2', 'todo']])
+  expect(current(p)?.id).toBe('PG')
+})
+
+test('a running job names a step by its step field, and a bare number in a title names nothing', () => {
+  const merged = mergePlan(parseProgress('{"goal":"g","status":"running","tasks":[]}')!, parsePlanMarks(PG_PLAN))
+  const byStep = markRunning({ ...merged, running: [{ kind: 'other', title: 'screens', step: 'PG2' }] })
+  expect(byStep.tasks[0]!.steps.map(s => s.status)).toEqual(['todo', 'doing'])
+  const none = markRunning({ ...merged, running: [{ kind: 'agent', title: 'part 1 of 2' }] })
+  expect(none.tasks[0]!.status).toBe('todo')
+})
+
+test('"updated ... ago" takes the newest log line or job start when the file time lags', () => {
+  const p = parseProgress(JSON.stringify({ goal: 'g', status: 'running', updated: '2026-11-13T14:46:00Z', tasks: [], log: [{ at: '2026-11-13T15:56:00Z', text: 'PG planned' }], running: [{ title: 'x', since: '2026-11-13T15:00:00Z' }] }))!
+  expect(lastActivity(p.updated, 0, p)).toBe('2026-11-13T15:56:00.000Z')
+  expect(lastActivity(p.updated, Date.parse('2026-11-13T16:10:00Z'), p)).toBe('2026-11-13T16:10:00.000Z')
 })

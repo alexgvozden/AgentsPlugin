@@ -138,20 +138,33 @@ function parseEntry(s: Raw, i: number): GoalStep {
   })
 }
 
-/** The `running` list; a job with no title is dropped, one with no kind reads as "other". */
+/** The first of `keys` that holds text in `j`. */
+const firstText = (j: Raw, keys: string[]): string | undefined => keys.map(k => noteOf(j[k])).find(Boolean)?.trim()
+
+/**
+ * The `running` list. The title may be written as `title`, `what`, `task`, `text`,
+ * `description` or `name`; the start as `since`, `started`, `startedAt`, `start` or `at`;
+ * the plan step as `step` or `id`. A job with no title is dropped, one with no kind reads as "other".
+ */
 function parseRunning(v: unknown): RunningJob[] {
   if (!Array.isArray(v)) return []
 
-  return v
-    .filter(isObject)
-    .filter(j => noteOf(j.title))
-    .map(j => ({
-      kind: noteOf(j.kind)?.trim() ?? 'other',
-      title: String(j.title).trim(),
-      since: noteOf(j.since),
-      note: noteOf(j.note),
-      engine: engineOf(j.engine),
-    }))
+  return v.filter(isObject).flatMap(j => {
+    const step = firstText(j, ['step', 'id'])
+    const title = firstText(j, ['title', 'what', 'task', 'text', 'description', 'name']) ?? step
+    if (!title) return []
+
+    return [
+      clean({
+        kind: noteOf(j.kind)?.trim() ?? 'other',
+        title,
+        since: firstText(j, ['since', 'started', 'startedAt', 'start', 'at']),
+        note: noteOf(j.note),
+        engine: engineOf(j.engine),
+        step,
+      }) as RunningJob,
+    ]
+  })
 }
 
 /** The `log` list: each line a string or `{ text, at }`; empty ones are dropped. */
@@ -639,6 +652,44 @@ export function mergeAgents(p: GoalProgress, agents: Agent[]): GoalProgress {
   return jobs.length > 0 ? { ...p, running: [...p.running, ...jobs] } : p
 }
 
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** An id safe to look for inside a job's title: two characters or more, with a letter or a dot ("PG1", "4.1a"; not "1"). */
+const findable = (id: string) => id.length >= 2 && /[A-Za-z.]/.test(id)
+
+/** The plan ids a running job works on: its `step`, else the ids its title names as words. */
+function jobIds(j: RunningJob, ids: string[]): string[] {
+  if (j.step) return ids.filter(id => id.toLowerCase() === j.step!.toLowerCase())
+
+  return ids.filter(id => findable(id) && new RegExp(`(^|[^A-Za-z0-9.])${escapeRe(id)}($|[^A-Za-z0-9])`, 'i').test(j.title))
+}
+
+/**
+ * A step a running job or a live subagent works on reads `doing` while it runs, even when
+ * the plan still says `todo`: a step built in a worktree, or in parts, marks itself only
+ * when it lands on main. Its phase (and a parent step) then reads `doing` too, unless it
+ * has a mark of its own other than `todo`.
+ */
+export function markRunning(p: GoalProgress): GoalProgress {
+  if (p.running.length === 0) return p
+  const ids: string[] = []
+  const walk = (s: GoalStep) => {
+    ids.push(s.id)
+    s.steps?.forEach(walk)
+  }
+  p.tasks.forEach(walk)
+  const hit = new Set(p.running.flatMap(j => jobIds(j, ids)))
+  if (hit.size === 0) return p
+  const mark = <T extends GoalStep>(s: T): T => {
+    const steps = s.steps?.map(mark)
+    const busy = hit.has(s.id) || (steps ?? []).some(c => c.status === 'doing')
+
+    return { ...s, ...(steps ? { steps } : {}), ...(busy && s.status === 'todo' ? { status: 'doing' as TaskStatus } : {}) }
+  }
+
+  return { ...p, tasks: p.tasks.map(t => mark(t as GoalTask & GoalStep) as GoalTask) }
+}
+
 /** How long since `iso`, short: "40s", "12m", "1h 05m"; undefined when it is not a time. */
 export function elapsed(iso: string | undefined, now: number): string | undefined {
   if (!iso) return undefined
@@ -852,6 +903,35 @@ export function currentStory(p: GoalProgress): GoalStep | undefined {
   const epic = current(p)
 
   return epic ? firstBy(epic.steps, ['doing', 'needs-you', 'shown', 'waiting', 'blocked', 'todo']) : undefined
+}
+
+/**
+ * When the goal last moved, for "updated ... ago": the latest of the file's own `updated`,
+ * its newest `log` time and running job's start (when `p` is given), and `seenAt`, the last time this session saw the progress file, the plan or its subagents
+ * change (0 when it saw none). The main thread writes `updated` seldom; a step marked in
+ * the plan, a subagent started or ended, or a job's line in the file counts as well.
+ */
+export function lastActivity(updated: string | undefined, seenAt: number, p?: GoalProgress): string | undefined {
+  const times = [updated, ...(p?.log ?? []).map(l => l.at), ...(p?.running ?? []).map(j => j.since)]
+    .map(t => (t ? Date.parse(t) : Number.NaN))
+    .filter(t => !Number.isNaN(t))
+  if (seenAt > 0) times.push(seenAt)
+  if (times.length === 0) return updated
+  const at = Math.max(...times)
+  const own = updated ? Date.parse(updated) : Number.NaN
+
+  return own === at ? updated : new Date(at).toISOString()
+}
+
+/**
+ * True when a running goal may be behind: no live subagent (`busy`) and nothing moved
+ * for `staleMs` since `p.updated` (which the band sets to `lastActivity`).
+ */
+export function isBehind(p: GoalProgress, now: number, staleMs: number, busy = false): boolean {
+  if (p.status !== 'running' || busy || !p.updated) return false
+  const at = Date.parse(p.updated)
+
+  return !Number.isNaN(at) && now - at >= staleMs
 }
 
 export function ago(iso: string | undefined, now: number): string | undefined {
