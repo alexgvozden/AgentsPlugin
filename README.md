@@ -278,7 +278,9 @@ Opus high, fixes the findings or defers them with a reason, and makes the releas
 if the plan has one. A phase without a sign-off is marked `done` and the run goes
 on. A phase with one is marked `shown`; the run asks you to sign off in the chat,
 waits for your answer and goes on. It ends only when all is done, you answer
-"pause", or a step is blocked; then paste the same `/goal` again to go on.
+"pause" or decline the question, or a step is blocked; then paste the same
+`/goal` again to go on. A declined question is a pause: the run does not ask it
+again.
 
 **The band follows it all.** The goal writes `.claude/goal-progress.json` with its
 status, note and log. The band reads the steps and their marks from the plan
@@ -440,6 +442,21 @@ ext-build: S1 · accounts/fireworks/models/deepseek-v4p1-flash-1017 · 15 turns 
 These are drawn from the example file by the mod's own code: its band, its pane
 and its `/goal-progress` command, run under `claude plugin test` and laid out as
 a terminal would. To draw them again, run `node docs/render-screenshots.mjs`.
+
+## Tests
+
+Run both before a release:
+
+```sh
+claude plugin test plugins/ag          # the band and pane model (hooks/*.test.ts)
+node --test plugins/ag/tests/skills.test.mjs   # the goal skills' runner text
+```
+
+`claude plugin test` loads only code, with no file system, so the checks on the
+goal skills' text run under Node. They check that each runner fits 3,800
+characters, that its "met when" names every way a run can end (all done, a pause
+answered, a question declined with no text, blocked), that a declined question
+is never asked again, and that no runner ends the turn to wait.
 
 ![The progress band](docs/images/goal-progress-band.svg)
 

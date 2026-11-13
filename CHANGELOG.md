@@ -3,6 +3,28 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.9.3 - 2026-11-14
+
+Found on the findajobandrelocate run: the user declined a gate's AskUserQuestion
+twice with no text. That was neither an answer nor "pause", so none of the
+runner's three "met when" ends could hold; the Stop hook blocked every stop and
+the run asked the same questions again in a loop.
+
+- A question declined or dismissed with no text is now a pause, a met end: the
+  run sets progress "waiting", rewrites "Where the run stands" and ends, and it
+  never asks the same question again. A decline with text is the answer. The
+  runner's met condition, its Phases line, rule 7, the principle, the checks
+  before handing over, the description, the output note and the README say so
+  in all four goal skills.
+- New tests on the skills' text, `node --test plugins/ag/tests/skills.test.mjs`:
+  each runner fits 3,800 characters; its "met when" names every way a run can
+  end (all done, a pause answered, a question declined with no text, blocked);
+  every question has an end for a decline and is never asked again; no runner
+  ends the turn to wait or says to paste again after each gate; the four skills
+  share one met condition and one gate rule. They fail on 1.9.2 (13 of 21).
+  Until now the only tests covered the band's model, so nothing read the text
+  the skills hand out.
+
 ## 1.9.2 - 2026-11-13
 
 - A goal is pasted once. The four goal skills no longer end the run at a
