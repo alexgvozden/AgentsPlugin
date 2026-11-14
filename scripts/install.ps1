@@ -337,6 +337,20 @@ function Test-NeedsAgKey {
     ([System.IO.File]::ReadAllText($p) -cne (Get-AgKeyText))
 }
 
+# The review page entry point: plugins/ag/scripts/review-page-entry.ps1 with this checkout's path filled in.
+function Get-ReviewPagePath { Join-Path (Join-Path $ClaudeHome 'ag') 'review-page.ps1' }
+
+function Get-ReviewPageText {
+    $src = [System.IO.File]::ReadAllText((Join-Path $Checkout 'plugins/ag/scripts/review-page-entry.ps1'))
+    return $src.Replace("'__AG_CHECKOUT__'", "'" + $Checkout.Replace("'", "''") + "'")
+}
+
+function Test-NeedsReviewPage {
+    $p = Get-ReviewPagePath
+    (-not (Test-Path -LiteralPath $p -PathType Leaf)) -or
+    ([System.IO.File]::ReadAllText($p) -cne (Get-ReviewPageText))
+}
+
 function Test-AnythingToDo {
     (Test-NeedsStaleDrop) -or
     (Test-NeedsMarketplaceAdd) -or
@@ -350,7 +364,8 @@ function Test-AnythingToDo {
     (Test-NeedsBinMove) -or
     (Test-NeedsMove 'mods/goal-progress') -or
     (Test-NeedsClaudeMd) -or
-    (Test-NeedsAgKey)
+    (Test-NeedsAgKey) -or
+    (Test-NeedsReviewPage)
 }
 
 # --- settings.json is copied to the backup before anything can change it ----
@@ -507,4 +522,12 @@ Step ('write ' + (Get-AgKeyPath) + ' (key entry point)') {
 } {
     New-Dir (Split-Path -Parent (Get-AgKeyPath))
     [System.IO.File]::WriteAllText((Get-AgKeyPath), (Get-AgKeyText), (New-Object System.Text.UTF8Encoding($false)))
+}
+
+# --- the review page entry point, ~/.claude/ag/review-page.ps1, works from any folder ----
+Step ('write ' + (Get-ReviewPagePath) + ' (review page entry point)') {
+    Test-NeedsReviewPage
+} {
+    New-Dir (Split-Path -Parent (Get-ReviewPagePath))
+    [System.IO.File]::WriteAllText((Get-ReviewPagePath), (Get-ReviewPageText), (New-Object System.Text.UTF8Encoding($false)))
 }

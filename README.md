@@ -68,7 +68,9 @@ the project, `design/<yyyymmdd>-<slug>/`, meant to be committed so you can revie
   prompt per page or state, and the image commands it ran;
 - `prompts/` — one prompt file per page or state;
 - `images/` — the mockups, one folder per prompt;
-- `review.md` — a short checklist for your notes.
+- `review.md` — a short checklist for your notes;
+- `review.html` — every image on one page, with the checklist as numbered
+  questions. It opens in your browser; answer in the chat by number.
 
 Images come from `plugins/ag/scripts/design-image.ps1`. With `dry-run`, or if you
 choose to go on without a key, it writes the plan and records the commands instead
@@ -277,7 +279,9 @@ the whole test suite once (never as a gate), has the phase's diff reviewed at
 Opus high, fixes the findings or defers them with a reason, and makes the release
 if the plan has one. A phase without a sign-off is marked `done` and the run goes
 on. A phase with one is marked `shown`; the run asks you to sign off in the chat,
-waits for your answer and goes on. It ends only when all is done, you answer
+waits for your answer and goes on. What it asks you to look at (screenshots,
+design images, HTML pages, pages of the running app) opens in your browser on one
+review page, numbered as the questions (see [Review pages](#review-pages)). It ends only when all is done, you answer
 "pause" or decline the question, or a step is blocked; then paste the same
 `/goal` again to go on. A declined question is a pause: the run does not ask it
 again.
@@ -414,8 +418,8 @@ Fireworks model for this plan.
 
 The skill plans the pages and states of step S4, writes one image prompt per page
 or state, and makes the images with OpenAI. It prints the folder, for example
-`design/20261106-billing-settings-page/`, and its files. Open `images/` and fill
-in `review.md`. Without an OpenAI key it gives you the `ag-key.ps1 set openai`
+`design/20261106-billing-settings-page/`, and its files, and opens `review.html`
+in your browser. Answer in the chat by number, or fill in `review.md`. Without an OpenAI key it gives you the `ag-key.ps1 set openai`
 line to run in your own terminal; if you go on without the key, it makes no
 images and records the commands. A short
 description works too: `/ag:design a settings page with a plan picker and invoices`.
@@ -437,6 +441,35 @@ its report (at most 20 lines) and the path of its full log:
 ext-build: S1 · accounts/fireworks/models/deepseek-v4p1-flash-1017 · 15 turns · 412.3k in (380.1k cached) / 9.8k out · 6m10s · ok
 ```
 
+## Review pages
+
+Claude Code shows an image or an HTML file in the chat as a path or an `[image]`
+line you cannot click open. So whatever you are asked to look at goes on one
+page in your browser: the goal runs do it at a gate, after a fix and when a
+UI part has built or changed a screen, `/ag:design` does it for its images,
+and the global rules (`rules/CLAUDE.global.md`, "Previews and reviews") ask
+every chat to do it, frontend work included: screenshots of the built page
+plus the running app's URL, before you are asked to review it.
+
+```sh
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME/.claude/ag/review-page.ps1 -Title "Fix 14" "docs/review/fix14-hub-1440.png|Jobs hub, 1440" "docs/review/fix14-company-390.png|Company page, 390"
+```
+
+(macOS and Linux: `pwsh -File ~/.claude/ag/review-page.ps1 ...`.) Each item is an
+image, an HTML file or a URL, with an optional `|caption`. `-Spec <file.json>`
+adds an intro, what to look at in each item and numbered questions; the header of
+`plugins/ag/scripts/review-page.ps1` shows the format. The page is written to the
+system temp folder (`ag-review/`), so `git status` stays clean; `-Out` puts it
+elsewhere, and `-Link` links images by a relative path instead of embedding them.
+Images are embedded, so the page also opens on a phone. It numbers the items and
+the questions; you answer in the chat, for example "1 ok, 2: the heading is too
+long". HTML files and URLs open in their own tabs too.
+
+`~/.claude/ag/review-page.ps1` is a small entry point that `scripts/install.ps1`
+writes next to `ag-key.ps1`; it runs the newest installed `ag` that has the
+script, or this checkout. Run `scripts/install.ps1` once after updating to 1.9.4
+so it exists.
+
 ## Screenshots
 
 These are drawn from the example file by the mod's own code: its band, its pane
@@ -450,6 +483,13 @@ Run both before a release:
 ```sh
 claude plugin test plugins/ag          # the band and pane model (hooks/*.test.ts)
 node --test plugins/ag/tests/skills.test.mjs   # the goal skills' runner text
+```
+
+Each script under `plugins/ag/scripts/` with a `.test.ps1` beside it has its own
+self-test, for example:
+
+```sh
+powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/review-page.test.ps1
 ```
 
 `claude plugin test` loads only code, with no file system, so the checks on the

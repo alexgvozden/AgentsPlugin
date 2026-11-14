@@ -84,6 +84,42 @@ for (const name of SKILLS) {
   })
 }
 
+// Nov 14, 2026: a run printed "[image] docs/review/fix14-hub-1440.png" lines, which the user
+// cannot click open in Claude Code. What the user is to look at goes on one review page in the browser.
+for (const name of SKILLS) {
+  test(`${name}: rule 7 puts what the user looks at on a review page in the browser`, () => {
+    const r7 = rule7(read(name))
+    assert.ok(r7.includes('goes on one review page opened in their browser'), 'rule 7')
+    assert.ok(r7.includes('$HOME/.claude/ag/review-page.ps1 -Title'), 'rule 7 names the entry point')
+    assert.ok(r7.includes('at a gate, after a fix, or when a UI part has built or changed a screen'), 'rule 7 covers gates, fixes and frontend builds')
+    assert.ok(r7.includes('never only file paths or `[image]` lines'), 'rule 7')
+  })
+
+  // Nov 14, 2026: "I need this also when frontend builds something and is asking me to review it".
+  test(`${name}: the UI part shows a built screen on a review page`, () => {
+    const text = read(name)
+    const p6 = text.slice(text.indexOf('6. **UI is designed and built apart'), text.indexOf('\n', text.indexOf('6. **UI is designed and built apart')))
+    assert.ok(p6.includes("those screenshots (at the chosen widths) and the running app's URL go on a review page in the browser (rule 7)"), 'principle 6')
+  })
+}
+
+test('design writes review.html with the images and opens it', () => {
+  const text = read('design')
+  assert.ok(text.includes('scripts/review-page.ps1 -Spec <spec> -Out design/<yyyymmdd>-<slug>/review.html -Link'), 'step 6 command')
+  assert.ok(text.includes('called from a goal, add `-NoOpen`'), 'no browser tab mid-goal')
+  assert.ok(text.includes('not into the project'), 'the spec stays out of the project')
+  assert.ok(/answer in the chat by number/.test(text), 'end asks for answers by number')
+})
+
+test('review-page.ps1 and its entry point exist with the documented switches', () => {
+  const scripts = join(here, '..', 'scripts')
+  const page = readFileSync(join(scripts, 'review-page.ps1'), 'utf8')
+  for (const p of ['$Title', '$Intro', '$Spec', '$Out', '[switch]$Link', '[switch]$NoOpen', 'ValueFromRemainingArguments', 'PositionalBinding = $false'])
+    assert.ok(page.includes(p), `review-page.ps1 has ${p}`)
+  const entry = readFileSync(join(scripts, 'review-page-entry.ps1'), 'utf8')
+  assert.ok(entry.includes("'__AG_CHECKOUT__'") && !/^param\(/m.test(entry), 'entry: checkout token, no param block')
+})
+
 // 3rdparty's Phases line also names launcher runs, so only its gate part is compared.
 test('the four skills share one met condition and one gate rule', () => {
   const conds = SKILLS.map((n) => condition(runner(read(n))))

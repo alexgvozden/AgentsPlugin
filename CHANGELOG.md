@@ -3,6 +3,36 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.9.4 - 2026-11-14
+
+Found on the findajobandrelocate run: after a fix the run printed its screenshots
+as `[image] docs\review\revamp\fix14-hub-1440.png` lines, which cannot be
+clicked open in Claude Code, so the user had to ask each time to see them.
+
+- New `plugins/ag/scripts/review-page.ps1`: puts images, HTML files and URLs on
+  one numbered page with what to look at and the questions, and opens it in the
+  browser (HTML files and URLs in their own tabs too). Images are embedded, so
+  the page stands alone and reads on a phone; the page goes to the system temp
+  folder, so `git status` stays clean. `-Spec` takes a JSON spec, `-Link` links
+  images by relative path, `-NoOpen` only writes. Self-test:
+  `review-page.test.ps1` (27 checks).
+- `scripts/install.ps1` writes `~/.claude/ag/review-page.ps1`, an entry point
+  that runs the newest installed `ag` that has the script, else the checkout,
+  so rules and plan files can call it by a path that never changes.
+- Goal skills, rule 7: anything the run shows the user to look at, at a gate,
+  after a fix, or when a UI part has built or changed a screen and asks for a
+  review, goes on one review page opened in the browser, numbered as the
+  questions; never only file paths or `[image]` lines. Principle 6: the UI
+  part's screenshots and the running app's URL go on that page. The runners are
+  unchanged.
+- `/ag:design` writes `review.html` (images linked, the checklist as questions)
+  next to `review.md` and opens it; called from a goal it only writes it.
+- Global rules (`rules/CLAUDE.global.md`): a new "Previews and reviews" section
+  for every chat, frontend work included: after building or changing a page,
+  take screenshots and show them with the app's URL on a review page before
+  asking for a review. HTML reports are opened in the browser.
+- The skills' text tests check the new rule 7 and design wording.
+
 ## 1.9.3 - 2026-11-14
 
 Found on the findajobandrelocate run: the user declined a gate's AskUserQuestion

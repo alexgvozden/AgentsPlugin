@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Plan a UI design from a plan or a short description and make its images with Gemini or OpenAI, all in the project under design/<yyyymmdd>-<slug>/ (brief.md, design-plan.md, prompts/, images/, review.md), committed so the user can review it. The design plan (pages, states, components, copy, one image prompt per page or state) is made at Opus high. Images come from design-image.ps1; with dry-run or without an image key it records the -DryRun commands instead. Never asks for or accepts a key in chat. Use when the user asks for /ag:design, a design, mockups or design images for a page or feature, or when a goal step adds a new page."
+description: "Plan a UI design from a plan or a short description and make its images with Gemini or OpenAI, all in the project under design/<yyyymmdd>-<slug>/ (brief.md, design-plan.md, prompts/, images/, review.md, review.html), committed so the user can review it; review.html, with every image on one page, opens in the browser. The design plan (pages, states, components, copy, one image prompt per page or state) is made at Opus high. Images come from design-image.ps1; with dry-run or without an image key it records the -DryRun commands instead. Never asks for or accepts a key in chat. Use when the user asks for /ag:design, a design, mockups or design images for a page or feature, or when a goal step adds a new page."
 argument-hint: "<plan path [lines] | short description> [provider=gemini|openai] [count=<n>] [dry-run]"
 ---
 
@@ -8,7 +8,7 @@ argument-hint: "<plan path [lines] | short description> [provider=gemini|openai]
 
 Input: `$ARGUMENTS`: a plan path (optionally with a line range or step) or a short description, and optionally `provider=gemini|openai`, `count=<n>` (images per prompt, default 1) and `dry-run`. If empty, ask for a description or plan path (never for a key).
 
-Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug>/` with `brief.md`, `design-plan.md`, `prompts/`, `images/` and `review.md`. It is committed, for review. Nothing else is written.
+Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug>/` with `brief.md`, `design-plan.md`, `prompts/`, `images/`, `review.md` and `review.html` (when images were made). It is committed, for review; the review spec goes to the system temp folder. Nothing else is written.
 
 ## Rules
 
@@ -55,4 +55,9 @@ Folders this skill writes, in the current project only: `design/<yyyymmdd>-<slug
    - [ ] Copy: wording, tone, spelling
    - [ ] Images match the plan (or: images still to make, after a dry run)
    - Notes:
-6. **End** by printing the folder path and its files (one per line, `images/` included), and, after a dry run or exit 2, the `ag-key.ps1 set <provider>` line (step 4) for the user's terminal. Do not commit unless the user or the calling goal asks; the folder is meant to be committed for review.
+6. **`review.html`**, when images were made: the user cannot click images open from the chat, so they go on one page in the browser. Write a spec to the system temp folder (`<temp>/ag-review/design-<slug>.json`, not into the project): `title` "Design: <slug>", `intro` the brief in one or two lines, one item per image (`path` relative to the project root, `caption` `<page>-<state>`, `look` that state's line from **States**), and as `questions` the lines of `review.md` without their boxes. Then, from the project root:
+   ```
+   powershell -NoProfile -ExecutionPolicy Bypass -File ${CLAUDE_PLUGIN_ROOT}/scripts/review-page.ps1 -Spec <spec> -Out design/<yyyymmdd>-<slug>/review.html -Link [-NoOpen]
+   ```
+   (macOS and Linux: `pwsh -File`). `-Link` links the images by relative path, so the committed page stays small and works from the folder. It opens in the browser; called from a goal, add `-NoOpen` (the run shows the design on its own review page at the next gate). After a dry run there are no images and no `review.html`.
+7. **End** by printing the folder path and its files (one per line, `images/` included), the `review.html` line the script printed and its numbered list, and ask the user to answer in the chat by number. After a dry run or exit 2, print the `ag-key.ps1 set <provider>` line (step 4) for the user's terminal. Do not commit unless the user or the calling goal asks; the folder is meant to be committed for review.
