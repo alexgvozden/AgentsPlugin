@@ -451,24 +451,100 @@ and the global rules (`rules/CLAUDE.global.md`, "Previews and reviews") ask
 every chat to do it, frontend work included: screenshots of the built page
 plus the running app's URL, before you are asked to review it.
 
+Every page is built from one template,
+[`plugins/ag/templates/review/review.html`](plugins/ag/templates/review/review.html):
+
+- items stacked full width, with no scroll boxes inside the cards;
+- a full-screen image viewer with Fit, Width and 100%, drag to move, and ← → between images;
+- desktop and phone screenshots side by side, the phone in a phone frame, with an All, Desktop and Phone filter;
+- before and after, as a slider or side by side;
+- pick-one options with pros, cons and a Recommended badge;
+- wording tables (where, was, now);
+- links, and an "Open the app" button;
+- light and dark mode, following your system.
+
+You answer on the page. Click **✓ Looks good** or **✎ Change** on each item, pick
+an option, and add a note where you want one. The bar at the bottom collects your
+answers as numbered lines. **Copy answer** puts them on the clipboard; paste them
+in the chat:
+
+![Answers picked on a review page](docs/review-samples/screens/choice-answered.png)
+
+![Copy answer: the lines go to the clipboard](docs/review-samples/screens/copied.png)
+
+```text
+1 A: a bit more contrast on the button
+2 Yes
+3: the warm orange for the "Review" button
+```
+
+Each line reads `n ok`, `n: note`, or `n B` (an option or a yes/no), with an
+optional `: note` after it. You can still just type "1 ok, 2: the heading is too
+long" in the chat. Answers stay in the browser (localStorage), so a reload keeps
+them.
+
+| Desktop and phone | Before and after |
+| --- | --- |
+| ![Desktop and phone side by side](docs/review-samples/screens/responsive.png) | ![Before and after slider](docs/review-samples/screens/compare.png) |
+
+| The image viewer | On a phone |
+| --- | --- |
+| ![Full-screen image viewer](docs/review-samples/screens/viewer.png) | ![The review page at 390 wide](docs/review-samples/screens/on-phone.png) |
+
+The samples in [`docs/review-samples/`](docs/review-samples/) are working pages,
+built from a made-up app with `node docs/review-samples/build-samples.mjs`:
+
+- `desktop.html`: desktop only, with a wide and a very tall screenshot;
+- `responsive.html`: desktop and phone;
+- `compare.html`: before and after, plus a wording table;
+- `choice.html`: pick one of three directions;
+- `index.html`: links to the four samples above.
+
+Serve the folder (`python -m http.server` inside it) or open the files directly.
+
+### Making a page
+
 ```sh
 powershell -NoProfile -ExecutionPolicy Bypass -File $HOME/.claude/ag/review-page.ps1 -Title "Fix 14" "docs/review/fix14-hub-1440.png|Jobs hub, 1440" "docs/review/fix14-company-390.png|Company page, 390"
 ```
 
 (macOS and Linux: `pwsh -File ~/.claude/ag/review-page.ps1 ...`.) Each item is an
-image, an HTML file or a URL, with an optional `|caption`. `-Spec <file.json>`
-adds an intro, what to look at in each item and numbered questions; the header of
-`plugins/ag/scripts/review-page.ps1` shows the format. The page is written to the
-system temp folder (`ag-review/`), so `git status` stays clean; `-Out` puts it
-elsewhere, and `-Link` links images by a relative path instead of embedding them.
-Images are embedded, so the page also opens on a phone. It numbers the items and
-the questions; you answer in the chat, for example "1 ok, 2: the heading is too
-long". HTML files and URLs open in their own tabs too.
+image, an HTML file or a URL, with an optional `|caption`. An image under 600
+pixels wide goes in a phone frame. `-Spec <file.json>` gives the rest:
+
+- a summary, notes and the app's URL;
+- for each item: what to look at, desktop and phone shots, before and after, options, a wording table and links;
+- numbered questions, free text or with options and a recommended one.
+
+```json
+{ "title": "Fix 14: jobs hub", "project": "Shop",
+  "summary": "What changed, in two lines.", "notes": ["Desktop 1440", "Phone 390"],
+  "app": "http://localhost:3000/jobs",
+  "items": [
+    { "title": "Jobs hub", "tags": ["Step 3.2"], "look": ["The H1", "The filter row"],
+      "shots": [ { "src": "docs/review/hub-1440.png", "device": "desktop", "label": "1440x900" },
+                 { "src": "docs/review/hub-390.png",  "device": "phone",   "label": "390x844" } ] },
+    { "title": "Error box", "compare": { "before": { "src": "old.png", "label": "today" },
+                                         "after":  { "src": "new.png", "label": "Fix 14" } } },
+    { "title": "New wording", "copy": [ { "where": "Error title", "before": "ERR 12", "after": "Could not import" } ] } ],
+  "questions": [ { "q": "Keep the banner?", "options": ["Yes", "No"], "recommended": "Yes" },
+                 "Anything else?" ] }
+```
+
+The header of `plugins/ag/scripts/review-page.ps1` lists every field. The older
+simple specs (`path`, `url`, `caption`, `look`, `intro`) still work.
+
+- **Where the page goes.** It is written to the system temp folder (`ag-review/`),
+  so `git status` stays clean. `-Out` puts it elsewhere.
+- **Images.** They are embedded, so the page stands alone and opens on a phone.
+  `-Link` links them by a relative path instead.
+- **Opening.** HTML files and URLs given as items also open in their own tabs.
+  `-NoOpen` writes the page without opening anything.
 
 `~/.claude/ag/review-page.ps1` is a small entry point that `scripts/install.ps1`
-writes next to `ag-key.ps1`; it runs the newest installed `ag` that has the
-script, or this checkout. Run `scripts/install.ps1` once after updating to 1.9.4
-so it exists.
+writes next to `ag-key.ps1`. It runs the newest installed `ag` that has the
+script, or this checkout. Run `scripts/install.ps1` once after updating so that
+the entry point exists.
 
 ## Screenshots
 

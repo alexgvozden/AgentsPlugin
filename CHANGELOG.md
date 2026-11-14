@@ -3,6 +3,43 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.10.0 - 2026-11-14
+
+The first review pages were a grid of small cards with scroll bars inside them,
+and a zoom that opened in the same small square. Every review page is now built
+from one template.
+
+- New `plugins/ag/templates/review/review.html`, a self-contained page that
+  renders from a JSON spec put into its data block.
+  - Items are stacked full width, with no scroll boxes inside the cards; a tall
+    screenshot shows its top first and opens to its full length.
+  - Clicking an image opens a full-screen viewer: Fit, Width and 100%, drag to
+    move, and ← → between images.
+  - Desktop and phone screenshots sit side by side, the phone in a phone frame,
+    with an All, Desktop and Phone filter.
+  - Before and after works as a slider or side by side.
+  - Pick-one options have pros, cons and a Recommended badge.
+  - Wording tables show where, was and now.
+  - It has links, an "Open the app" button, numbered questions with options and
+    a recommended one, and light and dark mode.
+- An answer bar: clicking ✓ Looks good, ✎ Change, an option or a question's
+  answer collects numbered lines (`1 ok`, `2: note`, `3 B: note`). **Copy
+  answer** puts them on the clipboard to paste into the chat. Answers stay in
+  localStorage, so a reload keeps them.
+- `review-page.ps1` puts the spec into the template.
+  - Spec v2 fields: `summary`, `notes`, `app`, and per item `tags`, `shots`
+    (with `device`), `compare`, `options`, `copy`, `links`, `note`, `files`
+    and `answer: "none"`.
+  - Older specs and `path|caption` arguments still work.
+  - An image under 600 pixels wide goes in a phone frame.
+  - `</` and `<!--` are escaped, so no spec text can break the page.
+  - Self-test: `review-page.test.ps1` (43 checks).
+- Samples in `docs/review-samples/` (desktop only, desktop and phone, before and
+  after, pick one), built from a made-up app by `build-samples.mjs`. The README
+  shows them in screenshots under "Review pages".
+- Global rules, "Previews and reviews": the spec's new parts, the samples, and
+  the lines that Copy answer gives.
+
 ## 1.9.4 - 2026-11-14
 
 Found on the findajobandrelocate run: after a fix the run printed its screenshots

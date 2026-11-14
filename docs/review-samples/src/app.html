@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Northwind Ops (sample app for review-page screenshots)</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--acc:#0f766e;--acc2:#ccfbf1;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2}
+body.dirB{--bg:#0b1220;--card:#111a2e;--ink:#e2e8f0;--muted:#94a3b8;--line:#1e293b;--acc:#38bdf8;--acc2:#0c4a6e}
+body.dirC{--bg:#fffaf3;--card:#fff;--ink:#292524;--muted:#78716c;--line:#e7e5e4;--acc:#c2410c;--acc2:#ffedd5}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:28px;padding:14px 32px;background:var(--card);border-bottom:1px solid var(--line)}
+.logo{font-weight:800;font-size:18px;letter-spacing:-.02em}.logo b{color:var(--acc)}
+nav{display:flex;gap:20px;color:var(--muted);font-size:14px}nav a.on{color:var(--ink);font-weight:600;border-bottom:2px solid var(--acc);padding-bottom:12px;margin-bottom:-15px}
+.sp{flex:1}.avatar{width:32px;height:32px;border-radius:50%;background:var(--acc2);color:var(--acc);display:grid;place-items:center;font-weight:700;font-size:13px}
+main{max-width:1280px;margin:0 auto;padding:28px 32px 60px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}.sub{color:var(--muted);margin:0 0 24px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}.kpi small{color:var(--muted);font-size:13px}.kpi div{font-size:28px;font-weight:700;letter-spacing:-.02em}.kpi em{font-style:normal;font-size:12px;color:var(--acc)}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.panel h2{font-size:15px;margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:8px 6px;border-bottom:1px solid var(--line)}td{padding:11px 6px;border-bottom:1px solid var(--line)}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--acc2);color:var(--acc)}.tag.w{background:var(--warnbg);color:var(--warn)}.tag.b{background:var(--badbg);color:var(--bad)}
+.err{border:1px solid #fecaca;background:#fff1f2;border-radius:10px;padding:12px 14px;color:#7f1d1d;font-size:14px;margin-bottom:16px}
+.err.old{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#991b1b}
+.err b{display:block;margin-bottom:2px}.err a{color:#b91c1c;font-weight:600}
+.btn{display:inline-block;background:var(--acc);color:#fff;border-radius:8px;padding:8px 14px;font-weight:600;font-size:14px}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}.empty .ic{width:64px;height:64px;border-radius:16px;background:var(--acc2);margin:0 auto 16px}
+.feed li{margin-bottom:12px;font-size:14px}.feed{padding-left:18px;margin:0}.feed span{color:var(--muted);font-size:12px;display:block}
+.hero{border-radius:16px;padding:40px;margin-bottom:24px;background:linear-gradient(120deg,var(--acc2),var(--card));border:1px solid var(--line)}
+.hero h1{font-size:34px}.dirB .hero{background:linear-gradient(120deg,#0c4a6e,#111a2e)}.dirC .hero{background:var(--acc);color:#fff}.dirC .hero .sub{color:#ffedd5}.dirC .hero .btn{background:#fff;color:var(--acc)}
+.long section{margin-bottom:20px}.field{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}.field span{color:var(--muted)}
+@media (max-width:640px){
+ header{padding:12px 16px;gap:12px}nav{display:none}main{padding:18px 16px 40px}h1{font-size:22px}.hero{padding:22px}.hero h1{font-size:24px}
+ .kpis{grid-template-columns:1fr 1fr;gap:10px}.kpi div{font-size:22px}.grid{grid-template-columns:1fr}
+ table thead{display:none}table tr{display:grid;grid-template-columns:1fr auto;padding:10px 0;border-bottom:1px solid var(--line)}table td{border:0;padding:2px 0}table td:nth-child(3),table td:nth-child(4){color:var(--muted);font-size:13px}
+}
+</style>
+</head>
+<body>
+<header><div class="logo">North<b>wind</b> Ops</div><nav><a class="on">Orders</a><a>Shipments</a><a>Suppliers</a><a>Reports</a></nav><div class="sp"></div><div class="avatar">JR</div></header>
+<main id="m"></main>
+<script>
+const v = (location.hash || '#dash').slice(1);
+if (v.startsWith('dir')) document.body.classList.add(v);
+const rows = [['#10482','Harbor Foods','Today, 09:14','$4,210','Shipped',''],['#10481','Kestrel Labs','Today, 08:52','$918','Import error','b'],['#10480','Alder & Finch','Yesterday','$12,400','Awaiting stock','w'],['#10479','Mosswood Cafe','Yesterday','$342','Shipped',''],['#10478','Pinecrest Clinic','Nov 12','$2,760','Shipped',''],['#10477','Orbit Bikes','Nov 12','$7,115','Awaiting stock','w'],['#10476','Saltmarsh Co.','Nov 11','$1,080','Shipped','']];
+const table = `<table><thead><tr><th>Order</th><th>Customer</th><th>Placed</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="tag ${r[5]}">${r[4]}</span></td></tr>`).join('')}</tbody></table>`;
+const kpis = `<div class="kpis"><div class="kpi"><small>Open orders</small><div>128</div><em>+12 this week</em></div><div class="kpi"><small>Shipped today</small><div>41</div><em>on track</em></div><div class="kpi"><small>Awaiting stock</small><div>9</div><em>2 over 5 days</em></div><div class="kpi"><small>Revenue (Nov)</small><div>$184k</div><em>+8% vs Oct</em></div></div>`;
+const feed = `<div class="panel"><h2>Activity</h2><ul class="feed"><li>Order #10482 shipped by DHL<span>9:31 · Jana R.</span></li><li>Supplier Orbit confirmed restock<span>9:02 · system</span></li><li>Import of #10481 failed<span>8:53 · system</span></li><li>Price list updated<span>Yesterday · Tom K.</span></li></ul></div>`;
+const errNew = `<div class="err"><b>One order could not be imported</b>Order #10481 from Kestrel Labs has no delivery address. Add the address in the shop, then <a>import again</a>.</div>`;
+const errOld = `<div class="err old">ImportError: field 'shipping_address' is null (order_id=10481, src=shopify, code=E_ADDR_NULL)</div>`;
+const pages = {
+  dash: `<h1>Orders</h1><p class="sub">Thursday, Nov 14 · all warehouses</p>${errNew}${kpis}<div class="grid"><div class="panel"><h2>Latest orders</h2>${table}</div>${feed}</div>`,
+  before: `<h1>Orders</h1><p class="sub">Thursday, Nov 14 · all warehouses</p>${errOld}${kpis}<div class="grid"><div class="panel"><h2>Latest orders</h2>${table}</div>${feed}</div>`,
+  empty: `<h1>Orders</h1><p class="sub">Thursday, Nov 14 · all warehouses</p><div class="panel empty"><div class="ic"></div><h2>No orders yet</h2><p>Connect your shop and new orders show up here within a minute.</p><span class="btn">Connect a shop</span></div>`,
+  settings: `<h1>Warehouse settings</h1><p class="sub">Main warehouse · Rotterdam</p><div class="long">${['General','Opening hours','Carriers','Packing rules','Returns','Notifications','Team'].map(s=>`<section class="panel"><h2>${s}</h2>${['Name','Contact','Default carrier','Cut-off time','Label size'].map(f=>`<div class="field">${f}<span>Set</span></div>`).join('')}</section>`).join('')}</div>`,
+};
+const hero = `<div class="hero"><h1>Good morning, Jana</h1><p class="sub">41 orders shipped today. 9 wait for stock.</p><span class="btn">Review waiting orders</span></div>`;
+document.getElementById('m').innerHTML = v.startsWith('dir') ? hero + kpis + `<div class="grid"><div class="panel"><h2>Latest orders</h2>${table}</div>${feed}</div>` : pages[v];
+</script>
+</body>
+</html>

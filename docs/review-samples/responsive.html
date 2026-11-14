@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="generator" content="ag review-page 2 (draft)">
+<title>Review</title>
+<style>
+:root{
+  --bg:#f4f5f7;--card:#fff;--ink:#111827;--muted:#6b7280;--soft:#9ca3af;--line:#e5e7eb;--line2:#d1d5db;
+  --acc:#2563eb;--acc-bg:#eff6ff;--ok:#047857;--ok-bg:#ecfdf5;--chg:#b45309;--chg-bg:#fffbeb;--pick:#6d28d9;--pick-bg:#f5f3ff;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);--r:14px;
+  --mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1117;--card:#161b22;--ink:#e6edf3;--muted:#9da7b3;--soft:#6e7681;--line:#262c36;--line2:#363d48;
+  --acc:#58a6ff;--acc-bg:#132339;--ok:#3fb950;--ok-bg:#12261a;--chg:#d29922;--chg-bg:#2a2112;--pick:#a78bfa;--pick-bg:#221b3a;
+  --shadow:0 1px 2px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit}
+a{color:var(--acc)}
+.wrap{max-width:1560px;margin:0 auto;padding:0 28px}
+
+/* Sticky bar: title, jump pills, answer count */
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:16px;height:60px}
+.bar .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1 1 auto;padding:4px 0}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex:none;min-width:32px;height:32px;padding:0 8px;border-radius:999px;border:1px solid var(--line2);background:var(--card);font-size:13px;font-weight:700;color:var(--muted);display:grid;place-items:center;text-decoration:none}
+.pill.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.pill.chg{background:var(--chg-bg);border-color:var(--chg);color:var(--chg)}
+.pill.pick{background:var(--pick-bg);border-color:var(--pick);color:var(--pick)}
+.count{font-size:13px;color:var(--muted);white-space:nowrap}
+
+/* Header */
+.head{padding:34px 0 8px}
+.kicker{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(26px,3.2vw,38px);line-height:1.15;letter-spacing:-.02em;margin:6px 0 12px}
+.summary{font-size:18px;max-width:80ch;margin:0 0 16px;color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.chip b{color:var(--ink);font-weight:600}
+.open-app{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:15px}
+.howto{font-size:14px;color:var(--muted);margin:14px 0 0}
+.howto kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--card)}
+
+/* Items */
+.item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin:22px 0;overflow:hidden}
+.item>header{display:flex;align-items:flex-start;gap:14px;padding:20px 24px 0}
+.num{flex:none;width:36px;height:36px;border-radius:10px;background:var(--ink);color:var(--card);font-weight:800;display:grid;place-items:center;font-size:17px}
+.num.info{background:var(--acc-bg);color:var(--acc)}
+.item h2{font-size:21px;line-height:1.3;margin:5px 0 0;letter-spacing:-.01em;flex:1}
+.item .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.look{margin:12px 24px 0 74px;padding:12px 16px;border-radius:10px;background:var(--acc-bg);font-size:15.5px}
+.look b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--acc);margin-bottom:2px}
+.look ul{margin:0;padding-left:18px}.look li+li{margin-top:2px}
+.body{padding:18px 24px 6px}
+.note{font-size:14px;color:var(--muted);margin:10px 0 0}
+
+/* Screens: desktop full width; phones in a column beside it */
+.screens{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.shot{margin:0;min-width:0}
+.shot.desktop,.shot.tablet{flex:1 1 640px}
+.shot.phone{flex:0 0 auto;width:min(300px,100%)}
+.screens.only-phones .shot.phone{width:min(320px,100%)}
+.screens.stack .shot.desktop,.screens.stack .shot.tablet{flex-basis:100%}
+.shot figcaption{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 8px}
+.shot figcaption .dev{display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+.shot figcaption svg{width:16px;height:16px}
+.frame{position:relative;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--bg);cursor:zoom-in}
+.shot.phone .frame{border-radius:22px;border:6px solid #1f2937;box-shadow:0 0 0 1px var(--line2),var(--shadow)}
+.frame img{display:block;width:100%;height:auto}
+.frame.capped{max-height:var(--cap,78vh)}
+.frame.capped::after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(transparent,var(--card));pointer-events:none}
+.more{display:none;margin:8px auto 0;border:1px solid var(--line2);background:var(--card);border-radius:999px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.frame.capped+.more{display:block}
+.zoomhint{position:absolute;right:10px;top:10px;background:rgba(17,24,39,.78);color:#fff;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;opacity:0;transition:opacity .15s;pointer-events:none}
+.frame:hover .zoomhint{opacity:1}
+.devfilter{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden;margin-left:auto}
+.devfilter button{border:0;background:var(--card);padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.devfilter button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+body.f-desktop .shot.phone,body.f-phone .shot.desktop,body.f-phone .shot.tablet{display:none}
+body.f-phone .shot.phone{width:min(360px,100%)}
+
+/* Before / after */
+.cmp-tabs{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.cmp-tabs button{border:0;background:var(--card);padding:6px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.cmp-tabs button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+.cmp-side{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.lbl{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:6px;margin-bottom:8px}
+.lbl.before{background:var(--bg);color:var(--muted);border:1px solid var(--line2)}
+.lbl.after{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok)}
+.slider{position:relative;border:1px solid var(--line2);border-radius:10px;overflow:hidden;user-select:none;touch-action:pan-y}
+.slider img{display:block;width:100%;height:auto;pointer-events:none}
+.slider .top{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--x,50%)) 0 0)}
+.slider .top img{width:100%;height:100%;object-fit:cover;object-position:top left}
+.slider .handle{position:absolute;top:0;bottom:0;left:var(--x,50%);width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.slider .handle::after{content:"◀ ▶";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#111;font-size:11px;letter-spacing:2px;padding:7px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.3);white-space:nowrap}
+.slider .sl{position:absolute;bottom:10px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;background:rgba(17,24,39,.75);color:#fff}
+.slider .sl.l{left:10px}.slider .sl.r{right:10px}
+.slider input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+
+/* Options (pick one) */
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px}
+.opt{position:relative;border:2px solid var(--line);border-radius:var(--r);background:var(--card);padding:0;text-align:left;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;transition:border-color .12s,box-shadow .12s}
+.opt:hover{border-color:var(--line2)}
+.opt[aria-pressed=true]{border-color:var(--pick);box-shadow:0 0 0 4px var(--pick-bg)}
+.opt .oimg{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top;border-bottom:1px solid var(--line);cursor:zoom-in}
+.opt .otext{padding:14px 16px 16px}
+.opt .okey{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--bg);border:1px solid var(--line2);font-weight:800;margin-right:8px}
+.opt[aria-pressed=true] .okey{background:var(--pick);color:#fff;border-color:var(--pick)}
+.opt h3{display:flex;align-items:center;font-size:17px;margin:0 0 6px}
+.opt p{margin:0 0 8px;font-size:15px;color:var(--muted)}
+.opt ul{margin:0;padding-left:0;list-style:none;font-size:14.5px}
+.opt li{padding-left:22px;position:relative;margin:3px 0}
+.opt li.pro::before{content:"+";position:absolute;left:4px;color:var(--ok);font-weight:800}
+.opt li.con::before{content:"−";position:absolute;left:4px;color:var(--chg);font-weight:800}
+.rec{position:absolute;top:12px;right:12px;background:var(--ok);color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+
+/* Copy (wording) */
+.copy{width:100%;border-collapse:separate;border-spacing:0;font-size:15.5px}
+.copy th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0 12px 8px}
+.copy td{padding:12px;border-top:1px solid var(--line);vertical-align:top}
+.copy td:first-child{font-weight:600;width:18%;color:var(--muted)}
+.copy .was{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--soft)}
+.copy .now{background:var(--ok-bg);border-radius:6px}
+
+/* Links */
+.links{display:grid;gap:10px}
+.link{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);background:var(--bg)}
+.link:hover{border-color:var(--acc)}
+.link .u{font-family:var(--mono);font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link .go{margin-left:auto;flex:none;font-weight:700;color:var(--acc)}
+.link .lt{min-width:0}.link .lt b{display:block}
+
+/* Answer row */
+.ans{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 24px 20px;margin-top:12px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--bg) 45%,var(--card))}
+.ans .q{font-size:14px;font-weight:600;color:var(--muted);margin-right:4px}
+.choice{border:1.5px solid var(--line2);background:var(--card);border-radius:999px;padding:7px 16px;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.choice:hover{border-color:var(--muted)}
+.choice.ok[aria-pressed=true]{background:var(--ok);border-color:var(--ok);color:#fff}
+.choice.chg[aria-pressed=true]{background:var(--chg);border-color:var(--chg);color:#fff}
+.choice.pk[aria-pressed=true]{background:var(--pick);border-color:var(--pick);color:#fff}
+.choice small{font-weight:600;opacity:.8}
+.ans textarea{flex:1 1 100%;min-height:44px;resize:vertical;border:1.5px solid var(--line2);border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;background:var(--card);color:var(--ink)}
+.ans textarea:focus,.choice:focus-visible,.opt:focus-visible{outline:3px solid color-mix(in srgb,var(--acc) 45%,transparent);outline-offset:1px}
+.files{flex-basis:100%;font-size:13px;color:var(--muted)}
+.files summary{cursor:pointer;width:max-content}
+.files code{display:block;font-family:var(--mono);font-size:12px;word-break:break-all;margin-top:4px}
+
+/* Questions */
+.qs .qrow{padding:18px 24px;border-top:1px solid var(--line)}
+.qs .qrow:first-of-type{border-top:0}
+.qhead{display:flex;gap:14px;align-items:flex-start}
+.qhead .num{width:32px;height:32px;font-size:15px;border-radius:9px}
+.qtext{font-size:17px;font-weight:600;margin:3px 0 0}
+.qwhy{font-size:14.5px;color:var(--muted);margin:4px 0 0}
+.qrow .ans{border:0;background:none;padding:12px 0 0 46px;margin:0}
+
+/* Answer dock */
+.dock{position:sticky;bottom:0;z-index:20;margin-top:28px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(16,24,40,.08)}
+.dock .wrap{display:flex;align-items:center;gap:14px;padding-top:12px;padding-bottom:12px}
+.dock pre{flex:1;margin:0;font-family:var(--mono);font-size:13.5px;white-space:pre-wrap;max-height:92px;overflow:auto;color:var(--ink)}
+.dock pre.empty{color:var(--soft);font-family:inherit}
+.copybtn{flex:none;border:0;border-radius:10px;background:var(--ink);color:var(--card);padding:11px 18px;font-weight:700;cursor:pointer}
+.copybtn.done{background:var(--ok);color:#fff}
+.dock .hint{font-size:12.5px;color:var(--muted);white-space:nowrap}
+footer.end{padding:10px 0 28px;font-size:13px;color:var(--soft)}
+
+/* Lightbox */
+.lb{position:fixed;inset:0;z-index:100;background:rgba(5,8,14,.94);display:none;flex-direction:column}
+.lb.on{display:flex}
+.lb-top{flex:none;display:flex;align-items:center;gap:10px;padding:10px 14px;color:#e5e7eb;font-size:14px}
+.lb-top .cap{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-top .cap b{color:#fff}
+.lb-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.lb-btn[aria-pressed=true]{background:#fff;color:#111}
+.lb-stage{flex:1;overflow:auto;display:flex;align-items:flex-start;cursor:zoom-in}
+.lb-stage.panning{cursor:grabbing}
+.lb-stage img{flex:none;margin:auto;display:block;user-select:none;-webkit-user-drag:none}
+.lb.fit .lb-stage img{max-width:calc(100vw - 32px);max-height:calc(100vh - 70px);object-fit:contain}
+.lb.width .lb-stage img{width:min(100%,var(--nw));height:auto;margin:0 auto}
+.lb.width .lb-stage,.lb.actual .lb-stage{cursor:grab}
+.lb.actual .lb-stage img{width:var(--nw);max-width:none;margin:0 auto}
+.lb-nav{position:fixed;top:50%;transform:translateY(-50%);width:46px;height:64px;border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;font-size:26px;cursor:pointer}
+.lb-nav:hover{background:rgba(255,255,255,.2)}
+.lb-prev{left:10px}.lb-next{right:10px}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:120}
+.toast.on{opacity:1}
+
+@media (max-width:760px){
+  .wrap{padding:0 14px}
+  .bar .t{display:none}
+  .item>header{padding:16px 16px 0}.look{margin:12px 16px 0}.body{padding:14px 16px 4px}.ans{padding:14px 16px 16px}
+  .qs .qrow{padding:16px}.qrow .ans{padding-left:0}
+  .cmp-side{grid-template-columns:1fr}
+  .shot.phone{width:100%;max-width:360px;margin:0 auto}
+  .dock .hint{display:none}
+  .lb-nav{display:none}
+  .summary{font-size:16.5px}
+}
+@media print{.bar,.dock,.ans{display:none}.item{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap"><div class="t" id="barTitle"></div><nav class="pills" id="pills" aria-label="Items"></nav><span class="count" id="count"></span></div></div>
+<main class="wrap" id="main"></main>
+<div class="dock"><div class="wrap"><pre id="answer" class="empty"></pre><span class="hint">or type your own in the chat</span><button class="copybtn" id="copy">Copy answer</button></div></div>
+<div class="wrap"><footer class="end" id="foot"></footer></div>
+<div class="lb fit" id="lb" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <div class="lb-top"><span class="cap" id="lbCap"></span>
+    <button class="lb-btn" data-mode="fit" title="Whole image (F)">Fit</button>
+    <button class="lb-btn" data-mode="width" title="Fit the width, scroll down (W)">Width</button>
+    <button class="lb-btn" data-mode="actual" title="Real pixels (1)">100%</button>
+    <a class="lb-btn" id="lbOpen" target="_blank" rel="noopener" title="Open the image on its own">Open</a>
+    <button class="lb-btn" id="lbClose" title="Close (Esc)">✕</button></div>
+  <div class="lb-stage" id="lbStage"><img id="lbImg" alt=""></div>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous image">‹</button>
+  <button class="lb-nav lb-next" id="lbNext" aria-label="Next image">›</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="application/json" id="review-data">{"id":"sample-responsive","title":"Orders page on desktop and phone","project":"Northwind Ops","when":"14 Nov 2026","summary":"The Orders page and its empty state now work on a phone: the table turns into rows, the four numbers go 2 by 2, and the side panel moves under the list.","notes":["Desktop 1440","Phone 390","Demo data"],"app":"src/app.html#dash","items":[{"title":"Orders page","tags":["Step 3.2"],"look":["On the phone: can you read each order without the table columns?","The error box on a small screen"],"shots":[{"src":"images/orders-1440.png","device":"desktop","label":"1440×900","path":"docs/review/orders-1440.png"},{"src":"images/orders-390.png","device":"phone","label":"390×844","path":"docs/review/orders-390.png"},{"src":"images/orders-390-full.png","device":"phone","label":"390, full page","path":"docs/review/orders-390-full.png"}]},{"title":"No orders yet (empty state)","tags":["Step 3.3"],"look":["The \"Connect a shop\" button: is it the obvious next step?"],"shots":[{"src":"images/empty-1440.png","device":"desktop","label":"1440×900","path":"docs/review/empty-1440.png"},{"src":"images/empty-390.png","device":"phone","label":"390×844","path":"docs/review/empty-390.png"}]}],"questions":[{"q":"On the phone, should the four numbers stay 2 by 2 or become one row you swipe?","options":["2 by 2","One row"],"recommended":"2 by 2"}],"generated":"14 Nov 2026"}</script>
+<script>
+(() => {
+'use strict';
+const D = JSON.parse(document.getElementById('review-data').textContent);
+const $ = (s, r = document) => r.querySelector(s);
+const h = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+};
+const list = (x) => x == null ? [] : Array.isArray(x) ? x : [x];
+const ICON = {
+  desktop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+  tablet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 18h2"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>'
+};
+const DEV = { desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone' };
+
+// ---- state, kept per page in localStorage ----
+const KEY = 'ag-review:' + (D.id || location.pathname + '|' + D.title);
+let S = {}; try { S = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+// ---- gallery for the lightbox ----
+const G = [];
+function zoomable(img, src, cap) {
+  const i = G.push({ src, cap }) - 1;
+  img.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openLb(i, e); });
+  return img;
+}
+
+// ---- builders ----
+let n = 0; const answerable = [];
+const devs = new Set();
+
+function shotFig(s, item) {
+  const dev = s.device || 'desktop'; devs.add(dev);
+  const label = [DEV[dev], s.label].filter(Boolean).join(' · ');
+  const head = (item.n ? item.n + '. ' : '') + item.title;
+  const img = h('img', { src: s.src, alt: label, loading: 'lazy' });
+  const frame = h('div', { class: 'frame', title: 'Click to look closer' }, img, h('span', { class: 'zoomhint', text: 'Click to zoom' }));
+  zoomable(frame, s.src, `<b>${esc(head)}</b> · ${esc(label)}${s.caption ? ' · ' + esc(s.caption) : ''}`);
+  const more = h('button', { class: 'more', onclick: () => { frame.classList.remove('capped'); } }, 'Show the full length');
+  img.addEventListener('load', () => {
+    const r = img.naturalHeight / img.naturalWidth;
+    if (dev === 'phone' ? r > 2.4 : r > 1.15) { frame.classList.add('capped'); frame.style.setProperty('--cap', dev === 'phone' ? '680px' : '78vh'); }
+  });
+  const cap = h('figcaption', {}, h('span', { class: 'dev' }), s.caption ? h('span', { text: '— ' + s.caption }) : null);
+  cap.firstChild.innerHTML = ICON[dev] || ''; cap.firstChild.append(label);
+  return h('figure', { class: 'shot ' + dev }, cap, frame, more);
+}
+
+function esc(t) { return String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function screensBlock(item) {
+  const shots = list(item.shots);
+  const phonesOnly = shots.every((s) => (s.device || 'desktop') === 'phone');
+  const phones = shots.filter((s) => s.device === 'phone').length;
+  const stack = !phonesOnly && phones > 1;
+  return h('div', { class: 'screens' + (phonesOnly ? ' only-phones' : '') + (stack ? ' stack' : '') }, shots.map((s) => shotFig(s, item)));
+}
+
+function compareBlock(item) {
+  const c = item.compare, b = c.before, a = c.after;
+  const capOf = (x, w) => `<b>${item.n}. ${esc(item.title)}</b> · ${w}${x.label ? ' · ' + esc(x.label) : ''}`;
+  const side = h('div', { class: 'cmp-side' },
+    h('div', {}, h('span', { class: 'lbl before', text: 'Before' + (b.label ? ' · ' + b.label : '') }), zoomable(h('div', { class: 'frame' }, h('img', { src: b.src, alt: 'Before', loading: 'lazy' })), b.src, capOf(b, 'Before'))),
+    h('div', {}, h('span', { class: 'lbl after', text: 'After' + (a.label ? ' · ' + a.label : '') }), zoomable(h('div', { class: 'frame' }, h('img', { src: a.src, alt: 'After', loading: 'lazy' })), a.src, capOf(a, 'After'))));
+  const range = h('input', { type: 'range', min: 0, max: 100, value: 50, 'aria-label': 'Before and after' });
+  const sl = h('div', { class: 'slider' }, h('img', { src: a.src, alt: 'After' }), h('div', { class: 'top' }, h('img', { src: b.src, alt: 'Before' })),
+    h('div', { class: 'handle' }), h('span', { class: 'sl l', text: 'Before' }), h('span', { class: 'sl r', text: 'After' }), range);
+  range.addEventListener('input', () => sl.style.setProperty('--x', range.value + '%'));
+  const views = { side, slider: sl };
+  let mode = c.mode === 'slider' ? 'slider' : 'side';
+  const wrap = h('div', {});
+  const tabs = h('div', { class: 'cmp-tabs', role: 'group' });
+  const show = () => { wrap.replaceChildren(views[mode]); for (const bt of tabs.children) bt.setAttribute('aria-pressed', bt.dataset.m === mode); };
+  for (const [m, t] of [['side', 'Side by side'], ['slider', 'Slider']]) tabs.append(h('button', { 'data-m': m, onclick: () => { mode = m; show(); } }, t));
+  show();
+  return h('div', {}, tabs, wrap);
+}
+
+function optionsBlock(item) {
+  const grid = h('div', { class: 'opts' });
+  for (const o of list(item.options)) {
+    const img = o.src ? h('img', { class: 'oimg', src: o.src, alt: o.title || o.key, loading: 'lazy' }) : null;
+    if (img) zoomable(img, o.src, `<b>${item.n}. ${esc(item.title)}</b> · ${esc(o.key)}: ${esc(o.title || '')}`);
+    const card = h('div', { class: 'opt', role: 'button', tabindex: 0, 'aria-pressed': 'false', 'data-key': o.key },
+      o.recommended ? h('span', { class: 'rec', text: 'Recommended' }) : null, img,
+      h('div', { class: 'otext' }, h('h3', {}, h('span', { class: 'okey', text: o.key }), o.title || ''),
+        o.text ? h('p', { text: o.text }) : null,
+        (o.pros || o.cons) ? h('ul', {}, list(o.pros).map((p) => h('li', { class: 'pro', text: p })), list(o.cons).map((p) => h('li', { class: 'con', text: p }))) : null));
+    const pick = () => { setAnswer(item.n, { v: S[item.n]?.v === o.key ? null : o.key }); };
+    card.addEventListener('click', pick);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    grid.append(card);
+  }
+  return grid;
+}
+
+function copyBlock(item) {
+  return h('table', { class: 'copy' }, h('thead', {}, h('tr', {}, h('th', { text: 'Where' }), h('th', { text: 'Was' }), h('th', { text: 'Now' }))),
+    h('tbody', {}, list(item.copy).map((r) => h('tr', {}, h('td', { text: r.where || '' }), h('td', {}, h('span', { class: 'was', text: r.before ?? '' })), h('td', {}, h('span', { class: 'now', text: r.after ?? '' }))))));
+}
+
+function linksBlock(item) {
+  return h('div', { class: 'links' }, list(item.links).map((l) => h('a', { class: 'link', href: l.url, target: '_blank', rel: 'noopener' },
+    h('div', { class: 'lt' }, h('b', { text: l.label || l.url }), l.label && l.label !== l.url ? h('div', { class: 'u', text: l.url }) : null), h('span', { class: 'go', text: 'Open ↗' }))));
+}
+
+// The answer controls. Kind: "okchange" (screens, compare, copy, links), "pick" (options), "question".
+function answerRow(entry) {
+  const row = h('div', { class: 'ans' });
+  const ta = h('textarea', { rows: 1, placeholder: entry.kind === 'pick' ? 'Anything to change in the one you pick? (optional)' : entry.kind === 'question' ? (entry.choices.length ? 'Add a note (optional)' : 'Your answer') : 'What should change? (optional when it looks good)' });
+  ta.value = S[entry.n]?.note || '';
+  ta.addEventListener('input', () => setAnswer(entry.n, { note: ta.value }, true));
+  if (entry.kind === 'okchange') {
+    row.append(h('span', { class: 'q', text: 'Your call:' }),
+      h('button', { class: 'choice ok', 'data-v': 'ok', onclick: () => toggle(entry.n, 'ok') }, '✓ Looks good'),
+      h('button', { class: 'choice chg', 'data-v': 'change', onclick: () => { toggle(entry.n, 'change'); ta.focus(); } }, '✎ Change'));
+  } else if (entry.kind === 'pick') {
+    row.append(h('span', { class: 'q', text: 'Pick one:' }), ...entry.choices.map((c) => h('button', { class: 'choice pk', 'data-v': c, onclick: () => toggle(entry.n, c) }, c)));
+  } else if (entry.choices.length) {
+    row.append(...entry.choices.map((c) => h('button', { class: 'choice pk', 'data-v': c, onclick: () => toggle(entry.n, c) }, c, entry.recommended === c ? h('small', { text: '(recommended)' }) : null)));
+  }
+  row.append(ta);
+  if (entry.files?.length) row.append(h('details', { class: 'files' }, h('summary', { text: 'Files' }), entry.files.map((f) => h('code', { text: f }))));
+  entry.row = row;
+  return row;
+}
+
+function toggle(num, v) { setAnswer(num, { v: S[num]?.v === v ? null : v }); }
+function setAnswer(num, patch, quiet) {
+  S[num] = Object.assign({}, S[num], patch); save();
+  if (!quiet) paint(); else compose();
+}
+
+function paint() {
+  for (const e of answerable) {
+    const a = S[e.n] || {};
+    for (const b of e.row.querySelectorAll('.choice')) b.setAttribute('aria-pressed', String(b.dataset.v === a.v));
+    if (e.card) for (const o of e.card.querySelectorAll('.opt')) o.setAttribute('aria-pressed', String(o.dataset.key === a.v));
+    const pill = document.getElementById('pill-' + e.n);
+    pill.className = 'pill' + (a.v === 'ok' ? ' ok' : a.v === 'change' || (!a.v && a.note) ? ' chg' : a.v ? ' pick' : '');
+  }
+  compose();
+}
+
+function compose() {
+  const lines = [];
+  let done = 0;
+  for (const e of answerable) {
+    const a = S[e.n] || {}; const note = (a.note || '').trim();
+    if (!a.v && !note) continue;
+    done++;
+    if (a.v === 'ok') lines.push(`${e.n} ok${note ? ': ' + note : ''}`);
+    else if (a.v === 'change' || !a.v) lines.push(`${e.n}: ${note || 'needs a change'}`);
+    else lines.push(`${e.n} ${a.v}${note ? ': ' + note : ''}`);
+  }
+  const pre = $('#answer');
+  pre.textContent = lines.length ? lines.join('\n') : 'Your answers collect here. Click ✓ or ✎ on each item, or pick an option.';
+  pre.classList.toggle('empty', !lines.length);
+  $('#count').textContent = `${done} of ${answerable.length} answered`;
+  return lines.join('\n');
+}
+
+// ---- page ----
+document.title = D.title || 'Review';
+const main = $('#main');
+$('#barTitle').textContent = D.title || 'Review';
+const chips = list(D.notes).map((t) => h('span', { class: 'chip', text: t }));
+const meta = [D.project, D.when].filter(Boolean).join(' · ');
+main.append(h('section', { class: 'head' },
+  meta ? h('div', { class: 'kicker', text: meta }) : null,
+  h('h1', { text: D.title || 'Review' }),
+  D.summary ? h('p', { class: 'summary', text: D.summary }) : null,
+  h('div', { class: 'chips' }, chips, D.app ? h('a', { class: 'open-app', href: D.app, target: '_blank', rel: 'noopener' }, 'Open the app ↗') : null),
+  h('p', { class: 'howto', id: 'howto' })));
+
+const pills = $('#pills');
+for (const it of list(D.items)) {
+  const kind = it.options ? 'pick' : it.answer === 'none' ? null : 'okchange';
+  it.n = kind ? ++n : '';
+  const tags = list(it.tags);
+  const head = h('header', {}, kind ? h('span', { class: 'num', text: it.n }) : h('span', { class: 'num info', text: '↗' }), h('div', { style: 'flex:1;min-width:0' }, h('h2', { text: it.title || ('Item ' + it.n) }), tags.length ? h('div', { class: 'tags' }, tags.map((t) => h('span', { class: 'tag', text: t }))) : null));
+  const look = list(it.look).length ? h('div', { class: 'look' }, h('b', { text: 'Look at' }), h('ul', {}, list(it.look).map((l) => h('li', { text: l })))) : null;
+  const body = h('div', { class: 'body' },
+    it.shots ? screensBlock(it) : null, it.compare ? compareBlock(it) : null, it.options ? optionsBlock(it) : null,
+    it.copy ? copyBlock(it) : null, it.links ? linksBlock(it) : null, it.note ? h('p', { class: 'note', text: it.note }) : null);
+  const card = h('section', { class: 'item', id: 'i' + it.n }, head, look, body);
+  if (kind) {
+    const entry = { n: it.n, kind, choices: it.options ? list(it.options).map((o) => o.key) : [], files: list(it.files).concat(list(it.shots).map((s) => s.path).filter(Boolean)), card };
+    card.append(answerRow(entry)); answerable.push(entry);
+    pills.append(h('a', { class: 'pill', id: 'pill-' + it.n, href: '#i' + it.n, text: it.n }));
+  }
+  main.append(card);
+}
+if (list(D.questions).length) {
+  const qs = h('section', { class: 'item qs', id: 'questions' }, h('header', {}, h('h2', { text: 'Questions', style: 'margin:0 0 4px' })));
+  for (const q of list(D.questions)) {
+    const Q = typeof q === 'string' ? { q } : q;
+    const num = ++n;
+    const entry = { n: num, kind: 'question', choices: list(Q.options), recommended: Q.recommended };
+    const row = h('div', { class: 'qrow', id: 'i' + num }, h('div', { class: 'qhead' }, h('span', { class: 'num', text: num }), h('div', {}, h('p', { class: 'qtext', text: Q.q }), Q.why ? h('p', { class: 'qwhy', text: Q.why }) : null)), answerRow(entry));
+    qs.append(row); answerable.push(entry);
+    pills.append(h('a', { class: 'pill', id: 'pill-' + num, href: '#i' + num, text: num }));
+  }
+  main.append(qs);
+}
+// Device filter when a page has more than one kind of screen.
+if (devs.size > 1) {
+  const f = h('div', { class: 'devfilter', role: 'group', 'aria-label': 'Show' });
+  const set = (m) => { document.body.classList.remove('f-desktop', 'f-phone'); if (m !== 'all') document.body.classList.add('f-' + m); for (const b of f.children) b.setAttribute('aria-pressed', String(b.dataset.m === m)); };
+  for (const [m, t] of [['all', 'All'], ['desktop', 'Desktop'], ['phone', 'Phone']]) f.append(h('button', { 'data-m': m, onclick: () => set(m) }, t));
+  $('.head .chips').append(f); set('all');
+}
+$('#howto').innerHTML = (G.length ? 'Click any screenshot to see it large; <kbd>←</kbd> <kbd>→</kbd> move between them, <kbd>Esc</kbd> closes. ' : '') +
+  'Answer on the page, then <b>Copy answer</b> and paste it in the chat, or just write in the chat by number.';
+$('#foot').textContent = [D.generated ? 'Made ' + D.generated : null, 'ag review page'].filter(Boolean).join(' · ');
+paint();
+
+// ---- copy ----
+const toast = (t) => { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 1800); };
+$('#copy').addEventListener('click', async () => {
+  const text = compose();
+  if (!text) { toast('Nothing answered yet'); return; }
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    const t = h('textarea', {}, text); document.body.append(t); t.select(); try { ok = document.execCommand('copy'); } catch (e2) {} t.remove();
+  }
+  const b = $('#copy'); b.textContent = ok ? 'Copied ✓' : 'Select and copy'; b.classList.toggle('done', ok);
+  toast(ok ? 'Copied. Paste it in the chat.' : 'Copy blocked: select the text and copy it.');
+  setTimeout(() => { b.textContent = 'Copy answer'; b.classList.remove('done'); }, 2200);
+});
+
+// ---- lightbox ----
+const lb = $('#lb'), stage = $('#lbStage'), lbImg = $('#lbImg');
+let cur = 0, mode = 'fit';
+function setMode(m, at) {
+  const r = at ? { x: (at.clientX - lbImg.getBoundingClientRect().left) / lbImg.getBoundingClientRect().width, y: (at.clientY - lbImg.getBoundingClientRect().top) / lbImg.getBoundingClientRect().height } : null;
+  mode = m; lb.className = 'lb on ' + m;
+  for (const b of lb.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+  requestAnimationFrame(() => {
+    if (r) { stage.scrollLeft = r.x * lbImg.offsetWidth - stage.clientWidth / 2; stage.scrollTop = r.y * lbImg.offsetHeight - stage.clientHeight / 2; }
+    else { stage.scrollTop = 0; stage.scrollLeft = Math.max(0, (lbImg.offsetWidth - stage.clientWidth) / 2); }
+  });
+}
+function defaultMode() {
+  const tall = lbImg.naturalHeight / lbImg.naturalWidth > (stage.clientHeight / stage.clientWidth) * 1.6;
+  return tall ? 'width' : 'fit';
+}
+function show(i) {
+  cur = (i + G.length) % G.length; const g = G[cur];
+  lbImg.onload = () => { lbImg.style.setProperty('--nw', lbImg.naturalWidth + 'px'); setMode(defaultMode()); };
+  lbImg.src = g.src; $('#lbOpen').href = g.src;
+  $('#lbCap').innerHTML = g.cap + ` <span style="opacity:.6">· ${cur + 1} of ${G.length}</span>`;
+  $('#lbPrev').style.visibility = $('#lbNext').style.visibility = G.length > 1 ? 'visible' : 'hidden';
+}
+function openLb(i) { lb.classList.add('on'); document.documentElement.style.overflow = 'hidden'; show(i); }
+function closeLb() { lb.className = 'lb'; document.documentElement.style.overflow = ''; }
+for (const b of lb.querySelectorAll('[data-mode]')) b.addEventListener('click', () => setMode(b.dataset.mode));
+$('#lbClose').addEventListener('click', closeLb);
+// An embedded image (data: URL) cannot be opened in a tab directly, so open it as a blob.
+$('#lbOpen').addEventListener('click', async (e) => {
+  const src = G[cur].src; if (!src.startsWith('data:')) return;
+  e.preventDefault(); const b = await (await fetch(src)).blob(); window.open(URL.createObjectURL(b), '_blank');
+});
+$('#lbPrev').addEventListener('click', () => show(cur - 1));
+$('#lbNext').addEventListener('click', () => show(cur + 1));
+// Click the image: fit -> 100% at that point; else back to fit. Drag pans.
+let drag = null;
+stage.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, sl: stage.scrollLeft, st: stage.scrollTop, moved: false }; });
+stage.addEventListener('pointermove', (e) => {
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) { drag.moved = true; stage.classList.add('panning'); }
+  if (drag.moved && mode !== 'fit') { stage.scrollLeft = drag.sl - dx; stage.scrollTop = drag.st - dy; }
+});
+stage.addEventListener('pointerup', (e) => {
+  const d = drag; drag = null; stage.classList.remove('panning');
+  if (!d || d.moved) return;
+  if (e.target !== lbImg) { if (mode === 'fit') closeLb(); return; }
+  setMode(mode === 'actual' ? defaultMode() : 'actual', e);
+});
+document.addEventListener('keydown', (e) => {
+  if (!lb.classList.contains('on')) return;
+  if (e.key === 'Escape') closeLb();
+  else if (e.key === 'ArrowLeft') show(cur - 1);
+  else if (e.key === 'ArrowRight') show(cur + 1);
+  else if (e.key === 'f' || e.key === 'F') setMode('fit');
+  else if (e.key === 'w' || e.key === 'W') setMode('width');
+  else if (e.key === '1') setMode('actual');
+});
+})();
+</script>
+</body>
+</html>

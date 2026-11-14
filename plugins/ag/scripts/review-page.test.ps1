@@ -17,6 +17,12 @@ function Run([string[]]$ArgList) {
 }
 
 function Read-Text([string]$Path) { [System.IO.File]::ReadAllText($Path) }
+# The spec the page carries, read back from its data block.
+function Get-Data([string]$Html) {
+    $m = [regex]::Match($Html, '<script type="application/json" id="review-data">(.*?)</script>', 'Singleline')
+    if (-not $m.Success) { throw 'no data block' }
+    $m.Groups[1].Value | ConvertFrom-Json
+}
 
 $root = Join-Path ([IO.Path]::GetTempPath()) ('review-page-test-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Path (Join-Path $root 'images') -Force | Out-Null
@@ -31,20 +37,24 @@ $page = Join-Path $root 'mock.html'
 try {
     # Items as arguments, embedded.
     $out1 = Join-Path $root 'out\r1.html'
-    $r = Run @('-Title', 'Fix 14 <review>', '-Out', $out1, '-NoOpen', "$img1|Hub & jobs, 1440", "$img2")
+    $r = Run @('-Title', 'Fix 14 </script><review>', '-Out', $out1, '-NoOpen', "$img1|Hub & jobs, 1440", "$img2")
     Assert ($r.Code -eq 0) 'items as arguments: exit 0' $r.Out
     Assert (Test-Path $out1) 'page is written (folder made)'
     $h = Read-Text $out1
-    Assert ($h -match 'data:image/png;base64,') 'images are embedded'
-    Assert ($h.Contains('Fix 14 &lt;review&gt;') -and -not $h.Contains('<review>')) 'title is HTML-escaped'
-    Assert ($h.Contains('Hub &amp; jobs, 1440')) 'caption is HTML-escaped'
-    Assert ($h.Contains('company-390.png')) 'no caption: the file name is the label'
-    Assert ($h.Contains('Answer in the chat by number')) 'page says to answer in the chat'
-    Assert ($h.Contains('name="viewport"')) 'page reads on a phone'
+    $d = Get-Data $h
+    Assert ($h.Contains('id="lb"') -and $h.Contains('id="copy"')) 'page is the template: image viewer and Copy answer'
+    Assert ($d.items[0].shots[0].src -match '^data:image/png;base64,') 'images are embedded'
+    Assert ($d.title -eq 'Fix 14 </script><review>' -and -not $h.Contains('</script><review>')) 'title survives and cannot close the data block'
+    Assert ($d.items[0].title -eq 'Hub & jobs, 1440') 'caption is the item title'
+    Assert ($d.items[1].title -eq 'company-390.png') 'no caption: the file name is the title'
+    Assert ($d.items[0].shots[0].device -eq 'phone') 'a narrow image (1 px) goes in a phone frame'
+    Assert ($d.items[0].shots[0].path -eq $img1) 'the shot keeps its path for the Files list'
+    Assert ($d.id -match '^fix-14-script-review-\d{8}-\d{6}$') 'id from the title and time, so old answers do not carry over' $d.id
+    Assert ($h.Contains('Copy answer') -and $h.Contains('name="viewport"')) 'answer bar; reads on a phone'
     Assert ($r.Out -match [regex]::Escape("review: $out1") -and $r.Out -match '1\. Hub & jobs, 1440' -and $r.Out -match '2\. company-390.png') 'prints the path and numbered items' $r.Out
     Assert ($r.Out -match 'not opened') '-NoOpen opens nothing' $r.Out
 
-    # Spec with look, a URL, an HTML page and questions; -Link makes relative links.
+    # Old-style spec with look, a URL, an HTML page and questions; -Link makes relative links.
     $spec = Join-Path $root 'spec.json'
     $json = @{
         title = 'Design review'; intro = "Two pages.`nCheck the hero."
@@ -54,21 +64,52 @@ try {
     [IO.File]::WriteAllText($spec, $json)
     $out2 = Join-Path $root 'review.html'
     $r = Run @('-Spec', $spec, '-Out', $out2, '-Link', '-NoOpen')
-    Assert ($r.Code -eq 0) 'spec: exit 0' $r.Out
+    Assert ($r.Code -eq 0) 'old spec: exit 0' $r.Out
     $h = Read-Text $out2
+    $d = Get-Data $h
     Assert (-not ($h -match 'data:image')) '-Link does not embed'
-    Assert ($h.Contains('src="images/hub%201440.png"')) '-Link uses a path relative to the page' ($h | Select-String -Pattern 'src="[^"]*"' -AllMatches | ForEach-Object { $_.Matches.Value } | Out-String)
-    Assert ($h.Contains('Look at: the H1 &lt;fits&gt;')) 'look is shown, escaped'
-    Assert ($h.Contains('http://localhost:3000/jobs?a=1&amp;b=2')) 'URL item is a link, escaped'
-    Assert ($h.Contains('file:///') -and $h.Contains('mock.html')) 'HTML item links to the file'
-    Assert ($h.Contains('<li>Is the H1 right?</li>') -and $h.Contains('<li>Keep &lt;b&gt;bold&lt;/b&gt;?</li>')) 'questions are listed, escaped'
-    Assert ($h.Contains('Two pages.<br>Check the hero.')) 'intro keeps its lines'
+    Assert ($d.items[0].shots[0].src -eq 'images/hub%201440.png') '-Link uses a path relative to the page' $d.items[0].shots[0].src
+    Assert ($d.items[0].look[0] -eq 'the H1 <fits>') 'look is kept as a "Look at" line'
+    Assert ($d.items[1].links[0].url -eq 'http://localhost:3000/jobs?a=1&b=2') 'URL item becomes a link'
+    Assert ($d.items[2].links[0].url -eq 'mock.html') 'HTML item links to the file (relative with -Link)' $d.items[2].links[0].url
+    Assert ($d.questions[0] -eq 'Is the H1 right?' -and $d.questions[1] -eq 'Keep <b>bold</b>?') 'questions are kept as text'
+    Assert ($d.summary -eq "Two pages.`nCheck the hero.") 'intro becomes the summary'
+    Assert ($r.Out -match '4\. Is the H1 right\?') 'questions are numbered after the items' $r.Out
 
     # -Title overrides the spec; argument items come after the spec's.
     $out3 = Join-Path $root 'r3.html'
     $r = Run @('-Spec', $spec, '-Title', 'Other', '-Out', $out3, '-NoOpen', "$img2|Extra")
-    Assert ($r.Code -eq 0 -and (Read-Text $out3).Contains('<title>Other</title>')) '-Title overrides the spec' $r.Out
+    Assert ($r.Code -eq 0 -and (Get-Data (Read-Text $out3)).title -eq 'Other') '-Title overrides the spec' $r.Out
     Assert ($r.Out -match '4\. Extra') 'argument items come after the spec items' $r.Out
+
+    # A full spec: shots with devices, compare, options, copy, links, an unnumbered item, objects as questions.
+    $spec2 = Join-Path $root 'images\full.json'
+    $full = [ordered]@{
+        id = 'fix14'; title = 'Full'; project = 'Shop'; summary = 'S'; notes = @('Desktop 1440'); app = '../mock.html#jobs'
+        items = @(
+            [ordered]@{ title = 'Shots'; look = @('a', 'b'); shots = @(@{ src = 'hub 1440.png'; device = 'desktop'; label = '1440' }) },
+            [ordered]@{ title = 'Cmp'; compare = @{ before = @{ src = 'hub 1440.png' }; after = @{ src = 'company-390.png' }; mode = 'slider' } },
+            [ordered]@{ title = 'Pick'; options = @(@{ key = 'A'; src = 'company-390.png'; recommended = $true }) },
+            [ordered]@{ title = 'Words'; copy = @(@{ where = 'w'; before = '</script>'; after = '<!-- x' }) },
+            [ordered]@{ title = 'Try'; answer = 'none'; links = @(@{ url = 'https://example.com'; label = 'Ex' }) })
+        questions = @(@{ q = 'Keep?'; options = @('Yes', 'No'); recommended = 'Yes' })
+    }
+    [IO.File]::WriteAllText($spec2, ($full | ConvertTo-Json -Depth 10))
+    $out6 = Join-Path $root 'full.html'
+    $r = Run @('-Spec', $spec2, '-Out', $out6, '-NoOpen')
+    Assert ($r.Code -eq 0) 'full spec: exit 0 (paths relative to the spec)' $r.Out
+    $h = Read-Text $out6
+    $d = Get-Data $h
+    Assert ($d.id -eq 'fix14' -and $d.project -eq 'Shop' -and $d.notes[0] -eq 'Desktop 1440') 'id, project and notes pass through'
+    Assert ($d.app -match '^file:///.+mock\.html#jobs$') 'a local app link becomes a file URL, hash kept' $d.app
+    Assert ($d.items[0].shots[0].device -eq 'desktop' -and @($d.items[0].look).Count -eq 2) 'a given device wins over the width'
+    Assert ($d.items[1].compare.before.src -match '^data:image/png' -and $d.items[1].compare.after.src -match '^data:image/png') 'compare images are embedded'
+    Assert (@($d.items[2].options)[0].src -match '^data:image/png' -and @($d.items[2].options)[0].recommended -eq $true) 'option images are embedded'
+    Assert (@($d.items[3].copy)[0].before -eq '</script>' -and -not $h.Contains('"</script>"') -and -not $h.Contains('<!-- x')) 'copy text cannot break the page'
+    Assert ($d.items[4].answer -eq 'none' -and @($d.items[4].links)[0].url -eq 'https://example.com') 'an item with answer none and links'
+    Assert (@($d.questions)[0].options.Count -eq 2) 'a question with options'
+    Assert ($r.Out -match '-\. Try' -and $r.Out -match '5\. Keep\?') 'unnumbered item; questions follow the numbered ones' $r.Out
+    Assert ($h -match '"options":\[\{' -and $h -match '"copy":\[\{' -and $h -match '"questions":\[\{') 'one-element lists stay lists'
 
     # Default output goes to temp, not the project.
     $r = Run @('-Title', 'Temp default', '-NoOpen', $img2)
@@ -84,6 +125,10 @@ try {
     Assert ($r.Code -eq 2 -and $r.Out -match '-Title' -and -not (Test-Path $out4)) 'no title: exit 2' $r.Out
     $r = Run @('-Title', 'Empty', '-Out', $out4, '-NoOpen')
     Assert ($r.Code -eq 2 -and $r.Out -match 'nothing to show') 'no items: exit 2' $r.Out
+    $bad = Join-Path $root 'bad.json'
+    [IO.File]::WriteAllText($bad, '{"title":"B","items":[{"title":"x","shots":[{"src":"missing.png"}]}]}')
+    $r = Run @('-Spec', $bad, '-Out', $out4, '-NoOpen')
+    Assert ($r.Code -eq 2 -and $r.Out -match 'file not found: missing.png' -and -not (Test-Path $out4)) 'a missing shot: exit 2, nothing written' $r.Out
 
     # The entry point (~/.claude/ag/review-page.ps1): the newest installed version that has the script, else the checkout.
     $entry = Join-Path $PSScriptRoot 'review-page-entry.ps1'
