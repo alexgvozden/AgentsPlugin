@@ -451,6 +451,8 @@ and the global rules (`rules/CLAUDE.global.md`, "Previews and reviews") ask
 every chat to do it, frontend work included: screenshots of the built page
 plus the running app's URL, before you are asked to review it.
 
+![A review page: desktop and phone side by side](docs/review-samples/screens/responsive.png)
+
 Every page is built from one template,
 [`plugins/ag/templates/review/review.html`](plugins/ag/templates/review/review.html):
 
@@ -483,13 +485,13 @@ optional `: note` after it. You can still just type "1 ok, 2: the heading is too
 long" in the chat. Answers stay in the browser (localStorage), so a reload keeps
 them.
 
-| Desktop and phone | Before and after |
+| Before and after | The image viewer |
 | --- | --- |
-| ![Desktop and phone side by side](docs/review-samples/screens/responsive.png) | ![Before and after slider](docs/review-samples/screens/compare.png) |
+| ![Before and after slider](docs/review-samples/screens/compare.png) | ![Full-screen image viewer](docs/review-samples/screens/viewer.png) |
 
-| The image viewer | On a phone |
-| --- | --- |
-| ![Full-screen image viewer](docs/review-samples/screens/viewer.png) | ![The review page at 390 wide](docs/review-samples/screens/on-phone.png) |
+On a phone:
+
+<img src="docs/review-samples/screens/on-phone.png" alt="The review page at 390 wide" width="300">
 
 The samples in [`docs/review-samples/`](docs/review-samples/) are working pages,
 built from a made-up app with `node docs/review-samples/build-samples.mjs`:
