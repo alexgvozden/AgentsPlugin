@@ -40,6 +40,7 @@ const ENDS = [
   { end: 'every phase done', words: ['every phase is done', 'progress is "done"'] },
   { end: 'the user answers pause', words: ['answered "pause"', 'progress is "waiting"', '"Where the run stands" is printed'] },
   { end: 'the user declines or dismisses a question with no text', words: ['declined a question with no text', 'progress is "waiting"'] },
+  { end: 'the user asks in their own words to wait', words: ['asked in any words to wait or stop', '"Where the run stands" is printed with their words'] },
   { end: 'a phase is blocked', words: ['"blocked: <reason>"', 'progress is "blocked"'] },
 ]
 
@@ -77,10 +78,31 @@ for (const name of SKILLS) {
   })
 
   test(`${name}: the principle, the hand-over check and the output name the declined question`, () => {
-    assert.ok(text.includes('paused by the user (answered "pause", or declined or dismissed the question with no text)'), 'principle')
+    assert.ok(text.includes('paused by the user (answered "pause", declined or dismissed the question with no text, or asked in their own words to wait or stop'), 'principle')
     assert.ok(text.includes('paused by the user\'s answer or a declined question, blocked) is one of the "met when" outcomes'), 'check 2')
     assert.ok(text.includes('you answer pause or decline the question'), 'output')
     assert.ok(text.includes('the user says pause or declines the question'), 'description')
+  })
+}
+
+// Nov 15, 2026, a marketing run: after a compaction the checker saw only the summary, so
+// "each step landed here printed its land.sh line" and the marks grep from before it could
+// never be shown again, and "I am adding a tag, then I will ask you to continue" was no pause:
+// every stop was blocked. Each item counts only what is printed after the latest summary,
+// the run prints the evidence again after a compaction, and a pause in any words is an end.
+for (const name of SKILLS) {
+  test(`${name}: the met condition survives a compaction and a pause in the user's words`, () => {
+    const text = read(name)
+    const run = runner(text)
+    const met = condition(run)
+    assert.ok(met.includes('shown in this conversation since its latest summary, if any'), 'condition scope')
+    assert.ok(met.includes('Each phase finished since then'), 'item 1 scope')
+    assert.ok(met.includes('(none: nothing needed)'), 'item 1 with nothing finished')
+    assert.ok(!/ here printed|landed here/.test(met), 'no item needs evidence from before the summary')
+    assert.ok(run.includes('After a compaction, print the marks (grep), "Where the run stands" and git log --oneline -15'), 'Work line re-prints evidence')
+    assert.ok(run.includes('A message asking to wait or stop is a pause: put their words in "Where the run stands"'), 'Phases line')
+    assert.ok(text.includes('every item counts only what is printed after the latest summary'), 'fact about compaction')
+    assert.ok(text.includes('no item needs evidence printed before the latest summary'), 'check 2')
   })
 }
 

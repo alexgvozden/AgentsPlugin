@@ -3,6 +3,24 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.12.2 - 2026-11-15
+
+Goal runs no longer loop after a compaction or a pause in your own words.
+
+- The "met when" condition of all four goal skills counts only what is shown since
+  the conversation's latest summary: a phase finished before a compaction needs no
+  evidence again, and none finished means none needed. Before, a run that compacted
+  (or was resumed and paused at once) could never show its earlier landing lines,
+  so the /goal checker blocked every stop until Claude Code's 9-block cap.
+- After a compaction the runner prints the plan's marks, "Where the run stands" and
+  `git log --oneline -15` again, so the evidence is back in view.
+- A message asking the run to wait or stop in any words ("I am adding a tag, then I
+  will ask you to continue") is a pause: the run writes the words into "Where the run
+  stands", sets progress "waiting" and ends. Before, only "pause" or a declined
+  question counted.
+- The hand-over check and the tests name both. The runners were tightened to stay
+  within 3,800 characters (3rdparty: 3,795).
+
 ## 1.12.1 - 2026-11-15
 
 - README: a Plan pages guide: where plans live, reading a plan (contents, folds,

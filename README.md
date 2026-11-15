@@ -307,7 +307,11 @@ design images, HTML pages, pages of the running app) opens in your browser on on
 review page, numbered as the questions (see [Review pages](#review-pages)). It ends only when all is done, you answer
 "pause" or decline the question, or a step is blocked; then paste the same
 `/goal` again to go on. A declined question is a pause: the run does not ask it
-again.
+again. So is a message asking it to wait in your own words ("I am adding a tag,
+then I will ask you to continue"): the run writes your words into "Where the run
+stands" and stops. After a compaction the run prints the plan's marks, "Where the
+run stands" and the git log again, and its end condition counts only what was
+printed after the summary, so it can still end.
 
 **The band follows it all.** The goal writes `.claude/goal-progress.json` with its
 status, note and log. The band reads the steps and their marks from the plan
@@ -711,8 +715,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File plugins/ag/scripts/review-pa
 `claude plugin test` loads only code, with no file system, so the checks on the
 goal skills' text run under Node. They check that each runner fits 3,800
 characters, that its "met when" names every way a run can end (all done, a pause
-answered, a question declined with no text, blocked), that a declined question
-is never asked again, and that no runner ends the turn to wait.
+answered, a question declined with no text, a pause in your own words, blocked),
+that no item needs evidence printed before a compaction's summary, that a declined
+question is never asked again, and that no runner ends the turn to wait.
 
 ![The progress band](docs/images/goal-progress-band.svg)
 
