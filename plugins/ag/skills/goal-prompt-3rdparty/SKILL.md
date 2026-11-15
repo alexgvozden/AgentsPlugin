@@ -31,6 +31,7 @@ Set up Nov 6, 2026; check `ext-build.ps1 -DryRun` if old.
 - The builder starts fresh: it sees the brief file, the worktree's `CLAUDE.md`/`AGENTS.md`, user hooks and skills, and nothing of this conversation. The brief is pointers, as for Opus builders, written to `<run folder>/briefs/<step>.md`. It cannot spawn subagents, and every model alias points at the third-party model.
 - Its stdout is at most ~22 lines: a summary line (`ext-build: <step> · <model> · turns · tokens · time · ok|HANDOFF|failed`), its report, the log path. The full transcript goes to `<run folder>/logs/`, and one line per run to `logs/ext-runs.jsonl` (model, tokens, cached tokens, turns, time, session id). Cost is tracked in tokens; the provider's dashboard has the money. `maxBudgetUsd` (25) is only a runaway guard: Claude Code prices the run as if it were Anthropic, far above the provider's bill.
 - Its commits end with `Built-by: <provider>/<model>` (`fireworks` or `openrouter`), so `git log --grep "Built-by: <provider>"` lists its work.
+- On OpenRouter, `providers.openrouter.routing` in `ext-build.json` (set with `/ag:3rdparty-provider openrouter <provider,...>|cheapest|fastest|quickest-start|auto`) pins which upstream provider serves the model; the launcher sends it as `CLAUDE_CODE_EXTRA_BODY` in the builder's env only. When every pinned provider is down the build fails: report it, do not change the routing.
 
 ## Facts about /goal
 

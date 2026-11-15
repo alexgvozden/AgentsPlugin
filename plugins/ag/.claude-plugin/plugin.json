@@ -1,6 +1,6 @@
 {
   "name": "ag",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "Goal tooling in one plugin: the goal-prompt skills, the third-party builder launcher (Fireworks or OpenRouter, /ag:3rdparty-provider), the goal-progress bar and tasks pane, /ag:refresh-tasks, the Reddit product-ideas research skill and the ideas list (/ag:ideas, /ag:idea, /ag:idea-research).",
   "author": {
     "name": "Aleksandar Gvozden"

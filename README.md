@@ -43,9 +43,13 @@ commands:
   Long jobs follow a batch and crawl checklist: raw data kept, resumable, early results.
 - `/ag:fable-planning on|off` — per project, puts the planning in goal runs,
   `/ag:design` and `/ag:plan` on Fable 5.2 high instead of Opus 5.5 high. Off by default.
-- `/ag:3rdparty-provider fireworks|openrouter|status` — picks the provider the
-  `goal-prompt-3rdparty` builders run on, or shows it with its default model and
-  whether its key is set. Stored in `~/.claude/ext-build.json`.
+- `/ag:3rdparty-provider fireworks | openrouter [<provider,...>|cheapest|fastest|quickest-start|auto] | status`
+  — picks the provider the `goal-prompt-3rdparty` builders run on, or shows it with
+  its default model, routing and whether its key is set. On OpenRouter the second
+  word pins which upstream provider serves the model (`openrouter deepinfra/fp8,deepseek`,
+  `openrouter cheapest`, `openrouter auto`; see
+  [choosing the upstream provider](#openrouter-choosing-the-upstream-provider)).
+  Stored in `~/.claude/ext-build.json`.
 - `/ag:refresh-tasks` — brings the plan's status marks and the progress file up to
   date when the tasks pane looks wrong, flat or behind.
 - `/goal-progress` — the goal progress bar and the tasks pane.
@@ -401,7 +405,9 @@ On OpenRouter the launcher sets `ANTHROPIC_BASE_URL` to
 `https://openrouter.ai/api` and passes the key the same way. Its default model is
 `deepseek/deepseek-v4.1-flash-1017` (DeepSeek V4.1 Flash, $0.02 in and $0.108 out
 per 1M tokens on OpenRouter). Its commits end with `Built-by: openrouter/<model>`,
-and the progress band labels its runs `or:<model>` (Fireworks runs `fw:<model>`).
+and the progress band labels its runs `or:<model>` (Fireworks runs `fw:<model>`). To pin which
+upstream provider serves the model, see
+[OpenRouter: choosing the upstream provider](#openrouter-choosing-the-upstream-provider).
 
 **Another model.** Add `model=<id>` to the skill (the goal passes it as `-Model`),
 or set the provider's `defaultModel` in `~/.claude/ext-build.json`. On Fireworks
@@ -419,14 +425,17 @@ tests the model with one short call.
   "provider": "openrouter",
   "providers": {
     "fireworks":  { "defaultModel": "deepseek-v4p1-flash-1017" },
-    "openrouter": { "defaultModel": "deepseek/deepseek-v4.1-flash-1017" }
+    "openrouter": {
+      "defaultModel": "deepseek/deepseek-v4.1-flash-1017",
+      "routing": { "only": ["wafer/mxfp4"] }
+    }
   },
   "maxBudgetUsd": 25
 }
 ```
 
 Each provider entry may set `baseUrl`, `keyFile`, `defaultModel` and
-`modelPrefix`; `permissionMode`, `maxBudgetUsd` and `claudePath` stay at the top.
+`modelPrefix`, and the `openrouter` entry also `routing`; `permissionMode`, `maxBudgetUsd` and `claudePath` stay at the top.
 An older flat file, with `baseUrl`, `keyFile`, `defaultModel` and `modelPrefix` at
 the top, still works: those keys belong to the provider it names, else Fireworks.
 `/ag:3rdparty-provider` moves them under `providers` the first time it changes
@@ -466,6 +475,84 @@ path.
   that is not JSON; the step goes to Opus high.
 - `2` setup error: a missing argument, config, key or `claude` executable; the
   run stops, sets its progress to `blocked` and tells you.
+
+#### OpenRouter: choosing the upstream provider
+
+OpenRouter passes each request to one of several upstream providers of the model.
+They differ in price, speed and quantization (some serve fp4, a lossy 4-bit form),
+and by default OpenRouter picks for you, request by request. A second word after
+`openrouter` pins the choice for the builders:
+
+| Command | What it does | Stored under `providers.openrouter` |
+|---|---|---|
+| `/ag:3rdparty-provider openrouter wafer/mxfp4` | Only that endpoint; no other provider, even when it is down | `"routing": { "only": ["wafer/mxfp4"] }` |
+| `/ag:3rdparty-provider openrouter deepinfra/fp8,deepseek` | Only these; OpenRouter picks between them and moves to the other when one fails | `"routing": { "only": ["deepinfra/fp8", "deepseek"] }` |
+| `/ag:3rdparty-provider openrouter cheapest` | Every provider, cheapest first | `"routing": { "sort": "price" }` |
+| `/ag:3rdparty-provider openrouter fastest` | Every provider, highest throughput first | `"routing": { "sort": "throughput" }` |
+| `/ag:3rdparty-provider openrouter quickest-start` | Every provider, lowest latency first | `"routing": { "sort": "latency" }` |
+| `/ag:3rdparty-provider openrouter auto` | Removes the pin; OpenRouter picks again | no `routing` |
+| `/ag:3rdparty-provider openrouter` | Switches to OpenRouter and keeps the pin as it is | unchanged |
+
+`only` alone already rules out every other provider (checked live: an unknown slug
+fails the request). The pin leaves out `allow_fallbacks: false` on purpose: without
+`order` it keeps a request on the top-ranked provider only, so the second one in
+your list could not take over.
+
+In `~/.claude/ext-build.json` it looks like this:
+
+```json
+{
+  "provider": "openrouter",
+  "providers": {
+    "openrouter": {
+      "routing": { "only": ["deepinfra/fp8", "deepseek"] }
+    }
+  }
+}
+```
+
+A route goes only with `openrouter`; with `fireworks` or `status` the script stops
+with exit 2. Switching to Fireworks keeps the OpenRouter pin for later, and status
+names it. A slug is lower-case letters, digits, `-`, `_`, `.` and `/`: a provider
+(`deepseek`, all its endpoints) or one endpoint of it (`deepinfra/fp8`).
+
+**How it works.** `routing` is OpenRouter's `provider` routing object. On an
+OpenRouter run `ext-build.ps1` sets `CLAUDE_CODE_EXTRA_BODY={"provider":<routing>}`
+in the builder's environment only, and Claude Code merges it into every request
+body. Your own Claude Code sessions are not touched, and a `CLAUDE_CODE_EXTRA_BODY`
+in your shell is never passed on to a builder. Don't set
+`CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` for builders: Claude Code then drops the
+extra body, so the pin would be ignored. With a pin the launcher removes an
+inherited one from the builder's environment. `-DryRun` shows the variable and
+`-Check` prints a `routing:` line; each run's line in `logs/ext-runs.jsonl` has a
+`routing` field.
+
+**Where to find the slugs.**
+
+- `/ag:3rdparty-provider openrouter <slug>` checks each slug against the model's
+  endpoints. An unknown one is still saved, with a warning that lists the valid tags
+  for the model. If the list cannot be read (offline), it says the check was skipped.
+- The public list, no key needed:
+  `https://openrouter.ai/api/v1/models/<model id>/endpoints`, for example
+  `https://openrouter.ai/api/v1/models/deepseek/deepseek-v4.1-flash-1017/endpoints`.
+  The `tag` of each endpoint is its slug, and the list also shows its
+  `quantization` and price.
+- The model's page on openrouter.ai, on its "Providers" tab.
+
+With an `only` pin, `/ag:3rdparty-provider` (status) prints each pinned endpoint's
+price per 1M tokens in and out and its quantization.
+
+**What to pick.** For code, two fp8 providers such as `deepinfra/fp8,deepseek` are
+a good default: no lossy 4-bit weights, and the second takes over when the first is
+down. Avoid fp4 endpoints for coding unless cost matters most. A pin has no
+fallback beyond the providers you list, so a single pinned provider that is down or
+rate-limited makes the build fail instead of moving to another provider. List two,
+or use `cheapest` or `auto`, if that matters more to you than control.
+
+**Checking it.** `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check openrouter`
+(macOS and Linux: `pwsh -File ~/.claude/ag/ag-key.ps1 check openrouter`) makes one
+short call through the route, at a tiny cost. OpenRouter's Activity page shows
+which provider served each request.
 
 ## Examples
 

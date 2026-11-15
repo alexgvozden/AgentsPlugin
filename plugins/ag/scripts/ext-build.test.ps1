@@ -379,6 +379,35 @@ try {
     $duringOr = $script:during | ConvertFrom-Json
     $runRec = (Get-Content -LiteralPath (Join-Path $LogDir 'ext-runs.jsonl') | Select-Object -Last 1) | ConvertFrom-Json
     Assert ($code -eq 0 -and @($duringOr.running)[0].engine -eq 'or:glm-5' -and $runRec.engine -eq 'openrouter' -and $runRec.model -eq 'z-ai/glm-5') 'openrouter run: engine or:glm-5, record engine openrouter' "$($script:during)`n$($runRec | ConvertTo-Json -Compress)"
+
+    # OpenRouter routing: CLAUDE_CODE_EXTRA_BODY on openrouter only; the parent's is never passed on
+    $cfgRoute = Write-TestJson 'route.json' ('{"provider":"openrouter","providers":{"openrouter":{"keyFile":"' + $orKeyJson + '","defaultModel":"z-ai/glm-5","routing":{"only":["wafer/mxfp4"],"allow_fallbacks":false}},"fireworks":{"keyFile":"' + $fwKeyJson + '","routing":{"sort":"price"}}}}')
+    $rc = Read-ExtConfig $cfgRoute ''
+    $rcFw = Read-ExtConfig $cfgRoute 'fireworks'
+    $em = Get-ExtEnv 'z-ai/glm-5' 'k' $rc
+    $emFw = Get-ExtEnv 'x' 'k' $rcFw
+    Assert ($rc.RoutingJson -eq '{"only":["wafer/mxfp4"],"allow_fallbacks":false}' -and $null -eq $rcFw.Routing -and -not $rcFw.RoutingJson -and -not $pc.RoutingJson) 'routing read for openrouter only, none when absent' ($rc | Out-String)
+    Assert ($em['CLAUDE_CODE_EXTRA_BODY'] -eq '{"provider":{"only":["wafer/mxfp4"],"allow_fallbacks":false}}' -and $em.Contains('CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS') -and $null -eq $em['CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS'] -and -not $emFw.Contains('CLAUDE_CODE_EXTRA_BODY') -and $script:EnvToRemove -contains 'CLAUDE_CODE_EXTRA_BODY') 'env: extra body with routing, betas switch dropped; none on fireworks' ($em | Out-String)
+    $badRoute = Get-SetupError { Read-ExtConfig (Write-TestJson 'badroute.json' '{"provider":"openrouter","providers":{"openrouter":{"routing":"wafer"}}}') '' }
+    Assert ($badRoute -match "'routing' of provider 'openrouter' must be a JSON object") 'a routing that is not an object -> setup error' $badRoute
+    $oldBody = $env:CLAUDE_CODE_EXTRA_BODY
+    try {
+        $env:CLAUDE_CODE_EXTRA_BODY = '{"parent":"leak"}'
+        $r = Run-Launcher (@('-Config', $cfgRoute) + $common)
+        $rFw = Run-Launcher (@('-Config', $cfgRoute, '-Provider', 'fireworks') + $common)
+        $rNo = Run-Launcher (@('-Config', $cfgProv) + $common)
+    }
+    finally { $env:CLAUDE_CODE_EXTRA_BODY = $oldBody }
+    Assert ($r.Code -eq 0 -and $r.Out.Contains('routing: {"only":["wafer/mxfp4"],"allow_fallbacks":false}') -and $r.Out.Contains('CLAUDE_CODE_EXTRA_BODY={"provider":{"only":["wafer/mxfp4"],"allow_fallbacks":false}}') -and $r.Out -match 'removed: .*CLAUDE_CODE_EXTRA_BODY' -and $r.Out -match 'removed: .*CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS' -and -not $r.Out.Contains('leak')) 'openrouter dry run with routing: extra body in the child env, the parent one removed' $r.Out
+    Assert ($rFw.Code -eq 0 -and $rFw.Out -match 'provider: fireworks' -and $rFw.Out -notmatch 'CLAUDE_CODE_EXTRA_BODY=' -and $rFw.Out -notmatch '(?m)^routing:' -and $rFw.Out -match 'removed: .*CLAUDE_CODE_EXTRA_BODY' -and -not $rFw.Out.Contains('leak')) 'fireworks dry run: no extra body even with routing in the config; the parent one removed' $rFw.Out
+    Assert ($rNo.Code -eq 0 -and $rNo.Out -notmatch 'CLAUDE_CODE_EXTRA_BODY=' -and $rNo.Out -match 'removed: .*CLAUDE_CODE_EXTRA_BODY' -and -not $rNo.Out.Contains('leak')) 'openrouter dry run without routing: no extra body, the parent one removed' $rNo.Out
+
+    # a run with routing records it; one without does not
+    Assert ($null -eq $runRec.PSObject.Properties['routing']) 'a run without routing has no routing field' ($runRec | ConvertTo-Json -Compress)
+    $Config = $cfgRoute; $Step = 'SORR'
+    $code = Invoke-ExtMain | Select-Object -Last 1
+    $runRec2 = (Get-Content -LiteralPath (Join-Path $LogDir 'ext-runs.jsonl') | Select-Object -Last 1) | ConvertFrom-Json
+    Assert ($code -eq 0 -and $runRec2.routing -eq '{"only":["wafer/mxfp4"],"allow_fallbacks":false}' -and $runRec2.engine -eq 'openrouter') 'a run with routing records it' ($runRec2 | ConvertTo-Json -Compress)
     $Config = $cfgOk
 
     $r = Run-Launcher @('-Config', $cfgOk, '-Check', 'bogus')

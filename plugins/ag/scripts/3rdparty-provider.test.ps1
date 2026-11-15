@@ -14,12 +14,16 @@ $root = Join-Path ([IO.Path]::GetTempPath()) ('3rdparty-provider-test-' + [guid]
 $home2 = Join-Path $root 'home'
 New-Item -ItemType Directory -Path (Join-Path $home2 '.claude') -Force | Out-Null
 $cfg = Join-Path $root 'ext-build.json'
+$script:epFile = Join-Path $root 'no-endpoints.json'
 
 function Run([string[]]$ArgList) {
     $saved = $env:USERPROFILE
+    $savedEp = $env:AG_OPENROUTER_ENDPOINTS_JSON
     $env:USERPROFILE = $home2
+    # never the network: the endpoints list comes from a file (a missing one reads as offline)
+    $env:AG_OPENROUTER_ENDPOINTS_JSON = $script:epFile
     try { $out = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script @ArgList 2>&1 | Out-String }
-    finally { $env:USERPROFILE = $saved }
+    finally { $env:USERPROFILE = $saved; $env:AG_OPENROUTER_ENDPOINTS_JSON = $savedEp }
     [pscustomobject]@{ Code = $LASTEXITCODE; Out = $out }
 }
 
@@ -82,6 +86,71 @@ try {
     [IO.File]::WriteAllText($cfg, '{"provider":"gemini"}')
     $r = Run @('status', '-ConfigPath', $cfg)
     Assert ($r.Code -eq 2 -and $r.Out -match "unknown builder provider 'gemini'") 'status on an unknown configured provider exits 2' $r.Out
+
+    # OpenRouter routing (fake endpoints list, never the network)
+    $eps = Join-Path $root 'endpoints.json'
+    [IO.File]::WriteAllText($eps, '{"data":{"id":"deepseek/deepseek-v4.1-flash-1017","endpoints":[' +
+        '{"provider_name":"Wafer","tag":"wafer/mxfp4","quantization":"fp4","pricing":{"prompt":"0.0000001","completion":"0.0000004"}},' +
+        '{"provider_name":"DeepInfra","tag":"deepinfra/fp8","quantization":"fp8","pricing":{"prompt":"0.00000015","completion":"0.0000006"}},' +
+        '{"provider_name":"DeepSeek","tag":"deepseek","quantization":"fp8","pricing":{"prompt":"0.0000002","completion":"0.0000008"}}]}}')
+    $script:epFile = $eps
+    Remove-Item -LiteralPath $cfg -Force
+    $r = Run @('openrouter', 'wafer/mxfp4', '-ConfigPath', $cfg)
+    $j = Read-Json $cfg
+    Assert ($r.Code -eq 0 -and $j.provider -eq 'openrouter' -and (@($j.providers.openrouter.routing.only) -join ',') -eq 'wafer/mxfp4' -and $null -eq $j.providers.openrouter.routing.allow_fallbacks) 'a slug pins only that provider (only, no allow_fallbacks)' $r.Out
+    Assert ($r.Out -match 'done: builders run on openrouter, routing only wafer/mxfp4' -and $r.Out -match 'routing: only wafer/mxfp4' -and $r.Out -notmatch 'warning') 'set and status print the routing' $r.Out
+    Assert ($r.Out -match 'wafer/mxfp4: Wafer, fp4, \$0\.10 in / \$0\.40 out per 1M tokens') 'status prints the pinned endpoint price and quantization' $r.Out
+    $r = Run @('openrouter', 'wafer/mxfp4', '-ConfigPath', $cfg)
+    Assert ($r.Code -eq 0 -and $r.Out -match 'skip: builders already run on openrouter, routing only wafer/mxfp4') 'the same route again is a skip' $r.Out
+    $r = Run @('openrouter', 'deepinfra/fp8,', 'deepseek', '-ConfigPath', $cfg)
+    $j = Read-Json $cfg
+    Assert ($r.Code -eq 0 -and (@($j.providers.openrouter.routing.only) -join ',') -eq 'deepinfra/fp8,deepseek' -and $r.Out -match 'deepinfra/fp8: DeepInfra, fp8' -and $r.Out -match 'deepseek: DeepSeek, fp8') 'a list of slugs (also split by a space) pins them in order' $r.Out
+    $r = Run @('openrouter', '-ConfigPath', $cfg)
+    Assert ($r.Code -eq 0 -and $r.Out -match 'skip: builders already run on openrouter \(' -and (@((Read-Json $cfg).providers.openrouter.routing.only) -join ',') -eq 'deepinfra/fp8,deepseek') 'no second argument keeps the routing' $r.Out
+    foreach ($pair in @(@('cheapest', 'price'), @('fastest', 'throughput'), @('quickest-start', 'latency'))) {
+        $r = Run @('openrouter', $pair[0], '-ConfigPath', $cfg)
+        $ro = (Read-Json $cfg).providers.openrouter.routing
+        Assert ($r.Code -eq 0 -and $ro.sort -eq $pair[1] -and @($ro.PSObject.Properties).Count -eq 1 -and $r.Out -match ('routing: ' + $pair[0])) ($pair[0] + ' sorts by ' + $pair[1]) $r.Out
+    }
+    $r = Run @('fireworks', '-ConfigPath', $cfg)
+    Assert ($r.Code -eq 0 -and (Read-Json $cfg).providers.openrouter.routing.sort -eq 'latency' -and $r.Out -match 'openrouter routing: quickest-start \(applies when the builders run on openrouter\)') 'fireworks keeps the openrouter routing and names it' $r.Out
+    $r = Run @('openrouter', 'auto', '-ConfigPath', $cfg)
+    $j = Read-Json $cfg
+    Assert ($r.Code -eq 0 -and $j.provider -eq 'openrouter' -and $null -eq $j.PSObject.Properties['providers'] -and $r.Out -match 'routing: auto') 'auto removes the routing (and an emptied entry)' $r.Out
+    [IO.File]::WriteAllText($cfg, '{"provider":"openrouter","providers":{"openrouter":{"defaultModel":"x/y","routing":{"sort":"price"}}}}')
+    $r = Run @('openrouter', 'auto', '-ConfigPath', $cfg)
+    $j = Read-Json $cfg
+    Assert ($r.Code -eq 0 -and $j.providers.openrouter.defaultModel -eq 'x/y' -and $null -eq $j.providers.openrouter.PSObject.Properties['routing']) 'auto keeps the other openrouter settings' $r.Out
+    $r = Run @('openrouter', 'auto', '-ConfigPath', $cfg)
+    Assert ($r.Out -match 'skip: builders already run on openrouter, routing auto') 'auto without a routing is a skip' $r.Out
+
+    # unknown slug: a warning with the valid tags, still saved
+    $r = Run @('openrouter', 'nosuch', '-ConfigPath', (Join-Path $root 'u.json'))
+    Assert ($r.Code -eq 0 -and $r.Out -match 'warning: .*has no OpenRouter endpoint "nosuch"; saved anyway' -and $r.Out -match 'valid for deepseek/deepseek-v4\.1-flash-1017: deepinfra/fp8, deepseek, wafer/mxfp4' -and (@((Read-Json (Join-Path $root 'u.json')).providers.openrouter.routing.only) -join ',') -eq 'nosuch') 'unknown slug warns with the valid tags and is saved' $r.Out
+    $r = Run @('openrouter', 'wafer', '-ConfigPath', (Join-Path $root 'u.json'))
+    Assert ($r.Code -eq 0 -and $r.Out -notmatch 'warning' -and $r.Out -match 'wafer/mxfp4: Wafer') 'a provider slug matches its tagged endpoints' $r.Out
+    # offline: the check is skipped
+    $script:epFile = Join-Path $root 'missing-endpoints.json'
+    $r = Run @('openrouter', 'wafer/mxfp4', '-ConfigPath', (Join-Path $root 'o.json'))
+    Assert ($r.Code -eq 0 -and $r.Out -match 'provider check was skipped' -and $r.Out -notmatch 'warning' -and (Test-Path (Join-Path $root 'o.json'))) 'offline: the check is skipped and the route saved' $r.Out
+    $script:epFile = $eps
+
+    # bad routes
+    $r = Run @('fireworks', 'wafer/mxfp4', '-ConfigPath', $cfg)
+    Assert ($r.Code -eq 2 -and $r.Out -match 'only goes with openrouter') 'a route with fireworks exits 2' $r.Out
+    $r = Run @('status', 'cheapest', '-ConfigPath', $cfg)
+    Assert ($r.Code -eq 2 -and $r.Out -match 'only goes with openrouter') 'a route with status exits 2' $r.Out
+    $before = [IO.File]::ReadAllText($cfg)
+    foreach ($bad in @('Wafer', 'wa fer!', 'a;b')) {
+        $r = Run @('openrouter', $bad, '-ConfigPath', $cfg)
+        Assert ($r.Code -eq 2 -and $r.Out -match 'is not a provider slug' -and [IO.File]::ReadAllText($cfg) -eq $before) ('bad slug "' + $bad + '" exits 2 and changes nothing') $r.Out
+    }
+
+    # flat file migration together with a route
+    [IO.File]::WriteAllText($cfg, '{"provider":"fireworks","defaultModel":"kimi-k2","maxBudgetUsd":7}')
+    $r = Run @('openrouter', 'deepseek', '-ConfigPath', $cfg)
+    $j = Read-Json $cfg
+    Assert ($r.Code -eq 0 -and $j.provider -eq 'openrouter' -and $j.providers.fireworks.defaultModel -eq 'kimi-k2' -and (@($j.providers.openrouter.routing.only) -join ',') -eq 'deepseek' -and $j.maxBudgetUsd -eq 7 -and $null -eq $j.PSObject.Properties['defaultModel']) 'flat file migrates and gets the route' $r.Out
 
     # no -ConfigPath: the file in the (fake) home
     $r = Run @('openrouter')

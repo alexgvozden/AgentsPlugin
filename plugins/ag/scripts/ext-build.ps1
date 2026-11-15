@@ -18,6 +18,12 @@
   the settings of the provider it names (default fireworks). /ag:3rdparty-provider sets "provider".
   The builder provider is -Provider when given (positional works too), else "provider" from the
   config; an empty modelPrefix passes model ids as they are (OpenRouter).
+  OpenRouter routing: providers.openrouter.routing is OpenRouter's "provider" routing object, e.g.
+  {"only":["wafer/mxfp4"]} or {"sort":"price"}; /ag:3rdparty-provider
+  openrouter <route> sets it. On an openrouter run the child gets CLAUDE_CODE_EXTRA_BODY =
+  {"provider":<routing>} (Claude Code merges it into every request body); a parent's
+  CLAUDE_CODE_EXTRA_BODY is never passed on, and with routing a parent's
+  CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS is dropped too (it makes Claude Code ignore the extra body).
   -Check gemini|openai only reports whether the image key is set.
   -Where prints the key store, its location and whether a key is set (never the key).
 
@@ -195,7 +201,8 @@ function Read-ExtJsonFile([string]$Path) {
 $script:ProviderKeys = @('baseUrl', 'keyFile', 'defaultModel', 'modelPrefix')
 
 # Copies the provider settings found in $Src into the hashtable $Dst; keyFile is expanded against $Dir.
-function Merge-ExtProviderEntry([hashtable]$Dst, $Src, [string]$Dir) {
+# "routing" (an object; OpenRouter's provider routing) is kept as an object; null or {} clears it.
+function Merge-ExtProviderEntry([hashtable]$Dst, $Src, [string]$Dir, [string]$Name = '') {
     foreach ($k in $script:ProviderKeys) {
         $p = $Src.PSObject.Properties[$k]
         if ($null -eq $p -or $null -eq $p.Value) { continue }
@@ -203,6 +210,21 @@ function Merge-ExtProviderEntry([hashtable]$Dst, $Src, [string]$Dir) {
         if ($k -eq 'keyFile' -and $v) { $v = Expand-ExtPath $v $Dir }
         $Dst[$k] = $v
     }
+    $rp = $Src.PSObject.Properties['routing']
+    if ($null -ne $rp) {
+        if ($null -eq $rp.Value) { $Dst.Remove('routing') }
+        elseif ($rp.Value -isnot [System.Management.Automation.PSCustomObject]) {
+            Stop-Setup "'routing' of provider '$Name' must be a JSON object (OpenRouter's provider routing, e.g. {""only"":[""wafer""]})"
+        }
+        elseif (@($rp.Value.PSObject.Properties).Count -eq 0) { $Dst.Remove('routing') }
+        else { $Dst['routing'] = $rp.Value }
+    }
+}
+
+# The routing object as compact JSON, or '' when there is none.
+function ConvertTo-ExtRoutingJson($Routing) {
+    if ($null -eq $Routing) { return '' }
+    return [string]($Routing | ConvertTo-Json -Compress -Depth 20)
 }
 
 # Merges one config file into the state $St (Provider, PermissionMode, MaxBudgetUsd, ClaudePath,
@@ -220,7 +242,7 @@ function Merge-ExtConfigObject([hashtable]$St, $Obj, [string]$Dir) {
     if ($flat) {
         $name = if ($prov) { $prov } else { 'fireworks' }
         if (-not $St.Providers.ContainsKey($name)) { $St.Providers[$name] = @{} }
-        Merge-ExtProviderEntry $St.Providers[$name] $Obj $Dir
+        Merge-ExtProviderEntry $St.Providers[$name] $Obj $Dir $name
     }
     $provs = Get-ExtProp $Obj 'providers'
     if ($null -ne $provs) {
@@ -228,7 +250,7 @@ function Merge-ExtConfigObject([hashtable]$St, $Obj, [string]$Dir) {
             if ($null -eq $pp.Value -or $pp.Value -isnot [psobject]) { continue }
             $name = $pp.Name.Trim().ToLowerInvariant()
             if (-not $St.Providers.ContainsKey($name)) { $St.Providers[$name] = @{} }
-            Merge-ExtProviderEntry $St.Providers[$name] $pp.Value $Dir
+            Merge-ExtProviderEntry $St.Providers[$name] $pp.Value $Dir $name
         }
     }
 }
@@ -271,6 +293,9 @@ function Read-ExtConfig([string]$Path, [string]$ProviderName) {
     if (-not $label) { $label = $name }
     $prefix = ''
     if ($e.ContainsKey('modelPrefix')) { $prefix = [string]$e['modelPrefix'] }
+    # Routing only applies on OpenRouter; a routing entry under another provider is ignored.
+    $routing = $null
+    if ($name -eq 'openrouter' -and $e.ContainsKey('routing')) { $routing = $e['routing'] }
     [pscustomobject]@{
         Path           = $shown
         Provider       = $name
@@ -282,6 +307,8 @@ function Read-ExtConfig([string]$Path, [string]$ProviderName) {
         PermissionMode = [string]$st.PermissionMode
         MaxBudgetUsd   = [double]$st.MaxBudgetUsd
         ClaudePath     = [string]$st.ClaudePath
+        Routing        = $routing
+        RoutingJson    = (ConvertTo-ExtRoutingJson $routing)
     }
 }
 
@@ -354,6 +381,13 @@ function Get-ExtEnv([string]$ModelId, [string]$Key, $Cfg) {
         CLAUDE_CODE_SUBAGENT_MODEL               = $ModelId
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1'
     }
+    # OpenRouter routing: Claude Code merges CLAUDE_CODE_EXTRA_BODY into every request body. A $null
+    # value removes an inherited variable: disabled experimental betas would make it ignore the body.
+    $rj = [string](Get-ExtProp $Cfg 'RoutingJson' '')
+    if ($rj -and (Get-ExtProp $Cfg 'Provider' '') -eq 'openrouter') {
+        $m['CLAUDE_CODE_EXTRA_BODY'] = '{"provider":' + $rj + '}'
+        $m['CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS'] = $null
+    }
     return $m
 }
 
@@ -363,7 +397,8 @@ $script:EnvToRemove = @(
     'CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_CHILD_SESSION',
     'CLAUDE_CODE_MESSAGING_SOCKET', 'CLAUDE_CODE_MESSAGING_TOKEN', 'CLAUDE_CODE_SESSION_ATTENDED', 'CLAUDE_PID',
     'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_SMALL_FAST_MODEL', 'ANTHROPIC_DEFAULT_MODEL',
-    'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY'
+    'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY',
+    'CLAUDE_CODE_EXTRA_BODY'
 )
 
 function Get-ExtClaudeArgs([string]$ModelId, $Cfg, [double]$Budget, [string]$ResumeId) {
@@ -436,7 +471,11 @@ function Invoke-ExtClaude([string]$Exe, [string[]]$ArgList, $EnvMap, [string]$Wo
     $psi.StandardOutputEncoding = $utf8
     $psi.StandardErrorEncoding = $utf8
     foreach ($n in $script:EnvToRemove) { if ($psi.EnvironmentVariables.ContainsKey($n)) { $psi.EnvironmentVariables.Remove($n) } }
-    foreach ($k in $EnvMap.Keys) { $psi.EnvironmentVariables[$k] = [string]$EnvMap[$k] }
+    foreach ($k in $EnvMap.Keys) {
+        # $null means: not passed on to the child.
+        if ($null -eq $EnvMap[$k]) { if ($psi.EnvironmentVariables.ContainsKey($k)) { $psi.EnvironmentVariables.Remove($k) } }
+        else { $psi.EnvironmentVariables[$k] = [string]$EnvMap[$k] }
+    }
 
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $psi
@@ -540,6 +579,7 @@ function Invoke-ExtCheck($Cfg, [string]$ModelName) {
     $text = [string](Get-ExtProp $parsed 'result' '')
     $ok = ($null -ne $parsed) -and ($r.ExitCode -eq 0) -and -not [bool](Get-ExtProp $parsed 'is_error' $false) -and ($text -match '\bOK\b')
     Write-Output "ext-build check: provider $($Cfg.Provider) ($($Cfg.BaseUrl))"
+    if ($Cfg.RoutingJson) { Write-Output "ext-build check: routing: $($Cfg.RoutingJson)" }
     Write-Output "ext-build check: requested $modelId"
     Write-Output "ext-build check: model reported $reported"
     if ($ok) { Write-Output 'ext-build check: OK'; return 0 }
@@ -600,15 +640,18 @@ function Invoke-ExtMain {
         Write-Output "ext-build dry run: $Step"
         Write-Output "provider: $($cfg.Provider)"
         Write-Output "model: $modelId"
+        if ($cfg.RoutingJson) { Write-Output "routing: $($cfg.RoutingJson)" }
         Write-Output "config: $($cfg.Path)"
         Write-Output "cwd: $cwdPath"
         Write-Output "brief: $briefPath ($($briefText.Length) chars, sent on stdin)"
         Write-Output 'env (child only):'
         foreach ($k in $envMap.Keys) {
+            if ($null -eq $envMap[$k]) { continue }
             $v = if ($k -eq 'ANTHROPIC_AUTH_TOKEN') { '***' } else { $envMap[$k] }
             Write-Output "  $k=$v"
         }
-        Write-Output "  removed: $($script:EnvToRemove -join ', ')"
+        $gone = @($script:EnvToRemove) + @($envMap.Keys | Where-Object { $null -eq $envMap[$_] })
+        Write-Output "  removed: $($gone -join ', ')"
         Write-Output "exe: $exe"
         Write-Output 'args:'
         foreach ($a in $argList) { Write-Output "  $(ConvertTo-ExtWinArg $a)" }
@@ -650,6 +693,7 @@ function Invoke-ExtMain {
         logFile         = $logFile
         reportedCostUsd = $rep.ReportedCostUsd
     }
+    if ($cfg.RoutingJson -and $cfg.Provider -eq 'openrouter') { $rec['routing'] = $cfg.RoutingJson }
     Write-ExtUtf8Line $runsFile ((New-Object psobject -Property $rec) | ConvertTo-Json -Compress -Depth 5)
 
     foreach ($l in $rep.Lines) { Write-Output $l }

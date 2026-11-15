@@ -3,6 +3,24 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.14.0 - 2026-11-15
+
+Pin which upstream provider serves the OpenRouter builders.
+
+- `/ag:3rdparty-provider openrouter <slug,...>` (e.g. `wafer/mxfp4` or
+  `deepinfra/fp8,deepseek`) stores `providers.openrouter.routing` as
+  `{"only":[...]}`: only those providers or endpoints serve the builders; with a list
+  OpenRouter picks among them. `cheapest`, `fastest` and `quickest-start` sort every
+  provider by price, throughput or latency; `auto` removes the pin; no second word keeps it.
+- Slugs are checked against the model's public endpoints list: an unknown one is saved
+  with a warning listing the valid tags; offline the check is skipped. Status shows the
+  routing and each pinned endpoint's price and quantization.
+- `ext-build.ps1` sends the routing as `CLAUDE_CODE_EXTRA_BODY={"provider":...}` in the
+  builder's environment only, on OpenRouter runs; a parent value never leaks into a
+  builder, and an inherited `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` is dropped when a pin
+  is set. `-DryRun` and `-Check` show it, and `logs/ext-runs.jsonl` records it.
+- README: "OpenRouter: choosing the upstream provider".
+
 ## 1.13.0 - 2026-11-15
 
 OpenRouter as a second provider for the third-party builders, next to Fireworks.
