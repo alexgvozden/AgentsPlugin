@@ -1,9 +1,19 @@
 {
   "provider": "fireworks",
-  "baseUrl": "https://api.fireworks.ai/inference",
-  "keyFile": "~/.claude/secrets/fireworks.key",
-  "defaultModel": "deepseek-v4p1-flash-1017",
-  "modelPrefix": "accounts/fireworks/models/",
+  "providers": {
+    "fireworks": {
+      "baseUrl": "https://api.fireworks.ai/inference",
+      "keyFile": "~/.claude/secrets/fireworks.key",
+      "defaultModel": "deepseek-v4p1-flash-1017",
+      "modelPrefix": "accounts/fireworks/models/"
+    },
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api",
+      "keyFile": "~/.claude/secrets/openrouter.key",
+      "defaultModel": "deepseek/deepseek-v4.1-flash-1017",
+      "modelPrefix": ""
+    }
+  },
   "permissionMode": "bypassPermissions",
   "maxBudgetUsd": 25
 }

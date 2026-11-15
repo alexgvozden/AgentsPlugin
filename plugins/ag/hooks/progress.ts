@@ -77,14 +77,14 @@ export function statusWord(text: string, reason = ''): TaskStatus | undefined {
 
 const noteOf = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v : undefined)
 
-/** Which model runs a job or step ("opus-high", "sonnet", "fw:glm-5p3-flash"), trimmed; anything else is dropped. */
+/** Which model runs a job or step ("opus-high", "sonnet", "fw:glm-5p3-flash", "or:deepseek-v4.1-flash-1017"), trimmed; anything else is dropped. */
 const engineOf = (v: unknown): string | undefined => noteOf(v)?.trim()
 
 /** The engine as a label beside a title, " [sonnet]"; empty when there is none. */
 export const engineLabel = (engine: string | undefined): string => (engine ? ` [${engine}]` : '')
 
-/** True for an engine on Fireworks ("fw:..."), false for one on Claude. */
-export const onFireworks = (engine: string | undefined): boolean => !!engine?.startsWith('fw:')
+/** True for an engine on a third-party provider (Fireworks "fw:...", OpenRouter "or:..."), false for one on Claude. */
+export const onThirdParty = (engine: string | undefined): boolean => !!engine && (engine.startsWith('fw:') || engine.startsWith('or:'))
 
 /** A token count: a finite number, zero or more; anything else is dropped. */
 const tokensOf = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined)

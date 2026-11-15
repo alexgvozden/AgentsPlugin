@@ -8,7 +8,7 @@ export type TaskStatus = 'todo' | 'doing' | 'done' | 'deployed' | 'shown' | 'nee
 /**
  * A story (a step of an epic), or a subtask of a story in `steps`.
  * `tokens`: the tokens it used, a whole number; with none of its own, the sum of its subtasks'.
- * `engine`: the model running it ("sonnet", "fw:glm-5p3-flash").
+ * `engine`: the model running it ("sonnet", "fw:glm-5p3-flash" on Fireworks, "or:deepseek-v4.1-flash-1017" on OpenRouter).
  * `statusText`: the status as written, when it was not one of the canonical words ("running").
  */
 export type GoalStep = {

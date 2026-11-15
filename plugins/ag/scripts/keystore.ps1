@@ -1,6 +1,6 @@
 <#
   keystore.ps1 - one API key store for the ag launchers (dot-source it).
-  Providers: fireworks, gemini, openai. Any other provider is a setup error (exit 2).
+  Providers: fireworks, openrouter (builders), gemini, openai (images). Any other provider is a setup error (exit 2).
     Windows (PowerShell 5.1): DPAPI current-user file ~/.claude/secrets/<provider>.key
     macOS (pwsh): Keychain via `security`, service ag-<provider>, account $env:USER
     Linux (pwsh): `secret-tool` when on PATH and it can store, else ~/.claude/secrets/<provider>.key (mode 600, not encrypted)
@@ -9,8 +9,8 @@
   Windows PowerShell 5.1 and PowerShell 7 compatible.
 #>
 
-$script:KeyProviders = @('fireworks', 'gemini', 'openai')
-$script:KeyLabels = @{ fireworks = 'Fireworks'; gemini = 'Gemini'; openai = 'OpenAI' }
+$script:KeyProviders = @('fireworks', 'openrouter', 'gemini', 'openai')
+$script:KeyLabels = @{ fireworks = 'Fireworks'; openrouter = 'OpenRouter'; gemini = 'Gemini'; openai = 'OpenAI' }
 # {0} is ' <provider>' for providers other than fireworks (the default), else empty.
 $script:KeySetHint = 'run ext-build.ps1 -SetKey{0} in your own PowerShell window'
 

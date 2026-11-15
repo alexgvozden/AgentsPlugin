@@ -13,7 +13,7 @@ I built this for four reasons:
 - **See progress during the build.** The progress band above the prompt and the
   Goal tasks pane show what is running, what is done and what is next.
 - **Use fewer tokens without losing quality.** Function steps run on cheaper
-  Fireworks builders, with light checks (the step's own tests, lint,
+  builders on Fireworks or OpenRouter, with light checks (the step's own tests, lint,
   screenshots). Planning, UI, copy and reviews stay on Opus.
 
 ## What this is
@@ -21,7 +21,7 @@ I built this for four reasons:
 A private Claude Code plugin marketplace that packages the goal tooling so every
 machine and project gets the same skills, launcher, progress bar and global rules.
 
-Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with nine
+Marketplace name: `agents-plugin`. It holds one plugin, **ag**, with ten
 commands:
 
 - `/ag:goal-prompt` — turns a plan into one `/goal`.
@@ -30,7 +30,7 @@ commands:
 - `/ag:goal-prompt-sonnet` — the same, with the clear coding steps built by
   Sonnet on Claude.
 - `/ag:goal-prompt-3rdparty` — the same, with the function builders on a
-  Fireworks model. The plugin also holds the `ext-build` launcher and its
+  Fireworks or OpenRouter model. The plugin also holds the `ext-build` launcher and its
   default `ext-build.json`.
 - `/ag:design` — plans a UI design and makes its images with Gemini or OpenAI.
 - `/ag:reddit-product-ideas` — finds what a site's audience asks on Reddit and
@@ -43,6 +43,9 @@ commands:
   Long jobs follow a batch and crawl checklist: raw data kept, resumable, early results.
 - `/ag:fable-planning on|off` — per project, puts the planning in goal runs,
   `/ag:design` and `/ag:plan` on Fable 5.2 high instead of Opus 5.5 high. Off by default.
+- `/ag:3rdparty-provider fireworks|openrouter|status` — picks the provider the
+  `goal-prompt-3rdparty` builders run on, or shows it with its default model and
+  whether its key is set. Stored in `~/.claude/ext-build.json`.
 - `/ag:refresh-tasks` — brings the plan's status marks and the progress file up to
   date when the tasks pane looks wrong, flat or behind.
 - `/goal-progress` — the goal progress bar and the tasks pane.
@@ -55,7 +58,7 @@ once: at a sign-off it asks you in the chat and goes on after your answer.
 `/ag:goal-prompt-haiku` does the same, but well-described, clear coding steps are
 built by Haiku subagents. `/ag:goal-prompt-sonnet` does the same with Sonnet
 subagents. `/ag:goal-prompt-3rdparty` does the same, but the function builders
-run on a Fireworks model through `ext-build.ps1`. All four take
+run on a Fireworks or OpenRouter model through `ext-build.ps1`. All four take
 `[plan file or step range]`. [Which one to pick](#which-goal-skill-to-pick).
 A Claude Code session opened before the install needs a restart to see them; type
 `/ag:` to find them.
@@ -108,13 +111,13 @@ image key (no API call; the key is never shown). If it is not set, you get the
 `ag-key.ps1 set <provider>` line for your own terminal (see [Keys](#keys)) and choose:
 set it and go on, or go on without images. The goal skills check the keys a goal
 will use while they make it: the image key if the plan has a design step, and in
-`/ag:goal-prompt-3rdparty` the Fireworks key. Without an image key you choose the
+`/ag:goal-prompt-3rdparty` the key of the builder provider (Fireworks or OpenRouter). Without an image key you choose the
 other image provider (if its key is set), the design plan without images, or no
-design step; without the Fireworks key, builders on Claude at Opus medium. The goal
+design step; without the builder key, builders on Claude at Opus medium. The goal
 carries your choice, so the run does not ask again.
 
 **The ext-build launcher.** `plugins/ag/scripts/ext-build.ps1` runs one
-headless builder on a Fireworks model (`-Brief`, `-Cwd`, `-Step`, `-LogDir`). It
+headless builder on a Fireworks or OpenRouter model (`-Brief`, `-Cwd`, `-Step`, `-LogDir`). It
 reads the user config `~/.claude/ext-build.json` first, then the plugin's
 `ext-build.default.json`. `-SetKey` stores the API key (see [Keys](#keys)), `-Check` tests it,
 `-DryRun` shows the command without calling. Exit 0 ok, 3 HANDOFF, 1 failed,
@@ -199,13 +202,13 @@ rows marked with the skill's name. Opus and Sonnet mean Opus 5.5 and Sonnet 5.5.
 | UI part of a screen step: design, components, layout, screenshots | Opus, high | All four goal skills. The UI is built first; the function is wired in after, without changing the design |
 | Design plan (`/ag:design`): pages, states, components, copy, image prompts | Opus, high | Every `/ag:design` run, and a goal's design step for a new page |
 | Design images (`/ag:design`) | Gemini `gemini-3.1-flash-image` (default) or OpenAI `gpt-image-2` | Through `design-image.ps1`. Change either model in `~/.claude/design.json` |
-| Function builders (`goal-prompt-3rdparty`) | Fireworks, default `accounts/fireworks/models/deepseek-v4p1-flash-1017` | Each function step, through `ext-build.ps1` as a background job. `model=<id>` or `defaultModel` in `~/.claude/ext-build.json` picks another model |
+| Function builders (`goal-prompt-3rdparty`) | Fireworks, default `accounts/fireworks/models/deepseek-v4p1-flash-1017`; or OpenRouter, default `deepseek/deepseek-v4.1-flash-1017` | Each function step, through `ext-build.ps1` as a background job. `/ag:3rdparty-provider` picks the provider; `model=<id>` or the provider's `defaultModel` in `~/.claude/ext-build.json` picks another model |
 | Steps kept on Claude (`goal-prompt-3rdparty`) | Opus, medium | Steps that touch security, money, personal data or a shared-database migration, unless you move them |
-| End-user copy (`goal-prompt-3rdparty`): UI text, emails, marketing pages, README and help | Opus, high | Never on Fireworks |
-| Technical copy (`goal-prompt-3rdparty`): developer docs, code comments, API docs, plan and brief text | Opus, medium | Never on Fireworks |
+| End-user copy (`goal-prompt-3rdparty`): UI text, emails, marketing pages, README and help | Opus, high | Never on Fireworks or OpenRouter |
+| Technical copy (`goal-prompt-3rdparty`): developer docs, code comments, API docs, plan and brief text | Opus, medium | Never on Fireworks or OpenRouter |
 | A failed step | Opus, high | A builder fails, cannot fix its tests in one more try, or raises a design question. A fresh subagent continues the same step from the first one's report; it is never restarted |
-| Fireworks builder that hands off (exit 3) | Fireworks | A fresh Fireworks builder takes over from the handoff note |
-| Fireworks builder that fails (exit 1) | Opus, high | Never another Fireworks try |
+| Third-party builder that hands off (exit 3) | Fireworks or OpenRouter | A fresh builder on the same provider takes over from the handoff note |
+| Third-party builder that fails (exit 1) | Opus, high | Never another third-party try |
 | Reviews of a phase, branch or many files, or of security, money or personal data | Opus, high | At each phase close. A review of one small change may run at medium |
 | Browser testing through Claude in Chrome | Sonnet | It reports what it saw; Opus judges and fixes. After two or three failed tries, the step moves to Opus |
 | Mechanical work: running a test suite, merging lists | Sonnet | Where a project or skill allows it. When in doubt, take the higher level |
@@ -244,8 +247,8 @@ in who builds the code:
   well-described coding steps, Opus the rest. No extra key and no launcher.
 - **`/ag:goal-prompt-sonnet`** — Sonnet builders: the same as the Haiku skill,
   with Sonnet in Haiku's place. No extra key and no launcher.
-- **`/ag:goal-prompt-3rdparty`** — builders on Fireworks. Needs the
-  Fireworks key and the `ext-build` launcher.
+- **`/ag:goal-prompt-3rdparty`** — builders on Fireworks or OpenRouter
+  (`/ag:3rdparty-provider`). Needs that provider's key and the `ext-build` launcher.
 
 Planning, design, UI parts, copy, reviews and failed steps stay on Opus in all
 four.
@@ -315,7 +318,7 @@ printed after the summary, so it can still end.
 
 **The band follows it all.** The goal writes `.claude/goal-progress.json` with its
 status, note and log. The band reads the steps and their marks from the plan
-itself, and adds the subagents and Fireworks runs while they run, so a step shows
+itself, and adds the subagents and Fireworks or OpenRouter runs while they run, so a step shows
 as done as soon as the plan's text says so.
 
 ### How the effort is chosen
@@ -344,13 +347,13 @@ builder; one that fails is followed by Opus high, never by another Haiku try.
 builder; one that fails is followed by Opus high, never by another Sonnet try.
 
 In `/ag:goal-prompt-3rdparty` the function work that would go to Opus medium goes
-to Fireworks instead, except the steps kept on Claude and all copy. A Fireworks
-builder is a separate Claude Code process, not a subagent: the launcher gives it
-a model and no effort setting. A Fireworks builder that hands off (exit 3) is
-followed by a fresh Fireworks builder; one that fails (exit 1) is followed by
-Opus high, never by another Fireworks try.
+to Fireworks or OpenRouter instead, except the steps kept on Claude and all copy.
+Such a builder is a separate Claude Code process, not a subagent: the launcher gives it
+a model and no effort setting. A builder that hands off (exit 3) is followed by
+a fresh builder on the same provider; one that fails (exit 1) is followed by
+Opus high, never by another third-party try.
 
-### How the cheaper Fireworks models are called
+### How the cheaper Fireworks and OpenRouter models are called
 
 ```text
 main thread (Opus)
@@ -358,7 +361,7 @@ main thread (Opus)
   starts ext-build.ps1 -Brief <brief> -Cwd <worktree> -Step S3 -LogDir <run folder>/logs
   │        as a background job
   │  reads ~/.claude/ext-build.json, else the plugin's ext-build.default.json
-  │  reads the Fireworks key from the key store
+  │  reads the provider's key from the key store (Fireworks shown)
   ▼
 claude -p   in the worktree, brief on stdin
   │  env of this process only:
@@ -374,22 +377,62 @@ exit 0 ok · 3 HANDOFF · 1 failed · 2 setup error
 `ext-build.ps1` starts a headless Claude Code, `claude -p`, in the step's
 worktree and sends it the brief on stdin. Claude Code does the work with its own
 tools; only the model behind it changes. The launcher sets `ANTHROPIC_BASE_URL`
-to Fireworks' Anthropic-compatible endpoint (`baseUrl`,
-`https://api.fireworks.ai/inference`) and points `ANTHROPIC_MODEL`, the Opus,
+to the provider's Anthropic-compatible endpoint (`baseUrl`:
+`https://api.fireworks.ai/inference` or `https://openrouter.ai/api`) and points `ANTHROPIC_MODEL`, the Opus,
 Sonnet, Haiku and Fable aliases and the subagent model at the chosen model. It
 removes inherited variables that would send the run elsewhere: a Claude login
 token and the Bedrock, Vertex and Foundry switches.
 
+**Fireworks or OpenRouter.** The builders run on one provider at a time:
+Fireworks (the default) or OpenRouter. Pick it with `/ag:3rdparty-provider
+fireworks` or `/ag:3rdparty-provider openrouter`; `/ag:3rdparty-provider` alone
+(or `status`) shows the provider, its default model, the config file and whether
+its key is set. The launcher reads the config on every run, so the choice applies
+to the next builder, also in a goal that is already running, unless that goal
+pins a model id of the other provider with `model=`. `ext-build.ps1 -Provider
+openrouter` overrides the choice for one run. To use OpenRouter:
+
+1. Set its key in your own terminal (never in the chat):
+   `powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set openrouter`
+   (macOS and Linux: `pwsh -File ~/.claude/ag/ag-key.ps1 set openrouter`).
+2. Run `/ag:3rdparty-provider openrouter`.
+
+On OpenRouter the launcher sets `ANTHROPIC_BASE_URL` to
+`https://openrouter.ai/api` and passes the key the same way. Its default model is
+`deepseek/deepseek-v4.1-flash-1017` (DeepSeek V4.1 Flash, $0.02 in and $0.108 out
+per 1M tokens on OpenRouter). Its commits end with `Built-by: openrouter/<model>`,
+and the progress band labels its runs `or:<model>` (Fireworks runs `fw:<model>`).
+
 **Another model.** Add `model=<id>` to the skill (the goal passes it as `-Model`),
-or set `defaultModel` in `~/.claude/ext-build.json`. The default is
-`deepseek-v4p1-flash-1017` (DeepSeek V4.1 Flash 1017). A bare name gets
-`accounts/fireworks/models/` in front (`modelPrefix`); a name with a `/` is used
-as is. The user file replaces the plugin's default file rather than adding to
-it, so copy `ext-build.default.json` and change `defaultModel`; it needs
-`baseUrl`, `keyFile` and `defaultModel`. `ext-build.ps1 -Check -Model <id>`
+or set the provider's `defaultModel` in `~/.claude/ext-build.json`. On Fireworks
+the default is `deepseek-v4p1-flash-1017` (DeepSeek V4.1 Flash 1017); a bare name
+gets `accounts/fireworks/models/` in front (`modelPrefix`) and a name with a `/` is
+used as is. On OpenRouter the id is used as is, for example
+`model=deepseek/deepseek-v4-flash`. `ext-build.ps1 -Check <provider> -Model <id>`
 tests the model with one short call.
 
-**The key.** The launcher reads the Fireworks key from the key store (see
+**The config file.** `~/.claude/ext-build.json` is laid over the plugin's
+`ext-build.default.json` key by key, so it only needs what you change:
+
+```json
+{
+  "provider": "openrouter",
+  "providers": {
+    "fireworks":  { "defaultModel": "deepseek-v4p1-flash-1017" },
+    "openrouter": { "defaultModel": "deepseek/deepseek-v4.1-flash-1017" }
+  },
+  "maxBudgetUsd": 25
+}
+```
+
+Each provider entry may set `baseUrl`, `keyFile`, `defaultModel` and
+`modelPrefix`; `permissionMode`, `maxBudgetUsd` and `claudePath` stay at the top.
+An older flat file, with `baseUrl`, `keyFile`, `defaultModel` and `modelPrefix` at
+the top, still works: those keys belong to the provider it names, else Fireworks.
+`/ag:3rdparty-provider` moves them under `providers` the first time it changes
+the file and keeps every other key.
+
+**The key.** The launcher reads the provider's key from the key store (see
 [Keys](#keys)) into the environment of the child process only. It is not passed as
 an argument, written to a file or logged; `-DryRun` shows it as `***`. The
 child's `ANTHROPIC_API_KEY` is empty.
@@ -399,13 +442,13 @@ start subagents, and with `--strict-mcp-config`, so it loads no MCP servers. It
 runs with `--permission-mode bypassPermissions` (`permissionMode`). Its system
 prompt gets the builder rules: do the step itself, read by range, hand off at
 about 100 tool calls, report in at most 20 lines, and end each commit with
-`Built-by: fireworks/<model>` and no Co-Authored-By line. `git log --grep
-"Built-by: fireworks"` lists its work.
+`Built-by: <provider>/<model>` (`fireworks` or `openrouter`) and no Co-Authored-By
+line. `git log --grep "Built-by: fireworks"` (or `openrouter`) lists its work.
 
 **The budget cap.** `--max-budget-usd` comes from `-MaxBudgetUsd`, else
 `maxBudgetUsd` in the config: 25 in the default file, 3 if the config has none.
-Claude Code prices the tokens at Anthropic's rates, far above the Fireworks bill,
-so the cap only stops a runaway. The real cost is on the Fireworks dashboard.
+Claude Code prices the tokens at Anthropic's rates, far above the provider's bill,
+so the cap only stops a runaway. The real cost is on the Fireworks or OpenRouter dashboard.
 
 **The run log.** The full JSON output goes to `<LogDir>/<step>-<yyyyMMdd-HHmmss>.json`
 (stderr beside it as `.err.txt`). Each run adds one line to
@@ -418,7 +461,7 @@ path.
 **Exit codes.**
 
 - `0` ok.
-- `3` HANDOFF: the report starts with `HANDOFF`; a fresh Fireworks builder continues.
+- `3` HANDOFF: the report starts with `HANDOFF`; a fresh builder on the same provider continues.
 - `1` failed: Claude Code exited with an error, reported one, or printed output
   that is not JSON; the step goes to Opus high.
 - `2` setup error: a missing argument, config, key or `claude` executable; the
@@ -435,7 +478,7 @@ path.
 The skill reads the plan, adds a `Status:` line to each step and prints one
 `/goal`. Paste that `/goal` to start the run. At a sign-off it asks
 you in the chat and goes on; after a pause, paste the same `/goal` again. Add `model=<id>` to use another
-Fireworks model for this plan.
+model of the chosen provider for this plan.
 
 **Design a new page.** In Claude Code, in the project:
 
@@ -461,7 +504,7 @@ made-up run: two phases, steps with `engine` labels, a build and a test job
 running, and a short log. Copy it to `.claude/goal-progress.json` in any project
 to see the band and the pane.
 
-**A builder's report.** Each Fireworks builder prints a summary line first, then
+**A builder's report.** Each Fireworks or OpenRouter builder prints a summary line first, then
 its report (at most 20 lines) and the path of its full log:
 
 ```text
@@ -760,9 +803,11 @@ What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Keys
 
-Three providers need an API key:
+Four providers need an API key:
 
-- **Fireworks** — for the builders of `/ag:goal-prompt-3rdparty` (`ext-build.ps1`).
+- **Fireworks** or **OpenRouter** — for the builders of `/ag:goal-prompt-3rdparty`
+  (`ext-build.ps1`). You need only the one `/ag:3rdparty-provider` picks;
+  Fireworks is the default.
 - **Gemini** and **OpenAI** — for the images of `/ag:design` (`design-image.ps1`).
   You need only the one you use; Gemini is the default.
 
@@ -772,7 +817,8 @@ key; type or paste it there. **Never paste a key into a Claude chat.**
 `-Check` works differently in each script:
 
 - `design-image.ps1 -Check gemini` or `-Check openai` makes one small, paid image call.
-- `ext-build.ps1 -Check` makes one Fireworks call, about $0.01.
+- `ext-build.ps1 -Check fireworks` or `-Check openrouter` makes one call to that
+  provider, about $0.01 or less. `-Check` alone checks the configured provider.
 - `ext-build.ps1 -Check gemini` or `-Check openai` only checks that the key is set.
 
 The key commands go through one small script, `~/.claude/ag/ag-key.ps1`.
@@ -780,10 +826,10 @@ The key commands go through one small script, `~/.claude/ag/ag-key.ps1`.
 any folder. The script runs the newest installed `ag`, or this checkout if `ag`
 is not installed.
 
-It takes `set`, `check` or `where`, then `fireworks`, `gemini` or `openai`:
+It takes `set`, `check` or `where`, then `fireworks`, `openrouter`, `gemini` or `openai`:
 
 - `set` asks for the key and stores it.
-- `check fireworks` runs `ext-build.ps1 -Check`. `check gemini` and
+- `check fireworks` and `check openrouter` run `ext-build.ps1 -Check <provider>`. `check gemini` and
   `check openai` run `design-image.ps1 -Check`. The costs above apply.
 - `where` shows where the key is kept and whether it is set. It never shows the key.
 
@@ -793,6 +839,9 @@ It takes `set`, `check` or `where`, then `fireworks`, `gemini` or `openai`:
 powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set fireworks
 powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check fireworks
 powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 where fireworks
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set openrouter
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check openrouter
+powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 where openrouter
 powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 set gemini
 powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 check gemini
 powershell -NoProfile -ExecutionPolicy Bypass -File $HOME\.claude\ag\ag-key.ps1 where gemini
@@ -810,6 +859,9 @@ or [Linux](https://learn.microsoft.com/powershell/scripting/install/linux-overvi
 pwsh -File ~/.claude/ag/ag-key.ps1 set fireworks
 pwsh -File ~/.claude/ag/ag-key.ps1 check fireworks
 pwsh -File ~/.claude/ag/ag-key.ps1 where fireworks
+pwsh -File ~/.claude/ag/ag-key.ps1 set openrouter
+pwsh -File ~/.claude/ag/ag-key.ps1 check openrouter
+pwsh -File ~/.claude/ag/ag-key.ps1 where openrouter
 pwsh -File ~/.claude/ag/ag-key.ps1 set gemini
 pwsh -File ~/.claude/ag/ag-key.ps1 check gemini
 pwsh -File ~/.claude/ag/ag-key.ps1 where gemini
@@ -827,6 +879,6 @@ Where each OS keeps the key:
 | Linux with `secret-tool` | The keyring, through `secret-tool`, service `ag-<provider>` |
 | Linux without `secret-tool` | `~/.claude/secrets/<provider>.key`, readable only by you (mode 600), **not encrypted**. `-SetKey` warns you. Install `libsecret-tools` and run `-SetKey` again to use the keyring |
 
-`<provider>` is `fireworks`, `gemini` or `openai`. Keys are never printed, logged
+`<provider>` is `fireworks`, `openrouter`, `gemini` or `openai`. Keys are never printed, logged
 or committed to this repo. The `.gitignore` keeps secrets, keys, logs and local
 run state out.

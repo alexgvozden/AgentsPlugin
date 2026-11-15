@@ -353,7 +353,7 @@ function Invoke-DesignMain {
             foreach ($line in (Get-ProviderKeyWhere -Provider $prov)) { Write-Output "design-image where: $line" }
             return 0
         }
-        if ($prov -eq 'fireworks') { Stop-DesignSetup 'design-image.ps1 makes images with gemini or openai; pass -SetKey gemini or -Check openai' }
+        if (@('fireworks', 'openrouter') -contains $prov) { Stop-DesignSetup 'design-image.ps1 makes images with gemini or openai; pass -SetKey gemini or -Check openai' }
         if ($SetKey) { Invoke-DesignSetKey $prov; return 0 }
         return (Invoke-DesignCheck $prov $cfg $Model)
     }

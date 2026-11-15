@@ -241,6 +241,13 @@ try {
     $code = $LASTEXITCODE
     Assert ($newest -eq "$cache\1.10.0\scripts" -and $fallback -eq "$co\plugins\ag\scripts" -and $code -eq 7 -and $out -match '1\.10\.0\\scripts -Where gemini') 'ag-key: newest version wins (1.10.0 > 1.9.0), else the checkout; exit code passed through' "$newest | $fallback | $code | $out"
 
+    $cOr = (Get-AgKeyCommand 'check' 'openrouter') -join ' '
+    $sOr = (Get-AgKeyCommand 'set' 'openrouter') -join ' '
+    $wGe = (Get-AgKeyCommand 'where' 'gemini') -join ' '
+    $cFw = (Get-AgKeyCommand 'check' 'fireworks') -join ' '
+    $bad = (Get-AgKeyRun 'set' 'bogus' $ch $co).Error
+    Assert ($cOr -eq 'ext-build.ps1 -Check openrouter' -and $sOr -eq 'ext-build.ps1 -SetKey openrouter' -and $wGe -eq 'design-image.ps1 -Where gemini' -and $cFw -eq 'ext-build.ps1 -Check fireworks' -and $bad -match 'fireworks\|openrouter\|gemini\|openai') 'ag-key: openrouter goes to ext-build.ps1 like fireworks' "$cOr | $sOr | $wGe | $cFw | $bad"
+
     # S15: a real run registers its own job in the project's progress file, and removes it in a finally.
     # claude is mocked (the mock reads the progress file while the run is "going on") and so is the exe lookup.
     function Resolve-ExtClaude($Cfg, [string]$Os) { return 'claude-mock' }
@@ -311,6 +318,68 @@ try {
     [IO.File]::WriteAllText($nullPath, $nullText)
     Remove-ExtProgressJob $null
     Assert (([IO.File]::ReadAllText($nullPath)) -eq $nullText) 'a null handle removes nothing' ([IO.File]::ReadAllText($nullPath))
+
+    # OpenRouter: config merge (plugin default + user file), provider choice, short names, rules, env
+    function Write-TestJson([string]$Name, [string]$Text) { $p = Join-Path $root $Name; [IO.File]::WriteAllText($p, $Text); return $p }
+    $orKey = Join-Path $root 'secrets\openrouter.key'
+    [IO.File]::WriteAllText($orKey, (ConvertTo-SecureString $dummy -AsPlainText -Force | ConvertFrom-SecureString))
+    $orKeyJson = $orKey.Replace('\', '\\')
+    $fwKeyJson = $keyFile.Replace('\', '\\')
+
+    $oldProfile = $env:USERPROFILE
+    try {
+        $env:USERPROFILE = Join-Path $root 'emptyhome'
+        $d = Read-ExtConfig '' ''
+        $dOr = Read-ExtConfig '' 'openrouter'
+    }
+    finally { $env:USERPROFILE = $oldProfile }
+    Assert ($d.Provider -eq 'fireworks' -and $d.ProviderLabel -eq 'Fireworks' -and $d.BaseUrl -eq 'https://api.fireworks.ai/inference' -and $d.DefaultModel -eq 'deepseek-v4p1-flash-1017' -and $d.ModelPrefix -eq 'accounts/fireworks/models/' -and $d.MaxBudgetUsd -eq 25 -and $d.Path -match 'ext-build\.default\.json$') 'default only: fireworks from the plugin default' ($d | Out-String)
+    Assert ($dOr.Provider -eq 'openrouter' -and $dOr.ProviderLabel -eq 'OpenRouter' -and $dOr.BaseUrl -eq 'https://openrouter.ai/api' -and $dOr.DefaultModel -eq 'deepseek/deepseek-v4.1-flash-1017' -and $dOr.ModelPrefix -eq '' -and $dOr.KeyFile -match 'openrouter\.key$') 'default only, -Provider openrouter: the openrouter entry' ($dOr | Out-String)
+
+    $flat = Read-ExtConfig $cfgOk ''
+    $flatOr = Read-ExtConfig $cfgOk 'openrouter'
+    Assert ($flat.Provider -eq 'fireworks' -and $flat.DefaultModel -eq 'glm-5p3-flash' -and $flat.KeyFile -eq $keyFile -and $flat.MaxBudgetUsd -eq 3 -and $flat.Path -eq $cfgOk) 'legacy flat file overlays fireworks' ($flat | Out-String)
+    Assert ($flatOr.BaseUrl -eq 'https://openrouter.ai/api' -and $flatOr.DefaultModel -eq 'deepseek/deepseek-v4.1-flash-1017' -and $flatOr.MaxBudgetUsd -eq 3) 'legacy flat file: openrouter still from the default, top-level budget applies' ($flatOr | Out-String)
+
+    $cfgProv = Write-TestJson 'providers.json' ('{"provider":"openrouter","providers":{"openrouter":{"keyFile":"' + $orKeyJson + '","defaultModel":"z-ai/glm-5"},"fireworks":{"keyFile":"' + $fwKeyJson + '"}},"maxBudgetUsd":7}')
+    $pc = Read-ExtConfig $cfgProv ''
+    $pcFw = Read-ExtConfig $cfgProv 'fireworks'
+    Assert ($pc.Provider -eq 'openrouter' -and $pc.DefaultModel -eq 'z-ai/glm-5' -and $pc.BaseUrl -eq 'https://openrouter.ai/api' -and $pc.KeyFile -eq $orKey -and $pc.MaxBudgetUsd -eq 7 -and $pc.PermissionMode -eq 'bypassPermissions') 'providers file overlays key by key' ($pc | Out-String)
+    Assert ($pcFw.Provider -eq 'fireworks' -and $pcFw.DefaultModel -eq 'deepseek-v4p1-flash-1017' -and $pcFw.KeyFile -eq $keyFile) '-Provider fireworks overrides the configured openrouter' ($pcFw | Out-String)
+    Assert ((Resolve-ExtModel '' $pc) -eq 'z-ai/glm-5' -and (Resolve-ExtModel 'deepseek/deepseek-v4-flash' $pc) -eq 'deepseek/deepseek-v4-flash' -and (Resolve-ExtModel 'kimi' $pc) -eq 'kimi') 'empty modelPrefix: model ids as they are'
+    $bad = Get-SetupError { Read-ExtConfig $cfgProv 'gemini' }
+    $cfgBogus = Write-TestJson 'bogus.json' '{"provider":"nowhere"}'
+    $bad2 = Get-SetupError { Read-ExtConfig $cfgBogus '' }
+    Assert ($bad -match "unknown builder provider 'gemini'" -and $bad2 -match "unknown builder provider 'nowhere'") 'unknown builder provider -> setup error' "$bad`n$bad2"
+
+    Assert ((Get-ExtModelShort 'deepseek/deepseek-v4.1-flash-1017' 'openrouter') -eq 'deepseek-v4.1-flash-1017' -and (Get-ExtModelShort 'accounts/fireworks/models/glm-5p3-flash' 'fireworks') -eq 'glm-5p3-flash' -and (Get-ExtEngine 'deepseek/deepseek-v4.1-flash-1017' 'openrouter') -eq 'or:deepseek-v4.1-flash-1017' -and (Get-ExtEngine 'accounts/fireworks/models/glm-5p3-flash' 'fireworks') -eq 'fw:glm-5p3-flash') 'short names and engines: fw: and or:'
+    $rulesOr = Get-ExtBuilderRules 'deepseek/deepseek-v4.1-flash-1017' 'openrouter' 'OpenRouter'
+    $rulesFw = Get-ExtBuilderRules 'accounts/fireworks/routers/kimi' 'fireworks' 'Fireworks'
+    Assert ($rulesOr -match 'via OpenRouter\.' -and $rulesOr.Contains("'Built-by: openrouter/deepseek-v4.1-flash-1017'") -and $rulesFw -match 'via Fireworks\.' -and $rulesFw.Contains("'Built-by: fireworks/kimi'")) 'builder rules: provider label and Built-by trailer' "$rulesOr`n$rulesFw"
+
+    # OpenRouter dry run through the launcher: base URL, empty API key, model id as is, rules
+    $r = Run-Launcher (@('-Config', $cfgProv) + $common)
+    # a fake home, so the real ~/.claude/secrets/openrouter.key is never read
+    $r2 = Run-LauncherAs (Join-Path $root 'emptyhome') (@('-Config', $cfgOk, '-Provider', 'openrouter', '-Model', 'deepseek/deepseek-v4-flash') + $common)
+    Assert ($r.Code -eq 0 -and $r.Out -match 'provider: openrouter' -and $r.Out -match 'ANTHROPIC_BASE_URL=https://openrouter\.ai/api\s' -and $r.Out -match 'ANTHROPIC_API_KEY=\s' -and $r.Out -match 'ANTHROPIC_AUTH_TOKEN=\*\*\*' -and $r.Out -match '--model\s+z-ai/glm-5\s' -and $r.Out -match 'via OpenRouter' -and $r.Out -match 'Built-by: openrouter/glm-5' -and -not $r.Out.Contains($dummy)) 'openrouter dry run: env, model, rules; key masked' "code $($r.Code): $($r.Out)"
+    Assert ($r2.Code -eq 2 -and $r2.Out -match 'OpenRouter key not found' -and $r2.Out -match '-SetKey openrouter') 'openrouter without a key: exit 2, -SetKey openrouter hint' "code $($r2.Code): $($r2.Out)"
+    $r = Run-Launcher (@('-Config', $cfgOk, '-Provider', 'gemini') + $common)
+    Assert ($r.Code -eq 2 -and $r.Out -match "unexpected provider 'gemini'") 'build run with an image provider: exit 2' "code $($r.Code): $($r.Out)"
+    $r = Run-Launcher @('-Config', $cfgProv, '-Where')
+    Assert ($r.Code -eq 0 -and $r.Out -match 'openrouter store: windows-dpapi' -and $r.Out.Contains("openrouter location: file $orKey") -and $r.Out -match 'openrouter key: set') '-Where with no provider: the configured one (openrouter)' $r.Out
+
+    # a run on OpenRouter writes the or: engine and records engine openrouter
+    $Config = $cfgProv; $Provider = ''
+    $orProj = Join-Path $root 'orproj'
+    New-Item -ItemType Directory -Path (Join-Path $orProj '.claude') -Force | Out-Null
+    $script:progPath = Join-Path $orProj '.claude\goal-progress.json'
+    [IO.File]::WriteAllText($script:progPath, '{"goal":"g","status":"running"}')
+    $Cwd = $orProj; $Step = 'SOR'; $LogDir = (Join-Path $root 'orlogs')
+    $code = Invoke-ExtMain | Select-Object -Last 1
+    $duringOr = $script:during | ConvertFrom-Json
+    $runRec = (Get-Content -LiteralPath (Join-Path $LogDir 'ext-runs.jsonl') | Select-Object -Last 1) | ConvertFrom-Json
+    Assert ($code -eq 0 -and @($duringOr.running)[0].engine -eq 'or:glm-5' -and $runRec.engine -eq 'openrouter' -and $runRec.model -eq 'z-ai/glm-5') 'openrouter run: engine or:glm-5, record engine openrouter' "$($script:during)`n$($runRec | ConvertTo-Json -Compress)"
+    $Config = $cfgOk
 
     $r = Run-Launcher @('-Config', $cfgOk, '-Check', 'bogus')
     Assert ($r.Code -eq 2 -and $r.Out -match "unknown key provider 'bogus'") 'unknown provider exit 2' "code $($r.Code): $($r.Out)"

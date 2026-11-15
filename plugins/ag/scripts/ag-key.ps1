@@ -1,13 +1,13 @@
 <#
   ag-key.ps1 - set, check or find an ag API key, from any folder.
-    ag-key.ps1 set|check|where <fireworks|gemini|openai> [-ClaudeHome <dir>]
+    ag-key.ps1 set|check|where <fireworks|openrouter|gemini|openai> [-ClaudeHome <dir>]
   scripts/install.ps1 copies this file to ~/.claude/ag/ag-key.ps1 and fills in the checkout path.
   It runs the scripts of the newest installed ag
   (<ClaudeHome>/plugins/cache/agents-plugin/ag/<version>/scripts/), else the checkout's.
-    set <p>         -> ext-build.ps1 -SetKey fireworks | design-image.ps1 -SetKey <p>
-    check fireworks -> ext-build.ps1 -Check
-    check <p>       -> design-image.ps1 -Check <p>
-    where <p>       -> ext-build.ps1 -Where fireworks | design-image.ps1 -Where <p>
+    builder keys (fireworks, openrouter) go to ext-build.ps1, image keys (gemini, openai) to design-image.ps1:
+    set <p>         -> ext-build.ps1 -SetKey <p> | design-image.ps1 -SetKey <p>
+    check <p>       -> ext-build.ps1 -Check <p> | design-image.ps1 -Check <p>
+    where <p>       -> ext-build.ps1 -Where <p> | design-image.ps1 -Where <p>
   The same PowerShell that runs this file runs the script; its exit code is passed through.
   Usage errors exit 2. The key is never printed. Dot-sourcing only defines the functions.
   Windows PowerShell 5.1 and PowerShell 7 compatible.
@@ -48,20 +48,20 @@ function Resolve-AgKeyScripts([string]$ClaudeDir, [string]$Checkout) {
 
 # Script name and arguments for one action and provider.
 function Get-AgKeyCommand([string]$Act, [string]$Prov) {
-    $file = if ($Prov -eq 'fireworks') { 'ext-build.ps1' } else { 'design-image.ps1' }
+    $file = if (@('fireworks', 'openrouter') -contains $Prov) { 'ext-build.ps1' } else { 'design-image.ps1' }
     switch ($Act) {
         'set' { return @($file, '-SetKey', $Prov) }
-        'check' { if ($Prov -eq 'fireworks') { return @($file, '-Check') } else { return @($file, '-Check', $Prov) } }
+        'check' { return @($file, '-Check', $Prov) }
         'where' { return @($file, '-Where', $Prov) }
     }
 }
 
 # The PowerShell command line to run, or a message when the arguments or scripts are wrong.
 function Get-AgKeyRun([string]$Act, [string]$Prov, [string]$ClaudeDir, [string]$Checkout) {
-    $usage = 'usage: ag-key.ps1 set|check|where <fireworks|gemini|openai>'
+    $usage = 'usage: ag-key.ps1 set|check|where <fireworks|openrouter|gemini|openai>'
     $a = ([string]$Act).Trim().ToLowerInvariant()
     $p = ([string]$Prov).Trim().ToLowerInvariant()
-    if (@('set', 'check', 'where') -notcontains $a -or @('fireworks', 'gemini', 'openai') -notcontains $p) {
+    if (@('set', 'check', 'where') -notcontains $a -or @('fireworks', 'openrouter', 'gemini', 'openai') -notcontains $p) {
         return [pscustomobject]@{ Error = "ag-key: $usage"; Exe = ''; ArgList = @() }
     }
     $dir = Resolve-AgKeyScripts $ClaudeDir $Checkout

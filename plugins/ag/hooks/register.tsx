@@ -3,7 +3,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { GoalProgress, GoalStep, GoalTask, TaskStatus } from '../types'
 import type { Agent, PlanMark } from './progress'
-import { agentJobs, FILE, ago, bar, counts, current, currentStory, engineLabel, fit, isBehind, isOpen, keepLastGood, keepLastMarks, lastActivity, layoutRow, markRunning, mergeAgents, mergePlan, needsYouItems, onFireworks, orderedSteps, padCells, parseProgress, runningLines, shortTokens, STATUS_LABEL, storyTally, textWidth } from './progress'
+import { agentJobs, FILE, ago, bar, counts, current, currentStory, engineLabel, fit, isBehind, isOpen, keepLastGood, keepLastMarks, lastActivity, layoutRow, markRunning, mergeAgents, mergePlan, needsYouItems, onThirdParty, orderedSteps, padCells, parseProgress, runningLines, shortTokens, STATUS_LABEL, storyTally, textWidth } from './progress'
 
 const progress = atom({ plugin: 'ag', key: 'progress' } as const, null)
 const isHidden = atom({ plugin: 'ag', key: 'isHidden' } as const, false)
@@ -287,7 +287,7 @@ function listLine(s: GoalStep, depth: number): string {
 type Seg = { text: string; color?: string; dim?: boolean }
 
 /** An engine label's tone: dim blue on Fireworks, dim grey on Claude. */
-const engineTone = (engine: string | undefined) => (onFireworks(engine) ? { color: 'blue', dimColor: true } : { dimColor: true })
+const engineTone = (engine: string | undefined) => (onThirdParty(engine) ? { color: 'blue', dimColor: true } : { dimColor: true })
 
 const width = (segs: Seg[]) => segs.reduce((n, s) => n + textWidth(s.text) + 2, 0)
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Agent, PlanMark } from './progress'
-import { agentJobs, bar, counts, current, currentStory, fit, isBehind, isOpen, keepLastGood, keepLastMarks, lastActivity, layoutRow, markRunning, mergeAgents, mergePlan, needsYouItems, orderedSteps, padCells, parsePlanMarks, parseProgress, refreshProgress, runningLines, shortTokens, statusLine, statusWord, stepSummary, storyTally, textWidth } from './progress'
+import { agentJobs, bar, counts, current, currentStory, fit, isBehind, isOpen, keepLastGood, keepLastMarks, lastActivity, layoutRow, markRunning, mergeAgents, mergePlan, needsYouItems, onThirdParty, orderedSteps, padCells, parsePlanMarks, parseProgress, refreshProgress, runningLines, shortTokens, statusLine, statusWord, stepSummary, storyTally, textWidth } from './progress'
 
 const FILE_TEXT = JSON.stringify({
   goal: 'A1 track 1',
@@ -757,4 +757,8 @@ test('"updated ... ago" takes the newest log line or job start when the file tim
   const p = parseProgress(JSON.stringify({ goal: 'g', status: 'running', updated: '2026-11-13T14:46:00Z', tasks: [], log: [{ at: '2026-11-13T15:56:00Z', text: 'PG planned' }], running: [{ title: 'x', since: '2026-11-13T15:00:00Z' }] }))!
   expect(lastActivity(p.updated, 0, p)).toBe('2026-11-13T15:56:00.000Z')
   expect(lastActivity(p.updated, Date.parse('2026-11-13T16:10:00Z'), p)).toBe('2026-11-13T16:10:00.000Z')
+})
+
+test('onThirdParty is true for Fireworks and OpenRouter engines only', () => {
+  expect(['fw:glm-5p3-flash', 'or:deepseek-v4.1-flash-1017', 'opus-high', 'sonnet', 'forge', undefined].map(onThirdParty)).toEqual([true, true, false, false, false, false])
 })

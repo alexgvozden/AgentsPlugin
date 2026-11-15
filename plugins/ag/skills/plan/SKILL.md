@@ -36,7 +36,7 @@ The page script is `${CLAUDE_PLUGIN_ROOT}/scripts/plan-page.mjs` (call it `PAGE`
 - **Updating:** the plan's steps (ids, titles, acceptance, files), phases and gates, **where status lives** (a tracker table, `Status:` lines, checkboxes), its "Where the run stands" paragraph, its open questions with any answers under them, and its **open Feedback lines** (ending `— open`): these are part of the input. If it has a **"How this plan is run"** section, a goal-prompt skill set it up; tell which one by rule 4:
   - "a fresh subagent (Opus medium)": **goal-prompt**.
   - "<ids> on Haiku": **goal-prompt-haiku**; "<ids> on Sonnet": **goal-prompt-sonnet**.
-  - "a fresh Fireworks builder": **goal-prompt-3rdparty**; note its steps kept on Claude.
+  - "a fresh Fireworks builder" or "a fresh OpenRouter builder": **goal-prompt-3rdparty**; note its steps kept on Claude.
 - The code the change touches, by range only (Read with offset and limit, Grep with a limit).
 
 ### 2. Plan (on the model of rule 1)
@@ -70,7 +70,7 @@ The page script is `${CLAUDE_PLUGIN_ROOT}/scripts/plan-page.mjs` (call it `PAGE`
 - **Who builds a new step** follows rule 4 of the section, judged as the skill that wrote it judges:
   - goal-prompt: nothing to add; building runs at Opus medium, UI parts at Opus high.
   - goal-prompt-haiku / -sonnet: a new step goes on that skill's list in rule 4 when it passes the test in the skill's principle 7 (the plan names its files, its functions or behaviour and its checks; no open design question, no UI design; no security, money, personal data or shared-database migration). Copy, UI parts, design and reviews never go on Haiku or Sonnet.
-  - goal-prompt-3rdparty: a new step's function part goes to the Fireworks builder, except steps touching security, money, personal data or a shared-database migration, which join the steps kept on Claude (Opus medium), unless the section says all function work runs on Fireworks; UI parts at Opus high and copy on Claude, as rule 4 says.
+  - goal-prompt-3rdparty: a new step's function part goes to the third-party builder (Fireworks or OpenRouter, as the section names), except steps touching security, money, personal data or a shared-database migration, which join the steps kept on Claude (Opus medium), unless the section says all function work runs on the third-party provider; UI parts at Opus high and copy on Claude, as rule 4 says.
   - A new page or screen gets a design step first (`/ag:design`, rule 8), unless the section says new pages get no design step.
 - **Rule 8** matches `.claude/ag.json` now: with fable planning on it has the Fable clause (planning work to a fresh `ag:fable-planner` subagent, Fable 5.2 high; copy the wording from rule 8 in `${CLAUDE_PLUGIN_ROOT}/skills/<that goal skill>/SKILL.md`); with it off, it has no Fable clause.
 - Nothing else in the section changes.
@@ -91,7 +91,7 @@ The page script is `${CLAUDE_PLUGIN_ROOT}/scripts/plan-page.mjs` (call it `PAGE`
 - **Record the answers:** write them as answer lines (`Plan: <path>`, then `Q1 A`, `Q2: their words` for "Other") to a temp file and run `node PAGE record --from <file>`; then follow "Answer lines" from "act on them".
 - **Commit:** a plan with "How this plan is run" that git tracks is committed alone, with its page and its folder's files, as the goal skills' setup commit is: `plan: <summary>`. Otherwise do not commit unless the user asks.
 - **Tell the user** in at most eight lines: the page's path (and the plan file's); steps added or changed (ids); open questions left; the model the planning ran on (Fable 5.2 high or Opus 5.5 high, and why); and what to do next:
-  - A new plan, or one without "How this plan is run": run `/ag:goal-prompt-3rdparty <plan path>` to make its goal (the default: function parts on Fireworks, planning, UI and reviews on Opus); `/ag:goal-prompt`, `-haiku` or `-sonnet` are the alternatives (all on Opus, or clear steps on Haiku or Sonnet).
+  - A new plan, or one without "How this plan is run": run `/ag:goal-prompt-3rdparty <plan path>` to make its goal (the default: function parts on Fireworks or OpenRouter, picked with `/ag:3rdparty-provider`; planning, UI and reviews on Opus); `/ag:goal-prompt`, `-haiku` or `-sonnet` are the alternatives (all on Opus, or clear steps on Haiku or Sonnet).
   - A plan with "How this plan is run": paste the same goal again; it continues at the first step not `done`. If rule 4's step lists (Haiku, Sonnet, or kept on Claude) or rule 8's Fable clause changed, the goal's runner names them too, so run the same goal skill on the plan again for a fresh runner.
 
 ## Answer lines

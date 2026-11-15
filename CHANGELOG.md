@@ -3,6 +3,25 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.13.0 - 2026-11-15
+
+OpenRouter as a second provider for the third-party builders, next to Fireworks.
+
+- `/ag:3rdparty-provider fireworks|openrouter|status` picks the provider. It writes
+  `"provider"` into `~/.claude/ext-build.json` (created if missing; an old flat file
+  is moved into `"providers"`, other keys kept) and says whether that provider's key
+  is set.
+- The OpenRouter key is set like the Fireworks one, in your own terminal:
+  `ag-key.ps1 set openrouter` (also `check` and `where`).
+- The default OpenRouter model is `deepseek/deepseek-v4.1-flash-1017` (DeepSeek V4.1
+  Flash); any other OpenRouter id works with `model=<id>`.
+- `ext-build.json` now holds one entry per provider under `"providers"`; the user file is
+  laid over the plugin default key by key. Old flat files keep working as the provider
+  they name. `ext-build.ps1` takes `-Provider` to override it for one run.
+- Builder rules, the `Built-by:` trailer, the run log and the progress band name the
+  provider (`fw:<model>` or `or:<model>`, both in the third-party tone).
+- `goal-prompt-3rdparty` and `/ag:plan` speak of the chosen provider instead of Fireworks.
+
 ## 1.12.2 - 2026-11-15
 
 Goal runs no longer loop after a compaction or a pause in your own words.

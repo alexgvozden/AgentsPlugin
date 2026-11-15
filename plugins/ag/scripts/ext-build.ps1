@@ -1,14 +1,24 @@
 <#
 .SYNOPSIS
-  Run one headless Claude Code builder on Fireworks AI instead of Anthropic.
+  Run one headless Claude Code builder on a third-party provider (Fireworks AI or OpenRouter)
+  instead of Anthropic.
 
 .DESCRIPTION
-  ext-build.ps1 -Brief <file> -Cwd <worktree> -Step <id> -LogDir <dir>
+  ext-build.ps1 -Brief <file> -Cwd <worktree> -Step <id> -LogDir <dir> [-Provider <fireworks|openrouter>]
                 [-Model <name>] [-Resume <sessionId>] [-MaxBudgetUsd <n>] [-DryRun] [-Config <path>]
-  ext-build.ps1 -SetKey [<fireworks|gemini|openai>] [-Config <path>]
-  ext-build.ps1 -Check [<fireworks|gemini|openai>] [-Model <name>] [-Config <path>]
-  ext-build.ps1 -Where [<fireworks|gemini|openai>] [-Config <path>]
-  The provider defaults to fireworks. -Check gemini|openai only reports whether the key is set.
+  ext-build.ps1 -SetKey [<fireworks|openrouter|gemini|openai>] [-Config <path>]
+  ext-build.ps1 -Check [<fireworks|openrouter|gemini|openai>] [-Model <name>] [-Config <path>]
+  ext-build.ps1 -Where [<fireworks|openrouter|gemini|openai>] [-Config <path>]
+
+  Config: the plugin's ext-build.default.json, overlaid by ~/.claude/ext-build.json (or -Config <path>)
+  when present. Multi-provider form:
+    {"provider":"fireworks","providers":{"fireworks":{baseUrl,keyFile,defaultModel,modelPrefix},
+     "openrouter":{...}},"permissionMode":"bypassPermissions","maxBudgetUsd":25}
+  A legacy flat file (top-level baseUrl/keyFile/defaultModel/modelPrefix) still works: those keys are
+  the settings of the provider it names (default fireworks). /ag:3rdparty-provider sets "provider".
+  The builder provider is -Provider when given (positional works too), else "provider" from the
+  config; an empty modelPrefix passes model ids as they are (OpenRouter).
+  -Check gemini|openai only reports whether the image key is set.
   -Where prints the key store, its location and whether a key is set (never the key).
 
   Exit codes: 0 ok, 3 handoff, 1 failed, 2 setup error.
@@ -41,6 +51,11 @@ $ErrorActionPreference = 'Stop'
 $script:Dot = [string][char]0x00B7
 $script:SetKeyMessage = 'run ext-build.ps1 -SetKey in your own PowerShell window'
 . (Join-Path $PSScriptRoot 'keystore.ps1')
+
+# Providers a builder can run on (gemini and openai keys are for images only).
+$script:BuilderProviders = @('fireworks', 'openrouter')
+# The progress engine prefix per provider: fw:<model>, or:<model>.
+$script:EnginePrefix = @{ fireworks = 'fw'; openrouter = 'or' }
 
 function Stop-Setup([string]$Message) {
     $e = New-Object System.Exception $Message
@@ -97,14 +112,29 @@ function Save-ExtProgress($Prog, [string]$Path) {
     finally { if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue } }
 }
 
-# The model's short name: the part after "models/" ("accounts/fireworks/models/glm-5p3-flash" -> "glm-5p3-flash").
-function Get-ExtModelShort([string]$ModelId) {
-    if ($ModelId -match 'models/(.+)$') { return $Matches[1] }
+# The model's short name. Fireworks: the part after "models/" ("accounts/fireworks/models/glm-5p3-flash"
+# -> "glm-5p3-flash"); other providers: the part after the last "/" ("deepseek/deepseek-v4.1-flash-1017"
+# -> "deepseek-v4.1-flash-1017").
+function Get-ExtModelShort([string]$ModelId, [string]$Provider = 'fireworks') {
+    if ([string]::IsNullOrWhiteSpace($Provider) -or $Provider -eq 'fireworks') {
+        if ($ModelId -match 'models/(.+)$') { return $Matches[1] }
+        return $ModelId
+    }
+    $i = $ModelId.LastIndexOf('/')
+    if ($i -ge 0 -and $i -lt $ModelId.Length - 1) { return $ModelId.Substring($i + 1) }
     return $ModelId
 }
 
+# The progress engine label: "fw:<short>" on Fireworks, "or:<short>" on OpenRouter.
+function Get-ExtEngine([string]$ModelId, [string]$Provider = 'fireworks') {
+    if ([string]::IsNullOrWhiteSpace($Provider)) { $Provider = 'fireworks' }
+    $pre = $script:EnginePrefix[$Provider]
+    if (-not $pre) { $pre = $Provider }
+    return ($pre + ':' + (Get-ExtModelShort $ModelId $Provider))
+}
+
 # Adds this run's job to `running`; returns a handle to remove it with, or $null when there is nothing to write.
-function Add-ExtProgressJob([string]$CwdPath, [string]$Step, [string]$ModelId, [string]$Since) {
+function Add-ExtProgressJob([string]$CwdPath, [string]$Step, [string]$ModelId, [string]$Since, [string]$Provider = 'fireworks') {
     try {
         $path = Get-ExtProgressPath $CwdPath
         $prog = Read-ExtProgress $path
@@ -115,7 +145,7 @@ function Add-ExtProgressJob([string]$CwdPath, [string]$Step, [string]$ModelId, [
             id     = $id
             title  = $Step
             since  = $Since
-            engine = 'fw:' + (Get-ExtModelShort $ModelId)
+            engine = (Get-ExtEngine $ModelId $Provider)
         }
         $running = @()
         $existing = Get-ExtProp $prog 'running'
@@ -152,30 +182,106 @@ function Remove-ExtProgressJob($Handle) {
     }
 }
 
-function Read-ExtConfig([string]$Path) {
-    if (-not $Path) {
-        $userCfg = Join-Path (Join-Path (Get-KeyHome) '.claude') 'ext-build.json'
-        if (Test-Path -LiteralPath $userCfg -PathType Leaf) { $Path = $userCfg }
-        else { $Path = Join-Path (Split-Path -Parent $PSScriptRoot) 'ext-build.default.json' }
-    }
-    $Path = Expand-ExtPath $Path
+function Read-ExtJsonFile([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { Stop-Setup "config not found: $Path" }
-    try { $cfg = [IO.File]::ReadAllText($Path) | ConvertFrom-Json }
+    $obj = $null
+    try { $obj = [IO.File]::ReadAllText($Path) | ConvertFrom-Json }
     catch { Stop-Setup "config is not valid JSON: $Path" }
-    foreach ($k in 'baseUrl', 'keyFile', 'defaultModel') {
-        if (-not (Get-ExtProp $cfg $k)) { Stop-Setup "config $Path is missing '$k'" }
+    if ($null -eq $obj -or $obj -is [array] -or $obj -isnot [psobject]) { Stop-Setup "config is not a JSON object: $Path" }
+    return $obj
+}
+
+# The settings one provider entry carries.
+$script:ProviderKeys = @('baseUrl', 'keyFile', 'defaultModel', 'modelPrefix')
+
+# Copies the provider settings found in $Src into the hashtable $Dst; keyFile is expanded against $Dir.
+function Merge-ExtProviderEntry([hashtable]$Dst, $Src, [string]$Dir) {
+    foreach ($k in $script:ProviderKeys) {
+        $p = $Src.PSObject.Properties[$k]
+        if ($null -eq $p -or $null -eq $p.Value) { continue }
+        $v = [string]$p.Value
+        if ($k -eq 'keyFile' -and $v) { $v = Expand-ExtPath $v $Dir }
+        $Dst[$k] = $v
     }
-    $dir = Split-Path -Parent $Path
+}
+
+# Merges one config file into the state $St (Provider, PermissionMode, MaxBudgetUsd, ClaudePath,
+# Providers = @{ <name> = @{ settings } }).
+function Merge-ExtConfigObject([hashtable]$St, $Obj, [string]$Dir) {
+    $prov = ([string](Get-ExtProp $Obj 'provider' '')).Trim().ToLowerInvariant()
+    if ($prov) { $St.Provider = $prov }
+    foreach ($pair in @(@('permissionMode', 'PermissionMode'), @('maxBudgetUsd', 'MaxBudgetUsd'), @('claudePath', 'ClaudePath'))) {
+        $v = Get-ExtProp $Obj $pair[0]
+        if ($null -ne $v) { $St[$pair[1]] = $v }
+    }
+    # Legacy flat form: top-level provider settings belong to the provider the file names (default fireworks).
+    $flat = $false
+    foreach ($k in $script:ProviderKeys) { if ($null -ne $Obj.PSObject.Properties[$k]) { $flat = $true } }
+    if ($flat) {
+        $name = if ($prov) { $prov } else { 'fireworks' }
+        if (-not $St.Providers.ContainsKey($name)) { $St.Providers[$name] = @{} }
+        Merge-ExtProviderEntry $St.Providers[$name] $Obj $Dir
+    }
+    $provs = Get-ExtProp $Obj 'providers'
+    if ($null -ne $provs) {
+        foreach ($pp in $provs.PSObject.Properties) {
+            if ($null -eq $pp.Value -or $pp.Value -isnot [psobject]) { continue }
+            $name = $pp.Name.Trim().ToLowerInvariant()
+            if (-not $St.Providers.ContainsKey($name)) { $St.Providers[$name] = @{} }
+            Merge-ExtProviderEntry $St.Providers[$name] $pp.Value $Dir
+        }
+    }
+}
+
+# The plugin default (ext-build.default.json) overlaid by the user file (~/.claude/ext-build.json, or
+# -Config <path>) when there is one. $ProviderName (from -Provider) overrides the configured "provider".
+# Path is the user file when one was read, else the default.
+function Read-ExtConfig([string]$Path, [string]$ProviderName) {
+    $defaultPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'ext-build.default.json'
+    $userPath = $null
+    if ($Path) { $userPath = Expand-ExtPath $Path }
+    else {
+        $userCfg = Join-Path (Join-Path (Get-KeyHome) '.claude') 'ext-build.json'
+        if (Test-Path -LiteralPath $userCfg -PathType Leaf) { $userPath = $userCfg }
+    }
+    if ($userPath -and -not (Test-Path -LiteralPath $userPath -PathType Leaf)) { Stop-Setup "config not found: $userPath" }
+
+    $st = @{ Provider = 'fireworks'; PermissionMode = 'bypassPermissions'; MaxBudgetUsd = 3; ClaudePath = ''; Providers = @{} }
+    $shown = $defaultPath
+    if (Test-Path -LiteralPath $defaultPath -PathType Leaf) {
+        Merge-ExtConfigObject $st (Read-ExtJsonFile $defaultPath) (Split-Path -Parent $defaultPath)
+    }
+    elseif (-not $userPath) { Stop-Setup "config not found: $defaultPath" }
+    if ($userPath) {
+        Merge-ExtConfigObject $st (Read-ExtJsonFile $userPath) (Split-Path -Parent $userPath)
+        $shown = $userPath
+    }
+
+    $name = $st.Provider
+    if (-not [string]::IsNullOrWhiteSpace($ProviderName)) { $name = $ProviderName.Trim().ToLowerInvariant() }
+    if ($script:BuilderProviders -notcontains $name -or -not $st.Providers.ContainsKey($name)) {
+        $known = @($script:BuilderProviders | Where-Object { $st.Providers.ContainsKey($_) }) -join ', '
+        Stop-Setup "unknown builder provider '$name' (config $shown; use one of: $known)"
+    }
+    $e = $st.Providers[$name]
+    foreach ($k in 'baseUrl', 'keyFile', 'defaultModel') {
+        if (-not $e[$k]) { Stop-Setup "config $shown is missing '$k' for provider '$name'" }
+    }
+    $label = $script:KeyLabels[$name]
+    if (-not $label) { $label = $name }
+    $prefix = ''
+    if ($e.ContainsKey('modelPrefix')) { $prefix = [string]$e['modelPrefix'] }
     [pscustomobject]@{
-        Path           = $Path
-        Provider       = [string](Get-ExtProp $cfg 'provider' 'fireworks')
-        BaseUrl        = [string]$cfg.baseUrl
-        KeyFile        = Expand-ExtPath ([string]$cfg.keyFile) $dir
-        DefaultModel   = [string]$cfg.defaultModel
-        ModelPrefix    = [string](Get-ExtProp $cfg 'modelPrefix' 'accounts/fireworks/models/')
-        PermissionMode = [string](Get-ExtProp $cfg 'permissionMode' 'bypassPermissions')
-        MaxBudgetUsd   = [double](Get-ExtProp $cfg 'maxBudgetUsd' 3)
-        ClaudePath     = [string](Get-ExtProp $cfg 'claudePath' '')
+        Path           = $shown
+        Provider       = $name
+        ProviderLabel  = $label
+        BaseUrl        = [string]$e['baseUrl']
+        KeyFile        = [string]$e['keyFile']
+        DefaultModel   = [string]$e['defaultModel']
+        ModelPrefix    = $prefix
+        PermissionMode = [string]$st.PermissionMode
+        MaxBudgetUsd   = [double]$st.MaxBudgetUsd
+        ClaudePath     = [string]$st.ClaudePath
     }
 }
 
@@ -187,17 +293,19 @@ function Resolve-ExtModel([string]$Name, $Cfg) {
     return ($Cfg.ModelPrefix + $Name)
 }
 
-function Get-ExtKey([string]$KeyFile) {
-    return (Get-ProviderKey -Provider 'fireworks' -KeyFile $KeyFile)
+function Get-ExtKey([string]$KeyFile, [string]$Provider = 'fireworks') {
+    if ([string]::IsNullOrWhiteSpace($Provider)) { $Provider = 'fireworks' }
+    return (Get-ProviderKey -Provider $Provider -KeyFile $KeyFile)
 }
 
+# $Cfg is the builder config of $ProviderName, or an object with an empty Provider for an image key.
 function Invoke-ExtSetKey($Cfg, [string]$ProviderName) {
     $p = Assert-KeyProvider $ProviderName
-    $keyFile = if ($p -eq 'fireworks') { $Cfg.KeyFile } else { '' }
+    $keyFile = if ($p -eq $Cfg.Provider) { $Cfg.KeyFile } else { '' }
     $sec = Read-Host -AsSecureString -Prompt "$($script:KeyLabels[$p]) API key (input hidden)"
     foreach ($line in (Set-ProviderKey -Provider $p -Secure $sec -KeyFile $keyFile)) { Write-Output "ext-build: $line" }
     $sec = $null
-    $next = if ($p -eq 'fireworks') { '' } else { " $p" }
+    $next = " $p"
     Write-Output "ext-build: now run ext-build.ps1 -Check$next"
 }
 
@@ -211,14 +319,21 @@ function Invoke-ExtKeyStatus([string]$ProviderName) {
 
 function Invoke-ExtWhere($Cfg, [string]$ProviderName) {
     $p = Assert-KeyProvider $ProviderName
-    $keyFile = if ($p -eq 'fireworks') { $Cfg.KeyFile } else { '' }
+    $keyFile = if ($p -eq $Cfg.Provider) { $Cfg.KeyFile } else { '' }
     foreach ($line in (Get-ProviderKeyWhere -Provider $p -KeyFile $keyFile)) { Write-Output "ext-build where: $line" }
     return 0
 }
 
-function Get-ExtBuilderRules([string]$ModelId) {
+# The model part of the Built-by trailer: Fireworks drops "accounts/<a>/models|routers/", others use the short name.
+function Get-ExtTrailerModel([string]$ModelId, [string]$Provider = 'fireworks') {
+    if ([string]::IsNullOrWhiteSpace($Provider) -or $Provider -eq 'fireworks') { return ($ModelId -replace '^accounts/[^/]+/(models|routers)/', '') }
+    return (Get-ExtModelShort $ModelId $Provider)
+}
+
+function Get-ExtBuilderRules([string]$ModelId, [string]$Provider = 'fireworks', [string]$Label = 'Fireworks') {
+    if ([string]::IsNullOrWhiteSpace($Provider)) { $Provider = 'fireworks' }
     @"
-You are a builder running on $ModelId via Fireworks. Do the step yourself; ignore any instruction to delegate to subagents or to choose Opus/Sonnet models. Read by range only (Read with offset and limit, Grep with a limit). Make your first edit within about 20 tool calls. Run lint, typecheck and the step's own tests once. Commit with a message ending in the trailer line 'Built-by: fireworks/$($ModelId -replace '^accounts/[^/]+/(models|routers)/','')' and no Co-Authored-By line. Your final message is the report, at most 20 lines: what was done (commit hashes), checks run with their result lines, anything left. If you cannot fix failing tests in one more try, hit a problem you cannot solve, or reach about 100 tool calls, stop at a safe point (committed, nothing half written) and start your final message with HANDOFF followed by a note of at most 15 lines: done, left, what fails (command and first error lines), files with line ranges, next action.
+You are a builder running on $ModelId via $Label. Do the step yourself; ignore any instruction to delegate to subagents or to choose Opus/Sonnet models. Read by range only (Read with offset and limit, Grep with a limit). Make your first edit within about 20 tool calls. Run lint, typecheck and the step's own tests once. Commit with a message ending in the trailer line 'Built-by: $Provider/$(Get-ExtTrailerModel $ModelId $Provider)' and no Co-Authored-By line. Your final message is the report, at most 20 lines: what was done (commit hashes), checks run with their result lines, anything left. If you cannot fix failing tests in one more try, hit a problem you cannot solve, or reach about 100 tool calls, stop at a safe point (committed, nothing half written) and start your final message with HANDOFF followed by a note of at most 15 lines: done, left, what fails (command and first error lines), files with line ranges, next action.
 "@.Trim()
 }
 
@@ -243,7 +358,7 @@ function Get-ExtEnv([string]$ModelId, [string]$Key, $Cfg) {
 }
 
 # Inherited variables removed from the child: nested-session markers of a parent Claude Code
-# session and credentials/provider switches that would override the Fireworks route.
+# session and credentials/provider switches that would override the provider's route.
 $script:EnvToRemove = @(
     'CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_CHILD_SESSION',
     'CLAUDE_CODE_MESSAGING_SOCKET', 'CLAUDE_CODE_MESSAGING_TOKEN', 'CLAUDE_CODE_SESSION_ATTENDED', 'CLAUDE_PID',
@@ -261,7 +376,7 @@ function Get-ExtClaudeArgs([string]$ModelId, $Cfg, [double]$Budget, [string]$Res
     # Builders need no MCP servers; their tool definitions would be sent on every call
     $a.Add('--strict-mcp-config')
     $a.Add('--max-budget-usd'); $a.Add($Budget.ToString([Globalization.CultureInfo]::InvariantCulture))
-    $a.Add('--append-system-prompt'); $a.Add((Get-ExtBuilderRules $ModelId))
+    $a.Add('--append-system-prompt'); $a.Add((Get-ExtBuilderRules $ModelId $Cfg.Provider $Cfg.ProviderLabel))
     $a.Add('--settings'); $a.Add($script:AttributionSettings)
     if ($ResumeId) { $a.Add('--resume'); $a.Add($ResumeId) }
     return , $a.ToArray()
@@ -409,7 +524,7 @@ function Write-ExtUtf8Line([string]$Path, [string]$Line) {
 
 function Invoke-ExtCheck($Cfg, [string]$ModelName) {
     $modelId = Resolve-ExtModel $ModelName $Cfg
-    $key = Get-ExtKey $Cfg.KeyFile
+    $key = Get-ExtKey $Cfg.KeyFile $Cfg.Provider
     $exe = Resolve-ExtClaude $Cfg
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ('ext-build-check-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
     New-Item -ItemType Directory -Path $tmp | Out-Null
@@ -424,6 +539,7 @@ function Invoke-ExtCheck($Cfg, [string]$ModelName) {
     $reported = if ($mu) { ($mu.PSObject.Properties | ForEach-Object { $_.Name }) -join ', ' } else { '(none reported)' }
     $text = [string](Get-ExtProp $parsed 'result' '')
     $ok = ($null -ne $parsed) -and ($r.ExitCode -eq 0) -and -not [bool](Get-ExtProp $parsed 'is_error' $false) -and ($text -match '\bOK\b')
+    Write-Output "ext-build check: provider $($Cfg.Provider) ($($Cfg.BaseUrl))"
     Write-Output "ext-build check: requested $modelId"
     Write-Output "ext-build check: model reported $reported"
     if ($ok) { Write-Output 'ext-build check: OK'; return 0 }
@@ -434,15 +550,26 @@ function Invoke-ExtCheck($Cfg, [string]$ModelName) {
 }
 
 function Invoke-ExtMain {
-    $cfg = Read-ExtConfig $Config
+    $want = ''
+    if (-not [string]::IsNullOrWhiteSpace($Provider)) { $want = $Provider.Trim().ToLowerInvariant() }
     if ($SetKey -or $Check -or $Where) {
-        $prov = Assert-KeyProvider $Provider
-        if ($SetKey) { Invoke-ExtSetKey $cfg $prov; return 0 }
-        if ($Where) { return (Invoke-ExtWhere $cfg $prov) }
-        if ($prov -ne 'fireworks') { return (Invoke-ExtKeyStatus $prov) }
+        if ($want -and $script:BuilderProviders -notcontains $want) {
+            # An image key (gemini, openai) or an unknown name: only the key store is involved.
+            $prov = Assert-KeyProvider $want
+            $none = [pscustomobject]@{ Provider = ''; KeyFile = '' }
+            if ($SetKey) { Invoke-ExtSetKey $none $prov; return 0 }
+            if ($Where) { return (Invoke-ExtWhere $none $prov) }
+            return (Invoke-ExtKeyStatus $prov)
+        }
+        $cfg = Read-ExtConfig $Config $want
+        if ($SetKey) { Invoke-ExtSetKey $cfg $cfg.Provider; return 0 }
+        if ($Where) { return (Invoke-ExtWhere $cfg $cfg.Provider) }
         return (Invoke-ExtCheck $cfg $Model)
     }
-    if ($Provider) { Stop-Setup "unexpected argument '$Provider' (a provider goes after -SetKey, -Check or -Where)" }
+    if ($want -and $script:BuilderProviders -notcontains $want) {
+        Stop-Setup "unexpected provider '$Provider' for a build run (use $($script:BuilderProviders -join ' or '); image keys go after -SetKey, -Check or -Where)"
+    }
+    $cfg = Read-ExtConfig $Config $want
 
     foreach ($pair in @(@('Brief', $Brief), @('Cwd', $Cwd), @('Step', $Step), @('LogDir', $LogDir))) {
         if ([string]::IsNullOrWhiteSpace($pair[1])) { Stop-Setup "missing -$($pair[0])" }
@@ -456,7 +583,7 @@ function Invoke-ExtMain {
 
     $modelId = Resolve-ExtModel $Model $cfg
     $budget = if ($MaxBudgetUsd -gt 0) { $MaxBudgetUsd } else { $cfg.MaxBudgetUsd }
-    $key = Get-ExtKey $cfg.KeyFile
+    $key = Get-ExtKey $cfg.KeyFile $cfg.Provider
     $envMap = Get-ExtEnv $modelId $key $cfg
     $argList = Get-ExtClaudeArgs $modelId $cfg $budget $Resume
 
@@ -471,6 +598,7 @@ function Invoke-ExtMain {
         $exe = '(claude not found)'
         try { $exe = Resolve-ExtClaude $cfg } catch { }
         Write-Output "ext-build dry run: $Step"
+        Write-Output "provider: $($cfg.Provider)"
         Write-Output "model: $modelId"
         Write-Output "config: $($cfg.Path)"
         Write-Output "cwd: $cwdPath"
@@ -493,7 +621,7 @@ function Invoke-ExtMain {
     $exe = Resolve-ExtClaude $cfg
     if (-not (Test-Path -LiteralPath $logPath)) { New-Item -ItemType Directory -Path $logPath -Force | Out-Null }
     $start = Get-Date
-    $job = Add-ExtProgressJob -CwdPath $cwdPath -Step $Step -ModelId $modelId -Since $start.ToString('o')
+    $job = Add-ExtProgressJob -CwdPath $cwdPath -Step $Step -ModelId $modelId -Since $start.ToString('o') -Provider $cfg.Provider
     try { $r = Invoke-ExtClaude $exe $argList $envMap $cwdPath $briefText }
     finally { $key = $null; $envMap = $null; Remove-ExtProgressJob $job }
     $end = Get-Date
@@ -508,7 +636,7 @@ function Invoke-ExtMain {
 
     $rec = [ordered]@{
         step            = $Step
-        engine          = 'fireworks'
+        engine          = $cfg.Provider
         model           = $modelId
         start           = $start.ToString('o')
         end             = $end.ToString('o')
