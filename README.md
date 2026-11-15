@@ -84,6 +84,23 @@ politely, tags them with the codebook, counts them, runs a click test on the sit
 and writes `report.json` and `report.html` with a pick button on every proposal.
 It proposes only; it changes nothing on the site.
 
+**The ideas skills.** Ideas belong to the project, like its plans. `/ag:idea <your
+words>` turns a rough idea into an entry in the `ideas/` folder at the project's root:
+an id that carries a 4- or 5-letter project code (`AGPL-IDEA-003`), a title, a description, a first-look
+SWOT and RAID, and a few questions. It opens `ideas/ideas.html#AGPL-IDEA-003` at that idea
+and asks the main questions in the chat. `/ag:ideas` opens the whole list, filtered
+by status and searchable; each idea links to its research page. `/ag:idea-research
+AGPL-IDEA-003` does the deep research. It answers "should we do it?": how the idea brings
+value, and what discovery finds. How to build it is left to `/ag:plan` after a go.
+For an idea that builds on the project it covers the current state from the code,
+the target and the gap between them; for something new it does full market research. Both include search demand and traffic
+from DataForSEO (at most 8 calls, cost noted), what people say on Reddit and the web,
+competitors with prices, and a sourced SWOT and RAID. The result is a fact-checked
+page (`ideas/AGPL-IDEA-003-<slug>/research.html`) with a verdict and a Decide bar. On both
+pages **Copy answer** gives lines such as `AGPL-IDEA-003 Q1 B` or `AGPL-IDEA-003 decision park:
+why`; paste them in the chat to record them. The script is
+`plugins/ag/scripts/ideas.mjs`; raw research data stays out of git.
+
 **Missing keys are told to you.** Before it makes images, `/ag:design` checks the
 image key (no API call; the key is never shown). If it is not set, you get the
 `ag-key.ps1 set <provider>` line for your own terminal (see [Keys](#keys)) and choose:
@@ -561,6 +578,7 @@ Run both before a release:
 ```sh
 claude plugin test plugins/ag          # the band and pane model (hooks/*.test.ts)
 node --test plugins/ag/tests/skills.test.mjs   # the goal skills' runner text
+node --test plugins/ag/tests/ideas.test.mjs    # the ideas script and skills
 ```
 
 Each script under `plugins/ag/scripts/` with a `.test.ps1` beside it has its own

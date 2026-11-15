@@ -1,0 +1,92 @@
+{
+  "id": "AGPL-IDEA-001",
+  "date": "2026-11-15",
+  "mode": "extension",
+  "verdict": {
+    "call": "go-with-changes",
+    "confidence": "medium",
+    "why": "The data already exists and the page is small to build, but cost per run is not recorded today, so the first version should leave money out or mark it as an estimate."
+  },
+  "summary": [
+    "Steps and status are already in the plans and in `.claude/goal-progress.json`; nothing new needs tracking.",
+    "Search demand for a tool like this is small (this is an example: numbers are made up).",
+    "**Change:** ship without cost first; add cost once runs record it."
+  ],
+  "current": {
+    "text": "What the project has today that the idea builds on.",
+    "points": [
+      { "text": "Plans mark each step's status in the plan file.", "where": ["skills/goal-prompt/SKILL.md"] },
+      { "text": "The goal-progress bar reads the plan marks and a small JSON file.", "where": ["scripts/goal-progress.mjs"] }
+    ]
+  },
+  "target": {
+    "text": "What has to be true when the idea is done.",
+    "points": [{ "text": "One digest page per week, opened in the browser, readable on a phone." }]
+  },
+  "gap": {
+    "text": "What is missing between now and the target, as found; how to close it is for /ag:plan.",
+    "points": [
+      { "text": "No page reads across plans: each plan's marks are seen one plan at a time.", "where": ["scripts/goal-progress.mjs"] },
+      { "text": "Runs do not record their cost, so a digest could not show money without guessing." }
+    ]
+  },
+  "value": {
+    "text": "Who gains what, and why it would be worth doing.",
+    "points": [
+      { "text": "The user sees in one place which goals moved and which stalled, without opening each plan.", "judgement": true },
+      { "text": "People running agent tools ask for weekly summaries of what the agents did (example).", "sources": ["S4"] }
+    ],
+    "measures": [
+      "The digest is opened most weeks.",
+      "At least one stalled goal a month is restarted or dropped because the digest showed it."
+    ]
+  },
+  "size": { "call": "small", "text": "The data already exists in the plans; the work is reading and showing it." },
+  "demand": {
+    "text": "Example only: the volumes below are invented to show the layout.",
+    "where": "DataForSEO Google Ads search volume, United Kingdom and United States, English.",
+    "keywords": [
+      { "phrase": "claude code usage report", "volume": 320, "cpc": 2.1, "competition": "low", "trend": [90, 110, 150, 170, 210, 260, 240, 280, 300, 310, 330, 320], "sources": ["S1"] },
+      { "phrase": "ai agent cost tracking", "volume": 880, "cpc": 6.4, "competition": "medium", "trend": [500, 540, 610, 700, 720, 760, 800, 830, 850, 870, 900, 880], "sources": ["S1"] },
+      { "phrase": "goal run summary", "volume": null, "sources": [] }
+    ]
+  },
+  "voices": [
+    { "kind": "want", "title": "Example thread: how do you track what agents did overnight?", "url": "https://example.com/thread/1", "source": "Example forum", "date": "2026-10-02", "point": "People ask for one place to see what a long agent run changed.", "quote": "I just want one page that says what it did" }
+  ],
+  "competitors": [
+    { "name": "Example Tool", "url": "https://example.com/tool", "what": "Dashboards for agent runs.", "pricing": "From $20 a month (example)", "traffic": { "value": "about 12,000 visits a month", "note": "(estimate)", "sources": ["S2"] }, "strengths": ["Hosted, nothing to install"], "weaknesses": ["Does not read plan files"], "sources": ["S3"] }
+  ],
+  "swot": {
+    "strengths": [{ "text": "No new tracking needed.", "judgement": true }],
+    "weaknesses": [{ "text": "No cost data per run today.", "judgement": true }],
+    "opportunities": [{ "text": "Interest in agent cost tracking is growing.", "sources": ["S1"] }],
+    "threats": [{ "text": "Hosted dashboards already exist.", "sources": ["S3"] }]
+  },
+  "raid": {
+    "risks": [{ "text": "Cost estimates mislead", "likelihood": "medium", "impact": "high", "mitigation": "Leave cost out of version 1." }],
+    "assumptions": [{ "text": "A weekly page will be read", "test": "Make two by hand and ask." }],
+    "issues": [],
+    "dependencies": [{ "text": "Plan mark format stays stable." }]
+  },
+  "facts": [
+    { "text": "Example fact with its source.", "sources": ["S3"] }
+  ],
+  "experiments": [
+    { "text": "Write one digest by hand from last week's plans", "measure": "Is it read, and does it change a decision?", "cost": "1 hour" }
+  ],
+  "questions": [
+    { "q": "Which week should the first digest cover?", "why": "So it can be compared with what you remember." }
+  ],
+  "sources": [
+    { "id": "S1", "kind": "DataForSEO", "title": "Search volume, keywords_data/google_ads/search_volume (example)", "path": "AGPL-IDEA-001-weekly-digest-of-goal-runs/data/search-volume.json" },
+    { "id": "S2", "kind": "DataForSEO", "title": "Traffic estimate, dataforseo_labs/bulk_traffic_estimation (example)", "path": "AGPL-IDEA-001-weekly-digest-of-goal-runs/data/traffic.json" },
+    { "id": "S3", "kind": "web", "title": "Example Tool pricing page", "url": "https://example.com/tool/pricing", "date": "2026-11-15" },
+    { "id": "S4", "kind": "forum", "title": "Thread asking for a weekly summary of agent runs (example)", "url": "https://example.com/forum/weekly-agent-summary", "date": "2026-11-15" }
+  ],
+  "method": [
+    "Read the project's plans, skills and scripts for the current state.",
+    "DataForSEO: 1 search-volume call (3 phrases), 1 traffic call (1 domain). Example cost: $0.08.",
+    "Web search and forum threads for what people say; quotes kept to 20 words or fewer, no user names."
+  ]
+}

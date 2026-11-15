@@ -3,6 +3,55 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.11.0 - 2026-11-15
+
+An ideas list per project, from a rough line to researched facts.
+
+- New `plugins/ag/scripts/ideas.mjs`, which keeps `ideas/ideas.json` and renders
+  `ideas/ideas.html` and each idea's `research.html`. Its commands are `add`,
+  `render [--strict]`, `open [--id] [--research]`, `record`, `resolve`, `list`,
+  `status` and `link`. Windows drops `#AGPL-IDEA-003` when it opens a file, so `open`
+  goes through a small redirect page in the temp folder. Ideas belong to the
+  project: without `--dir` the folder is `ideas/` at the git root (else the
+  current folder), and the script refuses to use the home folder. It writes
+  `ideas/.gitignore` to keep `*/data/` (raw research data) out of git. Each list
+  has a project code of 4 or 5 letters (`--code`, else made from the project's
+  name: AgentsPlugin is `AGPL`), and every id and folder carries it
+  (`AGPL-IDEA-003`), so ideas of two projects never share an id. `IDEA-003` and
+  `3` still work as references; another project's code is refused.
+- `/ag:ideas [id]` renders the list and opens it. You can filter by status and
+  search. Each card shows the id, status, description, target, first-look SWOT
+  and RAID, questions with a recommended option, comments, and a link to the
+  research page with its verdict.
+- `/ag:idea <words>` adds an idea: id, title, description, the words as typed,
+  kind (builds on the project, or something new), target, first-look SWOT and
+  RAID, and 3 to 6 questions. It opens the list at the idea and asks the main
+  questions in the chat. `/ag:idea AGPL-IDEA-003 <words>` adds a comment or changes
+  the idea. Pasted answer lines are recorded: `AGPL-IDEA-003: comment`,
+  `AGPL-IDEA-003 Q2 B: note`, `AGPL-IDEA-003 decision park: why` (park and drop set the
+  status) and `AGPL-IDEA-003 RQ1: text`.
+- `/ag:idea-research <id>` runs four Opus high subagents in parallel:
+  - the current state, the target, the gap between them, and the value;
+  - demand and traffic from DataForSEO (at most 8 calls, a dollar budget, cost
+    noted, raw answers kept);
+  - what people say, from Reddit RSS through `fetch-reddit.mjs`, the web, and
+    Claude in Chrome on Sonnet as the fallback;
+  - competitors and the market.
+
+  Research answers "should we do it?" and plans nothing. How to build it is
+  left to `/ag:plan` after a go. The page has no build steps or task
+  estimates, only one rough size (small, medium or large), and
+  `render --strict` warns if a `path` or efforts appear.
+  The results go into `research.json`, which `render --strict` checks: every
+  claim cites a source, web sources have a date, risks have likelihood and
+  impact, quotes have 20 words or fewer, and there are no user handles. An Opus
+  high subagent checks the facts, Playwright checks the page at 1440 and 390,
+  and the review page shows both. The research page has a verdict, the
+  summary, value, now, target, gap, demand with trends, voices, competitors, SWOT,
+  RAID, facts, cheap tests, numbered sources, the method, and a Decide bar with
+  Copy answer.
+- Tests: `node --test plugins/ag/tests/ideas.test.mjs` (17 tests).
+
 ## 1.10.0 - 2026-11-14
 
 The first review pages were a grid of small cards with scroll bars inside them,

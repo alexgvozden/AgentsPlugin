@@ -1,0 +1,25 @@
+{
+  "title": "Weekly digest of goal runs",
+  "description": "Once a week, one HTML page sums up every goal run in the project: steps done, steps that failed and were raised to high, time and cost per run, and what is still open. It is written from the plans' marks and .claude/goal-progress.json, so it needs no new tracking.",
+  "raw": "can we get some weekly summary of what the goals did, cost and what failed",
+  "kind": "extension",
+  "tags": ["goal runs", "reports"],
+  "target": "Every Monday the digest page is in the project and opens in the browser; it takes under a minute to read and shows where the week's money and time went.",
+  "swot": {
+    "strengths": ["The data is already there: plans carry step marks and goal-progress.json has status and notes.", "Reuses the HTML report style the plugin already has."],
+    "weaknesses": ["Cost per run is not recorded today; it would be an estimate."],
+    "opportunities": ["The same page could compare builder models over time (Sonnet, Haiku, Fireworks)."],
+    "threats": ["Claude Code may ship its own usage reports and make this redundant."]
+  },
+  "raid": {
+    "risks": [{ "text": "Cost numbers are wrong and mislead decisions", "likelihood": "medium", "impact": "high", "mitigation": "Show cost only where the session reports it; mark estimates." }],
+    "assumptions": [{ "text": "One digest a week is the right rhythm", "test": "Run it by hand for two weeks and see if it is read." }],
+    "issues": [],
+    "dependencies": ["Plans keep their step marks in the current format."]
+  },
+  "questions": [
+    { "q": "How should the digest start?", "options": ["By hand with a command", "On a schedule every Monday", "At the end of each goal run"], "recommended": 0, "why": "A schedule needs the machine on; by hand is the cheapest start." },
+    { "q": "Should it show money?", "options": ["Yes, with estimates marked", "No, steps and time only"], "recommended": 0 },
+    { "q": "Which projects does it cover?", "why": "One project, or every project under ~/Code?" }
+  ]
+}
