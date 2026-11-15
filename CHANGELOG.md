@@ -3,6 +3,12 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.12.1 - 2026-11-15
+
+- README: a Plan pages guide: where plans live, reading a plan (contents, folds,
+  search, links), the solution design and its diagrams, answering on the page and
+  what happens to the answers, and the plan-page.mjs commands, with screenshots.
+
 ## 1.12.0 - 2026-11-15
 
 Plans you read as a page, each in a folder of its own.

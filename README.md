@@ -176,24 +176,9 @@ planning setting. The planning runs on Fable 5.2 high with fable planning on,
 else Opus 5.5 high, in a subagent if the session is on another model. Then paste
 the same goal again, or run the goal skill again if its runner must change.
 
-**Plan pages.** Each new plan gets a folder of its own, `plans/<yyyymmdd>-<slug>/`
-(inside `.planning/` or `docs/plans/` if the project already keeps plans there),
-holding `plan.md`, its page `plan.html` and any files that belong to that plan
-alone. `plan.md` stays the source the goal runs read and mark;
-`plugins/ag/scripts/plan-page.mjs render` makes `plan.html` from it after every
-change, and `/ag:plan` opens it in the browser. The page shows the goal, the
-solution design (architecture, high-level design, screens, technical
-implementation) with its Mermaid flowcharts and sequence diagrams drawn and its
-design images, every phase and step with its status, the open questions with
-their options, and the Feedback list. Every part opens and closes (**Open all**,
-**Close all**, kept per page), a contents list follows you down the page, and a
-search box finds and opens what matches. Each item has a comment box,
-each question option buttons, and the whole plan a **Looks good** or **Needs
-changes** call; **Copy answer** gives lines such as `Plan: plans/…/plan.md`,
-`PLAN ok`, `Q1 B` and `1.2: comment`. Paste them into the chat (or after
-`/ag:plan`) and they are recorded: answers under their question, comments in the
-plan's Feedback section marked `— open`, then the plan is changed to match and each
-line is closed with what changed.
+**Plan pages.** Each new plan gets a folder of its own, `plans/<yyyymmdd>-<slug>/`,
+holding `plan.md` (the source the goal runs read and mark) and `plan.html`, the
+page you read and answer in the browser. See [Plan pages](#plan-pages) for a guide.
 
 **Global rules.** `rules/CLAUDE.global.md` holds the shared rules;
 `~/.claude/CLAUDE.md` imports it from this checkout, so a plugin update cannot
@@ -478,6 +463,120 @@ its report (at most 20 lines) and the path of its full log:
 ```text
 ext-build: S1 · accounts/fireworks/models/deepseek-v4p1-flash-1017 · 15 turns · 412.3k in (380.1k cached) / 9.8k out · 6m10s · ok
 ```
+
+## Plan pages
+
+A plan is written in Markdown, because the goal runs read it and mark each step's
+status in it. You read it as a web page: `/ag:plan` makes `plan.html` from
+`plan.md` after every change and opens it in your browser. You never edit the page;
+change the plan by answering on it, or by asking `/ag:plan` for a change.
+
+![A plan page: contents list, folding parts, phases and steps](docs/images/plan-page.png)
+
+### Where plans live
+
+```text
+plans/
+  20261115-saved-searches/
+    plan.md        the plan: goal, design, phases, steps, questions, feedback
+    plan.html      made from plan.md; open it in the browser
+    ...            files that belong to this plan alone (notes, data, images)
+```
+
+A project that already keeps plans in `.planning/` or `docs/plans/` gets the
+folders there. A plan written before 1.12.0 as a loose file moves into a folder
+of its own the next time `/ag:plan` updates it.
+[`plugins/ag/skills/plan/plan.example.md`](plugins/ag/skills/plan/plan.example.md)
+is a short, complete example.
+
+### Reading a plan
+
+- **Contents.** On a wide screen the list stays at the side and marks where you
+  are; on a phone it sits closed at the top. The dots show each phase's and
+  step's status.
+- **Open and close.** Every part folds. **Open all** and **Close all** sit at the
+  top, and the page remembers what you opened. Done parts start closed, and so do
+  the steps of a plan with more than 15 of them, so a long plan opens as an outline.
+- **Search.** "Find in the plan" dims what does not match and opens what does.
+- **Links.** `plan.html#r-1.2` opens straight at step 1.2 (`#r-P1` a phase,
+  `#r-Q1` a question); `plan-page.mjs open <plan.md> --id 1.2` does the same.
+
+### The solution design
+
+A feature plan carries a **Solution design** before its phases, with the parts
+it needs: **Architecture** (the pieces and how they talk), **High-level design**
+(data, API, the main flows), **Screens (UX and UI)** (with the `/ag:design`
+images) and **Technical implementation** (approach, risks, limits). Each step
+names the parts it builds on, in a `Design:` line.
+
+![Solution design: an architecture flowchart and a sequence diagram](docs/images/plan-design.png)
+
+Diagrams are written as ` ```mermaid ` blocks in `plan.md` and drawn on the page
+as pictures, with no outside script, so the page works offline:
+
+- **Flowcharts** (`flowchart` or `graph`, any direction): shapes such as
+  `[box]`, `(round)`, `{choice}` and `[(database)]`, labelled arrows
+  (`-->|GET /api|`), and `subgraph` groups shown in a tint.
+- **Sequence diagrams**: participants and actors, messages and replies, notes,
+  and `loop`, `alt`/`else`, `opt` and `par` blocks.
+- **Anything else** (pie, gantt, class diagrams…) shows its source as text.
+  Every diagram has a **Diagram source** fold under it.
+
+An image on a line of its own, `![Search page, desktop](../../design/…/search.png)`,
+shows as a picture with its caption. On a phone, a wide diagram scrolls sideways.
+
+<img src="docs/images/plan-phone.png" alt="A plan page on a phone, at the architecture diagram" width="300">
+
+Write the design headings in words: a heading made only of capitals and digits
+("UX", "API") is read as a step id.
+
+### Answering on the page
+
+- Each question has its options as buttons; the recommended option is what the
+  plan does if you say nothing. There is a box for a note or your own answer.
+- Each section, phase and step has a **Comment on …** box.
+- In **Your call on this plan**, the whole plan gets **Looks good** or **Needs
+  changes**, with a note.
+
+The bar at the bottom collects your answers as lines; **Copy answer** puts them on
+the clipboard:
+
+![Answers collected in the bar at the bottom of a plan page](docs/images/plan-answered.png)
+
+```text
+Plan: plans/20261115-saved-searches/plan.md
+PLAN ok
+Q1 A
+1.2: Also return 404 for another user's id
+```
+
+Paste them into the chat (on their own, or after `/ag:plan`). They are recorded
+in `plan.md`: an answer goes under its question, and everything else becomes a
+dated line in the plan's **Feedback** section marked `— open`. Then the plan is
+changed to match, each line is closed with `— done` or `— no change` and a word on
+why, and the page is made again. The Feedback list starts open while any line is
+still open. What you typed stays in the browser, so a reload keeps it; **Clear**
+empties it.
+
+The planner asks the questions that have options in the chat too, in rounds of
+up to four, so a plan can ask as many as it needs.
+
+### The script
+
+`/ag:plan` runs [`plugins/ag/scripts/plan-page.mjs`](plugins/ag/scripts/plan-page.mjs)
+for you; you can also run it yourself:
+
+```sh
+node plugins/ag/scripts/plan-page.mjs folder saved searches          # prints plans/<today>-saved-searches/plan.md
+node plugins/ag/scripts/plan-page.mjs render plans/…/plan.md --strict  # checks the plan and writes plan.html
+node plugins/ag/scripts/plan-page.mjs open plans/…/plan.md --id Q1     # opens the page at a step, phase or question
+node plugins/ag/scripts/plan-page.mjs record plans/…/plan.md --from answers.txt  # records pasted answer lines
+node plugins/ag/scripts/plan-page.mjs refs plans/…/plan.md             # lists the refs the page uses
+```
+
+`render --strict` exits 1 when the plan has something to fix: a step with no
+status mark, a question with no id or no default, or two headings with the same
+name. Without it, it warns and writes the page anyway.
 
 ## Review pages
 
