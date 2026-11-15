@@ -354,7 +354,7 @@ export function checkResearch(r, idea) {
 
 // ---------- shared page parts ----------
 
-const CSS = `
+export const CSS = `
 :root{--bg:#f4f5f7;--card:#fff;--ink:#111827;--muted:#6b7280;--soft:#9ca3af;--line:#e5e7eb;--line2:#d1d5db;
 --acc:#2563eb;--acc-bg:#eff6ff;--ok:#047857;--ok-bg:#ecfdf5;--chg:#b45309;--chg-bg:#fffbeb;--bad:#b91c1c;--bad-bg:#fef2f2;--pick:#6d28d9;--pick-bg:#f5f3ff;
 --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);--r:14px;--mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
@@ -429,7 +429,7 @@ footer.end{padding:10px 0 28px;font-size:13px;color:var(--soft)}
 
 // The answer bar's script: collects lines from [data-line] controls, keeps them in localStorage,
 // and copies them. Each page supplies compose(), which turns the state into lines.
-const ANSWER_JS = `
+export const ANSWER_JS = `
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 let S={};try{S=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -449,12 +449,12 @@ $('#copy').addEventListener('click',async()=>{const text=compose();if(!text){toa
 $('#clear').addEventListener('click',()=>{S={};save();paint();toast('Answers cleared')});
 `
 
-const page = ({ title, body, script, lang = 'en-GB' }) => `<!doctype html>
+export const page = ({ title, body, script, lang = 'en-GB', generator = 'ag ideas 1' }) => `<!doctype html>
 <html lang="${esc(lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="generator" content="ag ideas 1">
+<meta name="generator" content="${esc(generator)}">
 <title>${esc(title)}</title>
 <style>${CSS}</style>
 </head>
@@ -724,7 +724,7 @@ export function openTarget(dir, idea, { research = false } = {}) {
   return redirect
 }
 
-function launch(file) {
+export function launch(file) {
   const opts = { detached: true, stdio: 'ignore' }
   if (process.platform === 'win32') spawn('cmd.exe', ['/d', '/s', '/c', `start "" "${file}"`], { ...opts, windowsVerbatimArguments: true }).unref()
   else spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [file], opts).unref()

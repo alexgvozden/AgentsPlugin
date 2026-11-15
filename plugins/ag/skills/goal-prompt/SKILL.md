@@ -56,7 +56,7 @@ Checked Oct 11, 2026 (code.claude.com docs: env-vars, context-window, sub-agents
 
 ### 1. Read the plan
 
-- Use the path in `$ARGUMENTS`, else look for `PLAN.md`, `.planning/**`, `docs/**/plan*.md`, `*.plan.md`, or the plan in this conversation. If none or several, ask.
+- Use the path in `$ARGUMENTS`, else look for `plans/**/plan.md`, `PLAN.md`, `.planning/**`, `docs/**/plan*.md`, `*.plan.md`, or the plan in this conversation. If none or several, ask.
 - Note the steps (ids, titles, acceptance), the phases and gates (sign-offs the plan requires), the files and modules each step touches (principle 4), and **where status already lives** (a tracker table, checkboxes, status lines). Use that place; add one only if there is none.
 - Read `CLAUDE.md` / `AGENTS.md` for rules and commands.
 - **Fable planning:** read `.claude/ag.json` in the project root. If it has `"fablePlanning": true`, fable planning is on: fill in the Fable parts of rule 8 and of the runner's Work line. If the file or the key is missing, or it is `false`, it is off: leave those parts out. It is set with `/ag:fable-planning on|off`.

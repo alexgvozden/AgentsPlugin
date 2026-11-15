@@ -3,6 +3,40 @@
 What changed in the `ag` plugin, newest first. The steps named in brackets are
 in [PLAN.md](PLAN.md).
 
+## 1.12.0 - 2026-11-15
+
+Plans you read as a page, each in a folder of its own.
+
+- New `plugins/ag/scripts/plan-page.mjs` renders a plan's `plan.md` into
+  `plan.html` beside it: goal, phases and steps with status chips, open
+  questions with option buttons, the Feedback list, search, a comment box on
+  every item, and the answer bar with **Copy answer** from the ideas pages. Every
+  part opens and closes (**Open all** and **Close all**; the page remembers
+  them), done steps start closed and so do all steps in a plan of more than 15,
+  and a contents list stays beside the plan on a wide screen.
+- New `plugins/ag/scripts/mermaid-svg.mjs` draws Mermaid `flowchart` and
+  `sequenceDiagram` blocks as SVG inside the page, with no outside script; other
+  kinds show their source. Images in a plan (`![…](…)`) show as figures. Its commands are `folder`, `render [--strict]`, `open [--id]`,
+  `record --from` and `refs`. `--strict` warns on duplicate ids, steps without
+  a status and questions without an id or a default.
+- `/ag:plan` puts a new plan in `plans/<yyyymmdd>-<slug>/plan.md` (or in
+  `.planning/` or `docs/plans/` if the project uses them), renders and opens its
+  page, and asks the main questions in the chat. Pasted answer lines (`PLAN ok`,
+  `PLAN changes: …`, `Q1 B`, `1.2: …`) are recorded in the plan, answers under
+  their question and the rest in a Feedback section, then acted on and closed
+  with `— done <date>: …` or `— no change: …`. A loose plan in a plans folder
+  moves into a folder of its own on its next update; a root `PLAN.md` and plans
+  with "How this plan is run" stay put. The format is shown in
+  `skills/plan/plan.example.md`.
+- A new plan for a feature has a Solution design section where the work needs
+  one: architecture, high-level design (components, data, APIs, key flows),
+  screens with their states and design images, and the technical
+  implementation. Updates keep it in step with the plan.
+- `/ag:plan` asks every open question that has options, in several rounds of at
+  most 4 when there are more.
+- The goal skills also look for `plans/**/plan.md`; both planner agents render
+  the page after writing a plan for `/ag:plan`.
+
 ## 1.11.0 - 2026-11-15
 
 An ideas list per project, from a rough line to researched facts.

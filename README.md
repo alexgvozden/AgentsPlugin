@@ -38,6 +38,8 @@ commands:
   project's `.claude/product-ideas/`.
 - `/ag:plan` — makes a new plan or updates one, on Fable 5.2 high when fable
   planning is on, else Opus 5.5 high; an update keeps the plan's goal setup.
+  Each plan has its own folder, `plans/<yyyymmdd>-<slug>/`, with `plan.md` and the
+  `plan.html` page you read, with comment boxes and Copy answer.
   Long jobs follow a batch and crawl checklist: raw data kept, resumable, early results.
 - `/ag:fable-planning on|off` — per project, puts the planning in goal runs,
   `/ag:design` and `/ag:plan` on Fable 5.2 high instead of Opus 5.5 high. Off by default.
@@ -173,6 +175,25 @@ Sonnet or Fireworks, by the same tests), and rule 8 follows the current fable
 planning setting. The planning runs on Fable 5.2 high with fable planning on,
 else Opus 5.5 high, in a subagent if the session is on another model. Then paste
 the same goal again, or run the goal skill again if its runner must change.
+
+**Plan pages.** Each new plan gets a folder of its own, `plans/<yyyymmdd>-<slug>/`
+(inside `.planning/` or `docs/plans/` if the project already keeps plans there),
+holding `plan.md`, its page `plan.html` and any files that belong to that plan
+alone. `plan.md` stays the source the goal runs read and mark;
+`plugins/ag/scripts/plan-page.mjs render` makes `plan.html` from it after every
+change, and `/ag:plan` opens it in the browser. The page shows the goal, the
+solution design (architecture, high-level design, screens, technical
+implementation) with its Mermaid flowcharts and sequence diagrams drawn and its
+design images, every phase and step with its status, the open questions with
+their options, and the Feedback list. Every part opens and closes (**Open all**,
+**Close all**, kept per page), a contents list follows you down the page, and a
+search box finds and opens what matches. Each item has a comment box,
+each question option buttons, and the whole plan a **Looks good** or **Needs
+changes** call; **Copy answer** gives lines such as `Plan: plans/…/plan.md`,
+`PLAN ok`, `Q1 B` and `1.2: comment`. Paste them into the chat (or after
+`/ag:plan`) and they are recorded: answers under their question, comments in the
+plan's Feedback section marked `— open`, then the plan is changed to match and each
+line is closed with what changed.
 
 **Global rules.** `rules/CLAUDE.global.md` holds the shared rules;
 `~/.claude/CLAUDE.md` imports it from this checkout, so a plugin update cannot
